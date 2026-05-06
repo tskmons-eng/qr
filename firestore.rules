@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSuper() {
+      return request.auth != null && request.auth.token.email == 'tsk.mons@gmail.com';
+    }
+
+    function isGoogle() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function isAllowedOwner() {
+      return isGoogle()
+        && exists(/databases/$(database)/documents/allowedEmails/$(request.auth.token.email));
+    }
+
+    function isOwnerOf(storeId) {
+      return isGoogle() && request.auth.uid == storeId;
+    }
+
+    function isStaffOf(storeId) {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous'
+        && exists(/databases/$(database)/documents/staffSessions/$(request.auth.uid))
+        && get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data.storeId == storeId;
+    }
+
+    function canAccess(storeId) {
+      return isSuper() || isOwnerOf(storeId) || isStaffOf(storeId);
+    }
+
+    // 許可メール（スーパー管理者が管理）
+    match /allowedEmails/{email} {
+      allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
+      allow write: if isSuper();
+    }
+
+    // スタッフセッション（匿名ユーザーを店舗に紐づける）
+    match /staffSessions/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/storeCodes/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/storeCodes/$(request.resource.data.code)).data.storeId == request.resource.data.storeId;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 店舗コード
+    match /storeCodes/{code} {
+      allow read: if request.auth != null;
+      allow write: if (isSuper() || isAllowedOwner())
+                   && request.resource.data.storeId == request.auth.uid;
+    }
+
+    // 店舗
+    match /stores/{storeId} {
+      allow read: if canAccess(storeId);
+      allow create: if isSuper() || isAllowedOwner();
+      allow update, delete: if isSuper() || isOwnerOf(storeId);
+    }
+
+    // テーブル（お客さんも読める）
+    match /tables/{tableId} {
+      allow read: if true;
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update: if canAccess(resource.data.storeId)
+                    || (resource.data.status == 'vacant' && request.resource.data.status == 'occupied');
+      allow delete: if canAccess(resource.data.storeId);
+    }
+
+    // カテゴリー（お客さんも読める）
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // 商品（お客さんも読める）
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // 注文（お客さんも作成できる）
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if canAccess(resource.data.storeId);
+      allow delete: if canAccess(resource.data.storeId);
+    }
+
+    // 注文アイテム（お客さんも作成できる）
+    match /orderItems/{itemId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if canAccess(resource.data.storeId);
+      allow delete: if canAccess(resource.data.storeId);
+    }
+
+    // 会計
+    match /checks/{checkId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // レジ締め
+    match /cashClosings/{closingId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // スタッフアクション
+    match /staffActions/{actionId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // 予約
+    match /reservations/{reservationId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // 店舗設定（お客さんも読める）
+    match /storeConfig/{configId} {
+      allow read: if true;
+      allow write: if isSuper() || isOwnerOf(configId) || isStaffOf(configId);
+    }
+
+    // スタッフメンバー
+    match /staffMembers/{memberId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // 呼び出し（お客さんも作成できる）
+    match /calls/{callId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if true;
+      allow update: if canAccess(resource.data.storeId);
+      allow delete: if canAccess(resource.data.storeId);
+    }
+
+    // スタッフトークン
+    match /staffTokens/{tokenId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+  }
+}
