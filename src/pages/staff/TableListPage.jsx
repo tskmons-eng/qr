@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { useStore } from '../../contexts/StoreContext'
+import StaffBottomNav from '../../components/StaffBottomNav'
 
 const statusConfig = {
   vacant:           { label: '空席',    bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
@@ -78,7 +79,7 @@ export default function TableListPage() {
   )
 
   return (
-    <div style={{ padding: 16, maxWidth: 600, margin: '0 auto' }}>
+    <div style={{ padding: 16, paddingBottom: 88, maxWidth: 600, margin: '0 auto' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {tables.map(table => {
           const pending = pendingMap[table.id] ?? { total: 0, drink: 0, food: 0 }
@@ -126,6 +127,7 @@ export default function TableListPage() {
           )
         })}
       </div>
+      <StaffBottomNav current="seat" />
     </div>
   )
 }

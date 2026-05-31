@@ -32,7 +32,8 @@ export default function ApprovalGate({ children }) {
       <div style={{ fontSize: 52 }}>🚫</div>
       <h2 style={{ fontSize: 18, margin: 0 }}>アクセスできません</h2>
       <p style={{ color: '#888', textAlign: 'center', fontSize: 14, margin: 0 }}>このメールアドレスは許可されていません</p>
-      <p style={{ color: '#bbb', fontSize: 12, margin: 0 }}>{user.email}</p>
+      <p style={{ color: '#333', fontSize: 13, margin: 0, background: '#fff', padding: '6px 14px', borderRadius: 6, border: '1px solid #ddd' }}>{user.email}</p>
+      <p style={{ color: '#bbb', fontSize: 12, margin: 0 }}>↑ このメールを設定画面で許可してください</p>
       <button
         onClick={() => signOut(auth)}
         style={{ marginTop: 16, padding: '10px 24px', fontSize: 14, background: '#fff', border: '1px solid #ddd', borderRadius: 8, cursor: 'pointer', color: '#666' }}

@@ -4,6 +4,7 @@ import { doc, collection, query, where, onSnapshot, getDocs, updateDoc, addDoc, 
 import { db, auth } from '../../lib/firebase'
 import { useStore } from '../../contexts/StoreContext'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
+import StaffBottomNav from '../../components/StaffBottomNav'
 
 function formatElapsed(startedAtSeconds, nowMs) {
   const elapsed = Math.floor((nowMs / 1000) - startedAtSeconds)
@@ -250,7 +251,7 @@ export default function TableDetailPage() {
   const guestCount = table.guestCount ?? 0
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: 88 }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: 156 }}>
 
       {/* キャンセル確認モーダル */}
       {cancelTarget && (
@@ -444,7 +445,7 @@ export default function TableDetailPage() {
         </>
       )}
 
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #eee', padding: '12px 16px', display: 'flex', gap: 8 }}>
+      <div style={{ position: 'fixed', bottom: 74, left: 0, right: 0, background: '#fff', borderTop: '1px solid #eee', padding: '10px 16px', display: 'flex', gap: 8, zIndex: 44 }}>
         {hasOrder && (
           <button
             onClick={openMoveModal}
@@ -455,21 +456,21 @@ export default function TableDetailPage() {
         )}
         {hasOrder && (
           <button
-            onClick={() => navigate(`/staff/table/${tableId}/add-order`, { state: { orderId: table.currentOrderId, storeId: table.storeId } })}
+            onClick={() => navigate(`/staff/table/${tableId}/add-order`, { state: { orderId: table.currentOrderId, storeId: table.storeId, guestCount: table.guestCount } })}
             style={{ flex: 1, padding: '13px', fontSize: 14, background: '#fff', color: '#222', border: '2px solid #222', borderRadius: 10, cursor: 'pointer' }}
           >
             + 注文追加
           </button>
         )}
-        {hasOrder && (
-          <button
-            onClick={() => navigate(`/staff/table/${tableId}/checkout`, { state: { orderId: table.currentOrderId, storeId: table.storeId, guestCount: table.guestCount } })}
-            style={{ flex: 1, padding: '13px', fontSize: 14, background: '#222', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer' }}
-          >
-            会計へ
-          </button>
-        )}
       </div>
+      <StaffBottomNav
+        current="seat"
+        tableId={tableId}
+        orderId={table.currentOrderId}
+        storeId={table.storeId}
+        guestCount={table.guestCount}
+        pendingCount={orderedItems.length}
+      />
     </div>
   )
 }

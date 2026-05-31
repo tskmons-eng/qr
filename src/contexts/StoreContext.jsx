@@ -70,6 +70,7 @@ export function StoreProvider({ children }) {
 
   function clearDeviceStore() {
     localStorage.removeItem('deviceStoreId')
+    localStorage.removeItem('savedStaffStoreCode')
     setStoreId(null)
   }
 

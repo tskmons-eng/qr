@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { useOrder } from '../../contexts/OrderContext'
+import CustomerBottomNav from '../../components/CustomerBottomNav'
 
 const statusLabel = { ordered: '準備中', served: '提供済み', cancelled: 'キャンセル' }
 const statusColor = { ordered: '#f59e0b', served: '#16a34a', cancelled: '#bbb' }
@@ -69,7 +70,7 @@ export default function OrderCompletePage() {
   const showTotal = checkoutStep !== null
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: allowAdditionalOrders ? 88 : 24 }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: allowAdditionalOrders ? 150 : 88 }}>
       <header style={{ background: '#222', color: '#fff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 12, opacity: 0.55, marginBottom: 2 }}>{table.tableName}</div>
@@ -164,7 +165,7 @@ export default function OrderCompletePage() {
       </div>
 
       {allowAdditionalOrders && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px', background: '#fff', borderTop: '1px solid #eee' }}>
+        <div style={{ position: 'fixed', bottom: 74, left: 0, right: 0, padding: '10px 16px', background: '#fff', borderTop: '1px solid #eee', zIndex: 44 }}>
           <button
             onClick={() => navigate('../menu')}
             style={{ width: '100%', padding: '14px', fontSize: 16, background: '#222', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer' }}
@@ -180,7 +181,7 @@ export default function OrderCompletePage() {
         disabled={callCooldown}
         style={{
           position: 'fixed',
-          bottom: allowAdditionalOrders ? 88 : 24,
+          bottom: allowAdditionalOrders ? 150 : 88,
           right: 20,
           width: 64,
           height: 64,
@@ -203,6 +204,15 @@ export default function OrderCompletePage() {
         <span style={{ fontSize: 20 }}>🔔</span>
         <span>{callCooldown ? '送信済' : '呼出'}</span>
       </button>
+      <CustomerBottomNav
+        current="checkout"
+        onCall={handleCall}
+        callDisabled={callCooldown}
+        menuDisabled={!allowAdditionalOrders}
+        onCheckout={handleCheckout}
+        checkoutDisabled={checkoutStep === 'sent'}
+        checkoutConfirmMessage={total > 0 ? `現在の合計は¥${total.toLocaleString()}です。スタッフに会計希望を送ります。` : undefined}
+      />
     </div>
   )
 }

@@ -1,17 +1,19 @@
 import { createContext, useContext, useState } from 'react'
+import { getDiscountedProductPrice } from '../lib/discounts'
 
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([])
 
-  function addItem(product, optionSelections = []) {
+  function addItem(product, optionSelections = [], quantity = 1) {
+    const addQuantity = Math.max(1, parseInt(quantity, 10) || 1)
     setItems(prev => {
       if (optionSelections.length === 0) {
         const idx = prev.findIndex(i => i.product.id === product.id && i.optionSelections.length === 0)
         if (idx >= 0) {
           const next = [...prev]
-          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 }
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + addQuantity }
           return next
         }
       } else {
@@ -22,11 +24,11 @@ export function CartProvider({ children }) {
         )
         if (idx >= 0) {
           const next = [...prev]
-          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 }
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + addQuantity }
           return next
         }
       }
-      return [...prev, { id: `${product.id}_${Date.now()}`, product, quantity: 1, optionSelections }]
+      return [...prev, { id: `${product.id}_${Date.now()}`, product, quantity: addQuantity, optionSelections }]
     })
   }
 
@@ -44,7 +46,8 @@ export function CartProvider({ children }) {
 
   const total = items.reduce((sum, i) => {
     const extra = (i.optionSelections ?? []).reduce((s, o) => s + (o.extraPrice ?? 0), 0)
-    return sum + (i.product.price + extra) * i.quantity
+    const { discountedPrice } = getDiscountedProductPrice(i.product)
+    return sum + (discountedPrice + extra) * i.quantity
   }, 0)
   const count = items.reduce((sum, i) => sum + i.quantity, 0)
 

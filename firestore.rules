@@ -31,10 +31,10 @@ service cloud.firestore {
       return isSuper() || isOwnerOf(storeId) || isStaffOf(storeId);
     }
 
-    // 許可メール（スーパー管理者が管理）
+    // 許可メール（オーナーが管理）
     match /allowedEmails/{email} {
       allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
-      allow write: if isSuper();
+      allow write: if isGoogle();
     }
 
     // スタッフセッション（匿名ユーザーを店舗に紐づける）
@@ -79,6 +79,20 @@ service cloud.firestore {
     // 商品（お客さんも読める）
     match /products/{productId} {
       allow read: if true;
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // オプションテンプレート
+    match /optionTemplates/{templateId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canAccess(request.resource.data.storeId);
+      allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // タグテンプレート
+    match /tagTemplates/{templateId} {
+      allow read: if canAccess(resource.data.storeId);
       allow create: if canAccess(request.resource.data.storeId);
       allow update, delete: if canAccess(resource.data.storeId);
     }

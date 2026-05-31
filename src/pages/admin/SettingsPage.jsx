@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, deleteDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { useStore } from '../../contexts/StoreContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -22,6 +22,10 @@ export default function SettingsPage() {
   const [taxInput, setTaxInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [allowedEmails, setAllowedEmails] = useState([])
+  const [newEmail, setNewEmail] = useState('')
+  const [emailAdding, setEmailAdding] = useState(false)
+  const [emailError, setEmailError] = useState('')
 
   useEffect(() => {
     if (!storeId || !user || user.isAnonymous) return
@@ -35,6 +39,38 @@ export default function SettingsPage() {
       setCodeCopied(true)
       setTimeout(() => setCodeCopied(false), 2000)
     })
+  }
+
+  useEffect(() => {
+    getDocs(collection(db, 'allowedEmails')).then(snap => {
+      setAllowedEmails(snap.docs.map(d => d.id))
+    })
+  }, [])
+
+  async function handleAddEmail() {
+    setEmailError('')
+    const email = newEmail.trim().toLowerCase()
+    if (!email.includes('@')) { setEmailError('正しいメールアドレスを入力してください'); return }
+    if (allowedEmails.includes(email)) { setEmailError('すでに追加されています'); return }
+    setEmailAdding(true)
+    try {
+      await setDoc(doc(db, 'allowedEmails', email), { addedAt: serverTimestamp() })
+      setAllowedEmails(prev => [...prev, email])
+      setNewEmail('')
+    } catch (e) {
+      setEmailError(`保存失敗: ${e.message}`)
+    }
+    setEmailAdding(false)
+  }
+
+  async function handleRemoveEmail(email) {
+    if (!confirm(`${email} を削除しますか？`)) return
+    try {
+      await deleteDoc(doc(db, 'allowedEmails', email))
+      setAllowedEmails(prev => prev.filter(e => e !== email))
+    } catch (e) {
+      alert(`削除失敗: ${e.message}`)
+    }
   }
 
   useEffect(() => {
@@ -157,6 +193,50 @@ export default function SettingsPage() {
       >
         {saving ? '保存中...' : saved ? '保存しました' : '保存する'}
       </button>
+
+      {/* 許可メール管理（オーナーのみ） */}
+      {user?.email === 'tsk.mons@gmail.com' && (
+        <>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '32px 0 12px' }}>管理者・キッチン アクセス許可</h2>
+          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #eee', padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Googleログインを許可するメールアドレスを管理します。</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={e => { setNewEmail(e.target.value); setEmailError('') }}
+                placeholder="example@gmail.com"
+                style={{ flex: 1, padding: '9px 12px', fontSize: 14, border: '1px solid #ddd', borderRadius: 8, boxSizing: 'border-box' }}
+              />
+              <button
+                onClick={handleAddEmail}
+                disabled={emailAdding}
+                style={{ padding: '9px 20px', fontSize: 14, background: '#222', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                追加
+              </button>
+            </div>
+            {emailError && <p style={{ color: '#dc2626', fontSize: 13, margin: '0 0 8px' }}>{emailError}</p>}
+            {allowedEmails.length === 0 ? (
+              <p style={{ color: '#bbb', fontSize: 13, margin: 0 }}>許可されたメールアドレスはありません</p>
+            ) : (
+              <div style={{ borderTop: '1px solid #f0f0f0', marginTop: 8 }}>
+                {allowedEmails.map(email => (
+                  <div key={email} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                    <span style={{ fontSize: 14 }}>{email}</span>
+                    <button
+                      onClick={() => handleRemoveEmail(email)}
+                      style={{ padding: '4px 12px', fontSize: 12, background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer' }}
+                    >
+                      削除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

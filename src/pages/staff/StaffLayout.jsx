@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
-import { collection, query, where, onSnapshot, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, getDocs, updateDoc, doc, serverTimestamp, runTransaction } from 'firebase/firestore'
 import { auth, db } from '../../lib/firebase'
 import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
@@ -13,6 +13,8 @@ import TableListPage from './TableListPage'
 import TableDetailPage from './TableDetailPage'
 import StaffMenuPage from './StaffMenuPage'
 import CheckoutPage from './CheckoutPage'
+import RemainingPage from './RemainingPage'
+import KitchenPage from '../kitchen/KitchenPage'
 
 function StaffLoginScreen({ storeId, onLogin, onLogout }) {
   const [members, setMembers] = useState([])
@@ -241,7 +243,7 @@ export default function StaffLayout() {
   }
 
   useEffect(() => {
-    if (!storeId) return
+    if (!storeId || !activeStaff) return
     const q = query(collection(db, 'calls'), where('storeId', '==', storeId))
     return onSnapshot(q, snap => {
       const data = snap.docs
@@ -261,7 +263,7 @@ export default function StaffLayout() {
 
       setCalls(data)
     })
-  }, [storeId])
+  }, [storeId, activeStaff?.id])
 
   async function handleLogout() {
     clearDeviceStore()
@@ -270,8 +272,19 @@ export default function StaffLayout() {
   }
 
   async function handleRespond(call) {
-    await updateDoc(doc(db, 'calls', call.id), { status: 'handled', handledAt: serverTimestamp() })
-    navigate(`/staff/table/${call.tableId}`)
+    const callRef = doc(db, 'calls', call.id)
+    const handled = await runTransaction(db, async tx => {
+      const snap = await tx.get(callRef)
+      if (!snap.exists() || snap.data().status !== 'pending') return false
+      tx.update(callRef, {
+        status: 'handled',
+        handledAt: serverTimestamp(),
+        handledByStaffId: activeStaff?.id ?? null,
+        handledByStaffName: activeStaff?.name ?? null,
+      })
+      return true
+    })
+    if (handled) navigate(`/staff/table/${call.tableId}`)
   }
 
   if (user === undefined || storeLoading) return null
@@ -316,14 +329,21 @@ export default function StaffLayout() {
             >
               🔔
             </button>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ background: 'none', border: '1px solid #555', color: '#ccc', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+              title="画面を更新"
+            >
+              更新
+            </button>
             <button onClick={() => setActiveStaffPersisted(null)} style={{ background: 'none', border: '1px solid #555', color: '#ccc', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
               切替
             </button>
+            <button onClick={() => navigate('/staff/kitchen')} style={{ background: 'none', border: '1px solid #555', color: '#ccc', padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}>
+              キッチン
+            </button>
             {!user?.isAnonymous && (
               <>
-                <button onClick={() => navigate('/kitchen')} style={{ background: 'none', border: '1px solid #555', color: '#ccc', padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}>
-                  キッチン
-                </button>
                 <button onClick={() => navigate('/admin')} style={{ background: 'none', border: '1px solid #555', color: '#ccc', padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}>
                   管理
                 </button>
@@ -364,7 +384,9 @@ export default function StaffLayout() {
 
         <Routes>
           <Route index element={<TableListPage />} />
+          <Route path="kitchen" element={<KitchenPage />} />
           <Route path="table/:tableId" element={<TableDetailPage />} />
+          <Route path="table/:tableId/remaining" element={<RemainingPage />} />
           <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
           <Route path="table/:tableId/checkout" element={<CheckoutPage />} />
           <Route path="*" element={<Navigate to="/staff" replace />} />

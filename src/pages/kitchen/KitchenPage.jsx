@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../../lib/firebase'
+import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, increment } from 'firebase/firestore'
+import { db, auth } from '../../lib/firebase'
 import { useStore } from '../../contexts/StoreContext'
+import { useStaffMember } from '../../contexts/StaffMemberContext'
+import StaffBottomNav from '../../components/StaffBottomNav'
 import { SOUNDS, playSound, loadKitchenSoundPrefs, saveKitchenSoundPrefs } from '../../lib/sounds'
 
 function KitchenSoundPanel({ onClose }) {
@@ -76,6 +78,7 @@ function waitColor(timestamp) {
 
 export default function KitchenPage() {
   const { storeId, loading: storeLoading } = useStore()
+  const { activeStaff } = useStaffMember()
   const navigate = useNavigate()
   const [tables, setTables] = useState([])
   const [pendingItems, setPendingItems] = useState([])
@@ -126,11 +129,17 @@ export default function KitchenPage() {
     })
   }, [storeId, filterGroup])
 
-  async function markServed(itemId) {
-    await updateDoc(doc(db, 'orderItems', itemId), {
+  async function markServed(item) {
+    await updateDoc(doc(db, 'orderItems', item.id), {
       itemStatus: 'served',
       updatedAt: serverTimestamp(),
     })
+    if (item.tableId) {
+      await updateDoc(doc(db, 'tables', item.tableId), {
+        pendingCount: increment(-1),
+        updatedAt: serverTimestamp(),
+      })
+    }
   }
 
   async function markAllServed(items) {
@@ -138,6 +147,41 @@ export default function KitchenPage() {
       itemStatus: 'served',
       updatedAt: serverTimestamp(),
     })))
+    const tableId = items[0]?.tableId
+    if (tableId) {
+      await updateDoc(doc(db, 'tables', tableId), {
+        pendingCount: increment(-items.length),
+        updatedAt: serverTimestamp(),
+      })
+    }
+  }
+
+  async function cancelItem(item, table) {
+    if (!confirm(`「${item.productNameSnapshot} × ${item.quantity}」を削除しますか？\n注文ミス用のキャンセルとして履歴に残します。`)) return
+    const now = serverTimestamp()
+    await updateDoc(doc(db, 'orderItems', item.id), {
+      itemStatus: 'cancelled',
+      updatedAt: now,
+    })
+    if (item.tableId) {
+      await updateDoc(doc(db, 'tables', item.tableId), {
+        pendingCount: increment(-1),
+        updatedAt: now,
+      })
+    }
+    const actor = auth.currentUser
+    await addDoc(collection(db, 'staffActions'), {
+      storeId: item.storeId,
+      actionType: 'cancel_item',
+      targetType: 'orderItem',
+      targetId: item.id,
+      actorType: 'staff',
+      actorStaffId: activeStaff?.id ?? null,
+      actorStaffName: activeStaff?.name ?? null,
+      actorUid: actor?.uid ?? null,
+      note: `${table?.tableName ?? ''} ${item.productNameSnapshot} × ${item.quantity} を削除`,
+      createdAt: now,
+    })
   }
 
   // 席ごとに未提供明細をまとめる
@@ -163,7 +207,7 @@ export default function KitchenPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1a1a1a', color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#1a1a1a', color: '#fff', paddingBottom: 88 }}>
       <header style={{ background: '#111', padding: '10px 16px', borderBottom: '1px solid #333' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -246,10 +290,16 @@ export default function KitchenPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => markServed(item.id)}
+                        onClick={() => markServed(item)}
                         style={{ padding: '6px 12px', fontSize: 12, background: '#444', color: '#ddd', border: '1px solid #555', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         提供済み
+                      </button>
+                      <button
+                        onClick={() => cancelItem(item, table)}
+                        style={{ padding: '6px 10px', fontSize: 12, background: '#3a1f1f', color: '#fecaca', border: '1px solid #7f1d1d', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        削除
                       </button>
                     </div>
                   ))}
@@ -259,6 +309,7 @@ export default function KitchenPage() {
           })}
         </div>
       )}
+      <StaffBottomNav current="kitchen" />
     </div>
   )
 }

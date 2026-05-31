@@ -4,6 +4,9 @@ import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimest
 import { db } from '../../lib/firebase'
 import OptionModal from '../../components/OptionModal'
 import SuggestionSheet from '../../components/SuggestionSheet'
+import StaffBottomNav from '../../components/StaffBottomNav'
+import { getDiscountedProductPrice } from '../../lib/discounts'
+import { productMatchesCategory } from '../../lib/productTags'
 
 function formatOptions(optionSelections) {
   if (!optionSelections || optionSelections.length === 0) return null
@@ -14,7 +17,7 @@ export default function StaffMenuPage() {
   const { tableId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { orderId, storeId } = location.state || {}
+  const { orderId, storeId, guestCount } = location.state || {}
 
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
@@ -43,13 +46,14 @@ export default function StaffMenuPage() {
     load()
   }, [storeId])
 
-  function addToCart(product, optionSelections = []) {
+  function addToCart(product, optionSelections = [], quantity = 1) {
+    const addQuantity = Math.max(1, parseInt(quantity, 10) || 1)
     setCart(prev => {
       if (optionSelections.length === 0) {
         const idx = prev.findIndex(i => i.product.id === product.id && i.optionSelections.length === 0)
         if (idx >= 0) {
           const next = [...prev]
-          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 }
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + addQuantity }
           return next
         }
       } else {
@@ -60,11 +64,11 @@ export default function StaffMenuPage() {
         )
         if (idx >= 0) {
           const next = [...prev]
-          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 }
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + addQuantity }
           return next
         }
       }
-      return [...prev, { id: `${product.id}_${Date.now()}`, product, quantity: 1, optionSelections }]
+      return [...prev, { id: `${product.id}_${Date.now()}`, product, quantity: addQuantity, optionSelections }]
     })
   }
 
@@ -86,9 +90,13 @@ export default function StaffMenuPage() {
     }
   }
 
-  function handleOptionConfirm(optionSelections) {
+  function handleOptionConfirm(optionSelections, quantity = 1) {
     const product = optionTarget
-    addToCart(product, optionSelections)
+    if (Array.isArray(optionSelections) && optionSelections.every(item => Array.isArray(item?.optionSelections))) {
+      optionSelections.forEach(item => addToCart(product, item.optionSelections, item.quantity))
+    } else {
+      addToCart(product, optionSelections, quantity)
+    }
     setOptionTarget(null)
     showSuggestionsFor(product)
   }
@@ -109,10 +117,12 @@ export default function StaffMenuPage() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => {
     const extra = (i.optionSelections ?? []).reduce((e, o) => e + (o.extraPrice ?? 0), 0)
-    return s + (i.product.price + extra) * i.quantity
+    const { discountedPrice } = getDiscountedProductPrice(i.product)
+    return s + (discountedPrice + extra) * i.quantity
   }, 0)
-  const filtered = activeCat
-    ? products.filter(p => p.categoryId === activeCat || (p.displayCategoryIds ?? []).includes(activeCat))
+  const activeCategory = categories.find(c => c.id === activeCat)
+  const filtered = activeCategory
+    ? products.filter(p => productMatchesCategory(p, activeCategory))
     : products
 
   async function handleSubmit() {
@@ -122,16 +132,19 @@ export default function StaffMenuPage() {
       const now = serverTimestamp()
       await Promise.all(cart.map(({ product, quantity, optionSelections }) => {
         const extra = (optionSelections ?? []).reduce((s, o) => s + (o.extraPrice ?? 0), 0)
+        const { originalPrice, discountAmount, discountedPrice } = getDiscountedProductPrice(product)
         return addDoc(collection(db, 'orderItems'), {
           orderId,
           storeId,
           tableId,
           productId: product.id,
           productNameSnapshot: product.name,
-          unitPriceSnapshot: product.price,
+          unitPriceSnapshot: originalPrice,
+          unitDiscountSnapshot: discountAmount,
+          discountConfigSnapshot: product.discountConfig ?? null,
           categoryGroup: product.categoryGroup ?? '',
           quantity,
-          lineTotal: (product.price + extra) * quantity,
+          lineTotal: (discountedPrice + extra) * quantity,
           orderedBy: 'staff',
           itemStatus: 'ordered',
           optionSelections: optionSelections ?? [],
@@ -154,7 +167,7 @@ export default function StaffMenuPage() {
   if (loading) return <div style={{ textAlign: 'center', padding: 48, color: '#999' }}>読み込み中...</div>
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: cartCount > 0 ? 88 : 0 }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: cartCount > 0 ? 156 : 88 }}>
       {optionTarget && (
         <OptionModal
           product={optionTarget}
@@ -228,7 +241,7 @@ export default function StaffMenuPage() {
       </div>
 
       {cartCount > 0 && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px', background: '#fff', borderTop: '1px solid #eee' }}>
+        <div style={{ position: 'fixed', bottom: 74, left: 0, right: 0, padding: '10px 16px', background: '#fff', borderTop: '1px solid #eee', zIndex: 44 }}>
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -240,6 +253,13 @@ export default function StaffMenuPage() {
           </button>
         </div>
       )}
+      <StaffBottomNav
+        current="seat"
+        tableId={tableId}
+        orderId={orderId}
+        storeId={storeId}
+        guestCount={guestCount}
+      />
     </div>
   )
 }

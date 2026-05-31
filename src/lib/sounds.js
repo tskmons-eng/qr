@@ -81,6 +81,18 @@ export const SOUNDS = [
     },
   },
   {
+    id: 'melody_long',
+    label: 'メロディー（さらに長め）',
+    play: (vol) => {
+      beep(523, 0, 0.3, vol)
+      beep(659, 0.38, 0.3, vol)
+      beep(784, 0.76, 0.35, vol)
+      beep(1047, 1.18, 0.55, vol)
+      beep(784, 1.9, 0.35, vol * 0.9)
+      beep(1047, 2.32, 0.75, vol)
+    },
+  },
+  {
     id: 'fanfare',
     label: 'ファンファーレ',
     play: (vol) => {
@@ -89,6 +101,31 @@ export const SOUNDS = [
       beep(988, 0.44, 0.3, vol)
       beep(784, 0.8, 0.18, vol)
       beep(1047, 1.02, 0.55, vol)
+    },
+  },
+  {
+    id: 'fanfare_long',
+    label: 'ファンファーレ（長め）',
+    play: (vol) => {
+      beep(659, 0, 0.18, vol)
+      beep(784, 0.22, 0.18, vol)
+      beep(988, 0.44, 0.34, vol)
+      beep(784, 0.92, 0.18, vol * 0.9)
+      beep(988, 1.14, 0.22, vol)
+      beep(1175, 1.42, 0.42, vol)
+      beep(988, 2.1, 0.25, vol * 0.85)
+      beep(1175, 2.42, 0.25, vol)
+      beep(1318, 2.78, 0.8, vol)
+    },
+  },
+  {
+    id: 'alert_loop',
+    label: '呼び出しベル（長め）',
+    play: (vol) => {
+      ;[0, 0.65, 1.3, 2.15, 2.8, 3.45].forEach(start => {
+        beep(1175, start, 0.16, vol, 'square')
+        beep(880, start + 0.2, 0.22, vol * 0.85, 'triangle')
+      })
     },
   },
   {
