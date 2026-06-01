@@ -8,6 +8,17 @@ Typography should use `M PLUS Rounded 1c` as the main font for a rounded, strong
 
 Checkout payment controls should prioritize staff speed at the register. The received-cash presets need an exact-total button before fixed bills such as 1000, 5000, and 10000 yen, and duplicate amounts should be avoided when the exact total matches a fixed preset.
 
+Owner-level trial management must not affect active stores. Add read-only oversight under `/owner` only, keep `/admin`, `/staff`, `/order/:qrToken`, `StoreContext`, and Firestore rules unchanged for the first slice, and do not add write controls such as store switching, pausing, or proxy admin access until the read-only dashboard is proven safe.
+
+## Owner Dashboard Safety Plan
+
+1. Reuse this maintenance plan instead of adding another planning MD.
+2. Keep the first implementation read-only and scoped to `tsk.mons@gmail.com` through the existing `/owner` route guard.
+3. Load owner-wide store, order, and checkout summaries through new owner-specific service/helper modules.
+4. Show store list, today's sales, completed check count, open order count, and last activity without mutating store data.
+5. Keep existing allowed-email management available as a separate owner tab.
+6. Verify with `npm run check`, `npm run build`, and public deploy checks before considering any future write actions.
+
 ## Current Hotspots
 
 - No source file currently exceeds the structure-audit threshold.

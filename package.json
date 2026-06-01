@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "npm run check:product-form && npm run check:sort-order && npm run check:checkout && npm run check:option-modal && npm run check:settings && npm run check:customer-entry && npm run check:customer-order-status && npm run check:customer-cart && npm run check:staff-member && npm run check:staff-entry && npm run check:admin-table && npm run check:admin-category && npm run check:staff-table-list && npm run check:admin-sales && npm run check:admin-history && npm run check:owner-access && npm run check:kitchen-display && npm run check:staff-table-detail && npm run audit:structure",
+    "check": "npm run check:product-form && npm run check:sort-order && npm run check:checkout && npm run check:option-modal && npm run check:settings && npm run check:customer-entry && npm run check:customer-order-status && npm run check:customer-cart && npm run check:staff-member && npm run check:staff-entry && npm run check:admin-table && npm run check:admin-category && npm run check:staff-table-list && npm run check:admin-sales && npm run check:admin-history && npm run check:owner-access && npm run check:owner-dashboard && npm run check:kitchen-display && npm run check:staff-table-detail && npm run audit:structure",
     "check:product-form": "node scripts/check-product-form.mjs",
     "check:sort-order": "node scripts/check-sort-order.mjs",
     "check:checkout": "node scripts/check-checkout-calculations.mjs",
@@ -24,6 +24,7 @@
     "check:admin-sales": "node scripts/check-admin-sales.mjs",
     "check:admin-history": "node scripts/check-admin-history.mjs",
     "check:owner-access": "node scripts/check-owner-access.mjs",
+    "check:owner-dashboard": "node scripts/check-owner-dashboard.mjs",
     "check:kitchen-display": "node scripts/check-kitchen-display.mjs",
     "check:staff-table-detail": "node scripts/check-staff-table-detail.mjs",
     "audit:structure": "node scripts/audit-structure.mjs"
