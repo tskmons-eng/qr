@@ -1,0 +1,116 @@
+.staff-table-list-empty {
+  padding: 48px;
+  color: #bbb;
+  text-align: center;
+}
+
+.staff-table-list-empty__hint {
+  font-size: 13px;
+}
+
+.staff-table-list {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px 88px;
+}
+
+.staff-table-list__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.staff-table-list-card {
+  padding: 20px 16px;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  background: #f0fdf4;
+  cursor: pointer;
+  text-align: left;
+}
+
+.staff-table-list-card--occupied {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.staff-table-list-card--occupied-pending {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.staff-table-list-card--checkout-pending {
+  border-color: #fde68a;
+  background: #fefce8;
+}
+
+.staff-table-list-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.staff-table-list-card__name {
+  color: #222;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.staff-table-list-card__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.staff-table-list-card__badge {
+  padding: 1px 7px;
+  border-radius: 99px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.staff-table-list-card__badge--drink {
+  background: #0ea5e9;
+}
+
+.staff-table-list-card__badge--food {
+  background: #f97316;
+}
+
+.staff-table-list-card__badge--other {
+  background: #1d4ed8;
+}
+
+.staff-table-list-card__status {
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.staff-table-list-card--occupied .staff-table-list-card__status {
+  color: #c2410c;
+}
+
+.staff-table-list-card--occupied-pending .staff-table-list-card__status {
+  color: #1d4ed8;
+}
+
+.staff-table-list-card--checkout-pending .staff-table-list-card__status {
+  color: #a16207;
+}
+
+.staff-table-list-card__guest {
+  margin-top: 4px;
+  color: #888;
+  font-size: 12px;
+}
+
+.staff-table-list-card__elapsed {
+  margin-top: 2px;
+  color: #aaa;
+  font-size: 12px;
+}

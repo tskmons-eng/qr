@@ -1,0 +1,158 @@
+.staff-shell {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.staff-shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #222;
+  color: #fff;
+}
+
+.staff-shell__brand,
+.staff-shell__actions {
+  display: flex;
+  align-items: center;
+}
+
+.staff-shell__brand {
+  gap: 10px;
+}
+
+.staff-shell__actions {
+  gap: 8px;
+}
+
+.staff-shell__title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.staff-shell__call-count {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-shell__staff-name {
+  color: #aaa;
+  font-size: 13px;
+}
+
+.staff-shell__button,
+.staff-shell__icon-button {
+  border: 1px solid #555;
+  border-radius: 5px;
+  background: none;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.staff-shell__button {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.staff-shell__button--compact {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.staff-shell__button--strong {
+  padding: 5px 10px;
+  font-weight: 700;
+}
+
+.staff-shell__icon-button {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.staff-shell__notif-button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  background: #854d0e;
+  color: #fef08a;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-shell__notif-button.is-failed {
+  background: #7f1d1d;
+}
+
+.staff-call-banner {
+  position: sticky;
+  top: 53px;
+  z-index: 15;
+}
+
+.staff-call-banner__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 3px solid #ea580c;
+  background: #fff7ed;
+}
+
+.staff-call-banner__item--checkout {
+  border-bottom-color: #2563eb;
+  background: #eff6ff;
+}
+
+.staff-call-banner__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.staff-call-banner__icon {
+  font-size: 18px;
+}
+
+.staff-call-banner__table {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.staff-call-banner__type {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: #ffedd5;
+  color: #ea580c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-call-banner__item--checkout .staff-call-banner__type {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.staff-call-banner__respond {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #ea580c;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.staff-call-banner__item--checkout .staff-call-banner__respond {
+  background: #2563eb;
+}

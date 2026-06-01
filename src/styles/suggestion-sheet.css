@@ -1,0 +1,105 @@
+.suggestion-sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 150;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px 24px;
+  border-top: 2px solid #f0f0f0;
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.suggestion-sheet__title {
+  color: #888;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.suggestion-sheet__close {
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.suggestion-sheet__list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.suggestion-sheet__item {
+  flex-shrink: 0;
+  width: 120px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.suggestion-sheet__image,
+.suggestion-sheet__image-placeholder {
+  display: block;
+  width: 100%;
+  height: 72px;
+}
+
+.suggestion-sheet__image {
+  object-fit: cover;
+}
+
+.suggestion-sheet__image-placeholder {
+  background: #f0f0f0;
+}
+
+.suggestion-sheet__body {
+  padding: 8px 8px 10px;
+}
+
+.suggestion-sheet__name {
+  overflow: hidden;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-sheet__price {
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 12px;
+}
+
+.suggestion-sheet__add {
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  border-radius: 6px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.suggestion-sheet__add:disabled {
+  background: #f5f5f5;
+  color: #bbb;
+  cursor: default;
+}

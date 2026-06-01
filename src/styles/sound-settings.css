@@ -1,0 +1,97 @@
+.sound-settings {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.sound-settings__panel {
+  width: 280px;
+  margin: 60px 12px 0 0;
+  padding: 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.sound-settings__title {
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sound-settings__section {
+  margin-bottom: 16px;
+}
+
+.sound-settings__label {
+  margin-bottom: 8px;
+  color: #888;
+  font-size: 13px;
+}
+
+.sound-settings__range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sound-settings__volume-icon {
+  font-size: 16px;
+}
+
+.sound-settings__range {
+  flex: 1;
+}
+
+.sound-settings__volume-value {
+  margin-top: 4px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+.sound-settings__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sound-settings__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+
+.sound-settings__option.is-active {
+  border: 2px solid #222;
+  background: #f5f5f5;
+  font-weight: 700;
+}
+
+.sound-settings__preview {
+  color: #aaa;
+  font-size: 12px;
+}
+
+.sound-settings__close {
+  width: 100%;
+  margin-top: 16px;
+  padding: 9px;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}

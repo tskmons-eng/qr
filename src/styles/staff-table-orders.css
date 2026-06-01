@@ -1,0 +1,119 @@
+.staff-table-order-section {
+  margin-top: var(--space-3);
+}
+
+.staff-table-section-title {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.staff-table-order-list {
+  background: #ffffff;
+}
+
+.staff-table-order-row {
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  gap: 10px;
+}
+
+.staff-table-order-row.is-served {
+  opacity: 0.6;
+}
+
+.staff-table-order-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.staff-table-order-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.staff-table-order-name {
+  font-size: 15px;
+}
+
+.staff-table-category-badge {
+  font-size: 10px;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.staff-table-category-drink {
+  background: #0ea5e9;
+}
+
+.staff-table-category-food {
+  background: var(--color-action-warning);
+}
+
+.staff-table-order-options {
+  font-size: 12px;
+  color: #1d4ed8;
+  margin-top: 2px;
+}
+
+.staff-table-order-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.staff-table-row-button {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.staff-table-row-button-primary {
+  padding-inline: 12px;
+  background: var(--color-action-main);
+  color: #ffffff;
+  border: none;
+}
+
+.staff-table-row-button-muted {
+  padding-inline: 12px;
+  font-size: 12px;
+  background: #ffffff;
+  color: #888888;
+  border: 1px solid var(--color-border-control);
+}
+
+.staff-table-row-button-danger {
+  font-size: 12px;
+  background: #ffffff;
+  color: var(--color-action-danger);
+  border: 1px solid #fca5a5;
+}
+
+.staff-table-total-row,
+.staff-table-unit-row {
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+}
+
+.staff-table-total-row {
+  margin-top: var(--space-3);
+  padding: 14px 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.staff-table-unit-row {
+  margin-top: 1px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}

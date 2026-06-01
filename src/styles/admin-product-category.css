@@ -1,0 +1,156 @@
+.category-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.category-group-select,
+.category-edit-group-select {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #cccccc;
+  border-radius: var(--radius-control);
+}
+
+.category-auto-toggle {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--color-border-control);
+  background: #ffffff;
+  color: #555555;
+  font-weight: 700;
+}
+
+.category-auto-toggle.is-active {
+  border-color: #0369a1;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.category-auto-toggle-small {
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.category-auto-tags {
+  flex-basis: 100%;
+}
+
+.category-tags-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-control);
+}
+
+.category-list-item {
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  padding: 12px 16px;
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.category-list-item.is-editing {
+  cursor: default;
+}
+
+.category-list-item.is-reorder-target {
+  border: 2px solid #2563eb;
+}
+
+.category-list-item.is-dragging {
+  border: 2px dashed #222222;
+  opacity: 0.55;
+}
+
+.category-list-item.is-touch-reordering {
+  touch-action: none;
+}
+
+.category-edit-name-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 10px;
+  font-size: 15px;
+  border: 1px solid #aaaaaa;
+  border-radius: var(--radius-control);
+}
+
+.category-edit-group-select {
+  padding-block: 6px;
+  font-size: 13px;
+}
+
+.category-edit-tags-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-control);
+}
+
+.category-row-main {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.category-name {
+  font-size: 15px;
+  color: var(--color-text-main);
+}
+
+.category-name.is-inactive {
+  color: #aaaaaa;
+}
+
+.category-badge {
+  font-size: 11px;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.category-badge-drink {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.category-badge-food {
+  background: #f0fdf4;
+  color: var(--color-action-success);
+  border: 1px solid #bbf7d0;
+}
+
+.category-badge-tags {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.category-row-action,
+.category-row-danger {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.category-row-danger {
+  border: 1px solid #fca5a5;
+  background: #ffffff;
+  color: var(--color-action-danger);
+}

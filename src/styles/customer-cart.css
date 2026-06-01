@@ -1,0 +1,144 @@
+.customer-cart {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 156px;
+}
+
+.customer-cart__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #222;
+  color: #fff;
+}
+
+.customer-cart__back-button {
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.customer-cart__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.customer-cart__empty {
+  padding: 48px;
+  color: #bbb;
+  text-align: center;
+}
+
+.customer-cart__items,
+.customer-cart__total-row {
+  background: #fff;
+}
+
+.customer-cart__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.customer-cart__item-main {
+  flex: 1;
+}
+
+.customer-cart__item-name {
+  font-size: 15px;
+}
+
+.customer-cart__item-options {
+  margin-top: 2px;
+  color: #1d4ed8;
+  font-size: 12px;
+}
+
+.customer-cart__item-unit {
+  margin-top: 2px;
+  color: #888;
+  font-size: 13px;
+}
+
+.customer-cart__regular-price {
+  margin-left: 6px;
+  color: #dc2626;
+}
+
+.customer-cart__quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customer-cart__step {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.customer-cart__quantity-input {
+  width: 52px;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.customer-cart__line-total {
+  min-width: 64px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.customer-cart__total-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.customer-cart__submit-bar {
+  position: fixed;
+  right: 0;
+  bottom: 74px;
+  left: 0;
+  z-index: 44;
+  padding: 10px 16px;
+  border-top: 1px solid #eee;
+  background: #fff;
+}
+
+.customer-cart__submit-button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.customer-cart__submit-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}

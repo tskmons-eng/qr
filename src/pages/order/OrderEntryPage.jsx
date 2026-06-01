@@ -1,74 +1,50 @@
-import { useEffect, useState } from 'react'
-import { useParams, Routes, Route, Navigate } from 'react-router-dom'
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore'
-import { db } from '../../lib/firebase'
-import { OrderProvider } from '../../contexts/OrderContext'
+import { useEffect, useRef, useState } from 'react'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import OrderEntryStatus from '../../components/order/OrderEntryStatus'
 import { CartProvider } from '../../contexts/CartContext'
+import { OrderProvider } from '../../contexts/OrderContext'
+import { CUSTOMER_ENTRY_CONFIG_DEFAULTS } from '../../lib/customerEntry'
+import { loadCustomerStoreConfig, subscribeCustomerTableByQrToken } from '../../services/customerEntryService'
+import CartPage from './CartPage'
 import GuestCountPage from './GuestCountPage'
 import MenuPage from './MenuPage'
-import CartPage from './CartPage'
 import OrderCompletePage from './OrderCompletePage'
-
-const CONFIG_DEFAULTS = {
-  showServedStatus: true,
-  showItemPrice: true,
-  allowAdditionalOrders: true,
-}
 
 export default function OrderEntryPage() {
   const { qrToken } = useParams()
   const [table, setTable] = useState(null)
   const [orderId, setOrderId] = useState(null)
-  const [storeConfig, setStoreConfig] = useState(CONFIG_DEFAULTS)
+  const [storeConfig, setStoreConfig] = useState(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const loadedConfigStoreIdRef = useRef(null)
 
   useEffect(() => {
-    const q = query(collection(db, 'tables'), where('qrToken', '==', qrToken))
-    const unsub = onSnapshot(q, async snap => {
-      if (snap.empty) {
+    return subscribeCustomerTableByQrToken(qrToken, nextTable => {
+      if (!nextTable) {
         setError('このQRコードは無効です')
         setLoading(false)
         return
       }
-      const d = snap.docs[0]
-      const data = { id: d.id, ...d.data() }
-      setTable(data)
+
+      setTable(nextTable)
       setOrderId(prev => {
-        if (prev && data.currentOrderId === prev) return prev
-        return data.currentOrderId ?? null
+        if (prev && nextTable.currentOrderId === prev) return prev
+        return nextTable.currentOrderId ?? null
       })
 
-      // storeConfigを初回のみ取得
-      setStoreConfig(prev => {
-        if (prev !== CONFIG_DEFAULTS) return prev
-        getDoc(doc(db, 'storeConfig', data.storeId)).then(snap => {
-          if (snap.exists()) {
-            setStoreConfig({ ...CONFIG_DEFAULTS, ...snap.data() })
-          }
-        })
-        return prev
-      })
-
+      if (loadedConfigStoreIdRef.current !== nextTable.storeId) {
+        loadedConfigStoreIdRef.current = nextTable.storeId
+        loadCustomerStoreConfig(nextTable.storeId).then(setStoreConfig)
+      }
       setLoading(false)
     }, () => {
       setError('読み込みに失敗しました')
       setLoading(false)
     })
-    return unsub
   }, [qrToken])
 
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-      <p style={{ color: '#999', fontSize: 15 }}>読み込み中...</p>
-    </div>
-  )
-
-  if (error) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 8 }}>
-      <p style={{ color: '#dc2626', fontSize: 16 }}>{error}</p>
-    </div>
-  )
+  if (loading || error) return <OrderEntryStatus loading={loading} error={error} />
 
   return (
     <OrderProvider value={{ table, tableId: table.id, storeId: table.storeId, orderId, setOrderId, setTable, storeConfig }}>

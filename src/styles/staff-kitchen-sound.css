@@ -1,0 +1,100 @@
+.kitchen-sound-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.kitchen-sound-panel {
+  width: 280px;
+  margin: 60px 12px 0 0;
+  padding: 20px;
+  color: #fff;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.kitchen-sound-panel__title {
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.kitchen-sound-panel__section {
+  margin-bottom: 16px;
+}
+
+.kitchen-sound-panel__label {
+  margin-bottom: 8px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.kitchen-sound-panel__volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #ddd;
+}
+
+.kitchen-sound-panel__volume input {
+  flex: 1;
+}
+
+.kitchen-sound-panel__volume-value {
+  margin-top: 4px;
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+}
+
+.kitchen-sound-panel__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kitchen-sound-panel__option {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 14px;
+  color: #fff;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+
+.kitchen-sound-panel__option.is-active {
+  background: #444;
+  border-color: #fff;
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.kitchen-sound-panel__preview {
+  color: #aaa;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.kitchen-sound-panel__close {
+  width: 100%;
+  margin-top: 16px;
+  padding: 9px;
+  color: #fff;
+  background: #555;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}

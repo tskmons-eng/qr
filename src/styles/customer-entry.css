@@ -1,0 +1,84 @@
+.customer-entry-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.customer-entry-status--error {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customer-entry-status__loading {
+  color: #999999;
+  font-size: 15px;
+}
+
+.customer-entry-status__error {
+  color: #dc2626;
+  font-size: 16px;
+}
+
+.guest-count-page {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.guest-count-page__title {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.guest-count-page__table {
+  margin: 0 0 48px;
+  color: #888888;
+  font-size: 15px;
+}
+
+.guest-count-page__prompt {
+  margin: 0 0 24px;
+  font-size: 15px;
+}
+
+.guest-count-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+.guest-count-control__button {
+  width: 48px;
+  height: 48px;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.guest-count-control__value {
+  min-width: 60px;
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.guest-count-page__start {
+  width: 100%;
+  padding: 16px;
+  color: #ffffff;
+  background: #222222;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.guest-count-page__start:disabled {
+  cursor: default;
+  background: #777777;
+}

@@ -1,0 +1,136 @@
+.staff-table-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: var(--space-6);
+}
+
+.staff-table-cancel-dialog,
+.staff-table-move-dialog {
+  background: #ffffff;
+  border-radius: var(--radius-sheet);
+  padding: var(--space-6);
+  width: 100%;
+}
+
+.staff-table-cancel-dialog {
+  max-width: 340px;
+}
+
+.staff-table-move-dialog {
+  max-width: 360px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.staff-table-modal-title {
+  margin: 0 0 var(--space-2);
+  font-size: 16px;
+}
+
+.staff-table-move-title {
+  margin-bottom: var(--space-1);
+}
+
+.staff-table-modal-body {
+  font-size: 14px;
+  color: #555555;
+  margin: 0 0 var(--space-5);
+}
+
+.staff-table-modal-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+.staff-table-modal-label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.staff-table-passcode-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 18px;
+  text-align: center;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-panel);
+  letter-spacing: 6px;
+  margin-bottom: var(--space-1);
+}
+
+.staff-table-error {
+  color: var(--color-action-danger);
+  font-size: 13px;
+  margin: 4px 0 var(--space-2);
+}
+
+.staff-table-modal-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.staff-table-modal-button {
+  flex: 1;
+  padding: 11px;
+  font-size: 14px;
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+}
+
+.staff-table-modal-button-secondary {
+  background: #ffffff;
+  border: 1px solid var(--color-border-control);
+}
+
+.staff-table-modal-button-danger {
+  background: var(--color-action-danger);
+  color: #ffffff;
+  border: none;
+}
+
+.staff-table-empty-message {
+  color: #bbbbbb;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.staff-table-vacant-list {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.staff-table-vacant-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  background: #f8f8f8;
+  border: 2px solid #e5e5e5;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.staff-table-move-cancel {
+  margin-top: var(--space-4);
+  width: 100%;
+  padding: 11px;
+  font-size: 14px;
+  background: #ffffff;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+}

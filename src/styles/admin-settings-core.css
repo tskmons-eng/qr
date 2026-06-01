@@ -1,0 +1,206 @@
+.admin-settings__loading {
+  padding: 32px;
+  color: #999;
+  text-align: center;
+}
+
+.admin-settings__heading {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-settings__heading--spaced {
+  margin-bottom: 16px;
+}
+
+.admin-settings__heading--owner {
+  margin-top: 32px;
+}
+
+.admin-settings__store-code-card,
+.admin-settings__panel {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-settings__store-code-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+}
+
+.admin-settings__store-code {
+  color: #222;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 6px;
+}
+
+.admin-settings__store-code-help,
+.admin-settings__description,
+.admin-settings__toggle-description {
+  color: #888;
+  font-size: 12px;
+}
+
+.admin-settings__store-code-help {
+  margin-top: 4px;
+}
+
+.admin-settings__copy-button {
+  padding: 9px 18px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #f5f5f5;
+  color: #444;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-settings__copy-button.is-copied,
+.admin-settings__save.is-saved {
+  background: #16a34a;
+  color: #fff;
+}
+
+.admin-settings__panel {
+  margin-bottom: 20px;
+  padding: 16px;
+}
+
+.admin-settings__panel--flush {
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-settings__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.admin-settings__toggle-row.is-last {
+  border-bottom: none;
+}
+
+.admin-settings__toggle-copy {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.admin-settings__toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-settings__toggle-description {
+  margin-top: 3px;
+}
+
+.admin-settings__switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 26px;
+  border: none;
+  border-radius: 13px;
+  background: #ddd;
+  cursor: pointer;
+}
+
+.admin-settings__switch.is-on {
+  background: #222;
+}
+
+.admin-settings__switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s;
+}
+
+.admin-settings__switch.is-on .admin-settings__switch-knob {
+  left: 25px;
+}
+
+.admin-settings__description {
+  margin-bottom: 12px;
+}
+
+.admin-settings__tax-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-settings__tax-preset {
+  padding: 8px 18px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-settings__tax-preset.is-active {
+  border-color: #222;
+  background: #222;
+  color: #fff;
+}
+
+.admin-settings__tax-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-settings__tax-input {
+  width: 72px;
+  padding: 8px 10px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.admin-settings__tax-unit,
+.admin-settings__current-tax {
+  color: #555;
+  font-size: 14px;
+}
+
+.admin-settings__current-tax {
+  font-size: 13px;
+}
+
+.admin-settings__included-tax {
+  margin-left: 8px;
+  color: #888;
+}
+
+.admin-settings__save {
+  padding: 11px 32px;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}

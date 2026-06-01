@@ -22,52 +22,23 @@ export default function CustomerBottomNav({
       title: 'スタッフを呼びますか？',
       message: 'スタッフに呼び出し通知を送ります。',
       confirmText: '呼び出す',
-      color: '#ea580c',
-      bg: '#fff7ed',
-      border: '#fed7aa',
       action: onCall,
     },
     checkout: {
       title: '会計を出しますか？',
       message: checkoutConfirmMessage ?? 'スタッフに会計希望を送ります。',
       confirmText: '会計を依頼する',
-      color: '#2563eb',
-      bg: '#eff6ff',
-      border: '#bfdbfe',
       action: onCheckout ?? (() => navigate('../complete')),
     },
   }
 
-  const itemStyle = (active, variant = 'default') => {
-    const colors = {
-      default: { color: '#555', bg: 'transparent', border: 'transparent', active: '#222' },
-      call: { color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', active: '#ea580c' },
-      checkout: { color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', active: '#2563eb' },
-    }[variant]
-
-    return {
-    flex: 1,
-    minWidth: 0,
-    border: `1px solid ${active ? colors.active : colors.border}`,
-    borderRadius: 12,
-    padding: '8px 4px',
-    background: active ? colors.active : colors.bg,
-    color: active ? '#fff' : colors.color,
-    fontSize: 12,
-    fontWeight: active ? 800 : 700,
-    cursor: 'pointer',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    opacity: active ? 1 : 0.92,
-    }
-  }
-
-  const disabledStyle = {
-    opacity: 0.35,
-    cursor: 'not-allowed',
+  function itemClassName({ active = false, disabled = false, variant = '' }) {
+    return [
+      'customer-bottom-nav__item',
+      variant ? `customer-bottom-nav__item--${variant}` : '',
+      active ? 'is-active' : '',
+      disabled ? 'is-disabled' : '',
+    ].filter(Boolean).join(' ')
   }
 
   function openConfirm(type) {
@@ -92,24 +63,24 @@ export default function CustomerBottomNav({
 
   return (
     <>
-      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 45, background: 'rgba(255,255,255,0.96)', borderTop: '1px solid #e5e5e5', backdropFilter: 'blur(12px)' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '8px 10px 10px', display: 'flex', gap: 6 }}>
+      <nav className="customer-bottom-nav">
+        <div className="customer-bottom-nav__inner">
           <button
             type="button"
             onClick={() => !menuDisabled && navigate('../menu')}
             disabled={menuDisabled}
-            style={{ ...itemStyle(current === 'menu'), ...(menuDisabled ? disabledStyle : {}) }}
+            className={itemClassName({ active: current === 'menu', disabled: menuDisabled })}
           >
-            <span style={{ fontSize: 18 }}>注文</span>
+            <span className="customer-bottom-nav__icon">注文</span>
             <span>メニュー</span>
           </button>
           {!hideCart && (
             <button
               type="button"
               onClick={() => navigate('../cart')}
-              style={itemStyle(current === 'cart')}
+              className={itemClassName({ active: current === 'cart' })}
             >
-              <span style={{ fontSize: 18 }}>カート</span>
+              <span className="customer-bottom-nav__icon">カート</span>
               <span>{count > 0 ? `${count}点 ¥${total.toLocaleString()}` : '確認'}</span>
             </button>
           )}
@@ -117,41 +88,41 @@ export default function CustomerBottomNav({
             type="button"
             onClick={() => openConfirm('call')}
             disabled={callDisabled}
-            style={{ ...itemStyle(false, 'call'), ...(callDisabled ? disabledStyle : {}) }}
+            className={itemClassName({ disabled: callDisabled, variant: 'call' })}
           >
-            <span style={{ fontSize: 18 }}>呼出</span>
+            <span className="customer-bottom-nav__icon">呼出</span>
             <span>{callDisabled ? '送信済' : '確認して呼ぶ'}</span>
           </button>
           <button
             type="button"
             onClick={() => openConfirm('checkout')}
             disabled={checkoutDisabled}
-            style={{ ...itemStyle(current === 'checkout', 'checkout'), ...(checkoutDisabled ? disabledStyle : {}) }}
+            className={itemClassName({ active: current === 'checkout', disabled: checkoutDisabled, variant: 'checkout' })}
           >
-            <span style={{ fontSize: 18 }}>会計</span>
+            <span className="customer-bottom-nav__icon">会計</span>
             <span>{checkoutDisabled ? '送信済' : '確認して依頼'}</span>
           </button>
         </div>
       </nav>
 
       {currentConfirm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(15,23,42,0.38)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 14 }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#fff', borderRadius: 18, padding: 18, boxShadow: '0 18px 45px rgba(15,23,42,0.25)', border: `2px solid ${currentConfirm.border}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: currentConfirm.bg, color: currentConfirm.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900 }}>
+        <div className="customer-bottom-confirm">
+          <div className={`customer-bottom-confirm__panel customer-bottom-confirm__panel--${confirming}`}>
+            <div className="customer-bottom-confirm__header">
+              <div className="customer-bottom-confirm__icon">
                 {confirming === 'call' ? '呼' : '¥'}
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>{currentConfirm.title}</div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{currentConfirm.message}</div>
+                <div className="customer-bottom-confirm__title">{currentConfirm.title}</div>
+                <div className="customer-bottom-confirm__message">{currentConfirm.message}</div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+            <div className="customer-bottom-confirm__actions">
               <button
                 type="button"
                 onClick={() => setConfirming(null)}
                 disabled={sending}
-                style={{ flex: 1, padding: '13px 12px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 15, fontWeight: 800, cursor: sending ? 'default' : 'pointer' }}
+                className="customer-bottom-confirm__button"
               >
                 戻る
               </button>
@@ -159,7 +130,7 @@ export default function CustomerBottomNav({
                 type="button"
                 onClick={runConfirmedAction}
                 disabled={sending}
-                style={{ flex: 1.35, padding: '13px 12px', borderRadius: 12, border: 'none', background: currentConfirm.color, color: '#fff', fontSize: 15, fontWeight: 900, cursor: sending ? 'default' : 'pointer' }}
+                className="customer-bottom-confirm__button customer-bottom-confirm__button--primary"
               >
                 {sending ? '送信中...' : currentConfirm.confirmText}
               </button>

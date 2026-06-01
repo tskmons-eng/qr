@@ -1,0 +1,122 @@
+.staff-remaining-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 92px;
+}
+
+.staff-remaining-loading {
+  padding: 48px;
+  color: #999999;
+  text-align: center;
+}
+
+.staff-remaining-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.staff-remaining-header__back {
+  color: #444444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.staff-remaining-header__main {
+  flex: 1;
+}
+
+.staff-remaining-header__title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.staff-remaining-header__meta {
+  margin-top: 2px;
+  color: #888888;
+  font-size: 12px;
+}
+
+.staff-remaining-section {
+  margin-top: 12px;
+}
+
+.staff-remaining-section__title {
+  padding: 8px 16px;
+  color: #888888;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-remaining-list {
+  background: #ffffff;
+}
+
+.staff-remaining-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.staff-remaining-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.staff-remaining-row__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.staff-remaining-row__options {
+  margin-top: 3px;
+  color: #1d4ed8;
+  font-size: 12px;
+}
+
+.staff-remaining-row__meta {
+  margin-top: 3px;
+  color: #888888;
+  font-size: 12px;
+}
+
+.staff-remaining-row__button {
+  padding: 8px 12px;
+  color: #ffffff;
+  background: #222222;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.staff-remaining-empty {
+  padding: 42px;
+  color: #aaaaaa;
+  text-align: center;
+}
+
+.staff-remaining-served-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  opacity: 0.62;
+}
+
+.staff-remaining-served-row__status {
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}

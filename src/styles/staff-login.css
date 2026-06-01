@@ -1,0 +1,259 @@
+.staff-login {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.staff-login__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #222;
+  color: #fff;
+}
+
+.staff-login__title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.staff-login__logout {
+  padding: 5px 12px;
+  border: 1px solid #555;
+  border-radius: 5px;
+  background: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.staff-login__body {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.staff-login__loading {
+  color: #999;
+}
+
+.staff-login__empty,
+.staff-login__member-select {
+  width: 100%;
+  max-width: 360px;
+}
+
+.staff-login__empty {
+  color: #888;
+  text-align: center;
+}
+
+.staff-login__empty-title {
+  margin-bottom: 4px;
+}
+
+.staff-login__empty-text {
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.staff-login__primary,
+.staff-login__member-button,
+.staff-login__verify,
+.staff-login__back {
+  width: 100%;
+  cursor: pointer;
+}
+
+.staff-login__primary {
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #222;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.staff-login__question {
+  margin-bottom: 16px;
+  color: #888;
+  font-size: 14px;
+  text-align: center;
+}
+
+.staff-login__member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-login__member-button {
+  padding: 16px;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.staff-login__code-card {
+  width: 100%;
+  max-width: 340px;
+  padding: 28px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+}
+
+.staff-login__selected-name {
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.staff-login__code-help {
+  margin-bottom: 24px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+.staff-login__code-input {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 28px;
+  letter-spacing: 10px;
+  text-align: center;
+}
+
+.staff-login__error {
+  margin-bottom: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  text-align: center;
+}
+
+.staff-login__verify {
+  margin-top: 12px;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: #222;
+  color: #fff;
+  font-size: 15px;
+}
+
+.staff-login__verify:disabled {
+  background: #ccc;
+  cursor: default;
+}
+
+.staff-login__back {
+  margin-top: 8px;
+  padding: 11px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+  color: #666;
+  font-size: 14px;
+}
+
+.staff-auth-login {
+  max-width: 360px;
+  margin: 80px auto;
+  padding: 0 16px;
+}
+
+.staff-auth-login__title {
+  margin: 0 0 28px;
+  font-size: 20px;
+  text-align: center;
+}
+
+.staff-auth-login__google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 11px;
+  color: #333333;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.staff-auth-login__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.staff-auth-login__divider::before,
+.staff-auth-login__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #eeeeee;
+}
+
+.staff-auth-login__divider-text {
+  color: #bbbbbb;
+  font-size: 12px;
+}
+
+.staff-auth-login__field {
+  margin-bottom: 14px;
+}
+
+.staff-auth-login__field--password {
+  margin-bottom: 16px;
+}
+
+.staff-auth-login__label {
+  display: block;
+  margin-bottom: 4px;
+  color: #555555;
+  font-size: 13px;
+}
+
+.staff-auth-login__input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.staff-auth-login__error {
+  margin: 0 0 12px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.staff-auth-login__submit {
+  width: 100%;
+  padding: 11px;
+  color: #ffffff;
+  background: #222222;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}

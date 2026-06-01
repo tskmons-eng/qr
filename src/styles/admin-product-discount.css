@@ -1,0 +1,83 @@
+.discount-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.discount-type-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.discount-type-button {
+  padding: 7px 14px;
+  font-size: 13px;
+  border: 1px solid var(--color-border-control);
+  background: #ffffff;
+  color: #333333;
+}
+
+.discount-type-button.is-active {
+  background: var(--color-action-main);
+  color: #ffffff;
+}
+
+.discount-value-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #cccccc;
+  border-radius: var(--radius-control);
+}
+
+.discount-date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.discount-date-label,
+.discount-weekday-label {
+  font-size: 12px;
+  color: #666666;
+}
+
+.discount-date-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: var(--space-1);
+  padding: 7px 8px;
+  font-size: 13px;
+  border: 1px solid #cccccc;
+  border-radius: var(--radius-control);
+}
+
+.discount-weekday-label {
+  margin-bottom: 6px;
+}
+
+.discount-weekday-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.discount-weekday-button {
+  width: 34px;
+  height: 30px;
+  font-size: 12px;
+  border: 1px solid var(--color-border-control);
+  background: #ffffff;
+  color: #555555;
+  font-weight: 400;
+}
+
+.discount-weekday-button.is-active {
+  border-color: var(--color-action-danger);
+  background: #fef2f2;
+  color: var(--color-action-danger);
+  font-weight: 700;
+}

@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react'
-import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom'
-import { signOut } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '../../lib/firebase'
-import { useStore } from '../../contexts/StoreContext'
+import { useEffect, useState } from 'react'
+import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import ProductPage from './ProductPage'
-import TablePage from './TablePage'
-import SalesPage from './SalesPage'
-import StaffPage from './StaffPage'
+import { useStore } from '../../contexts/StoreContext'
+import { signOutCurrentUser } from '../../services/authSessionService'
+import { loadStoreCode } from '../../services/settingsService'
+import CategoryPage from './CategoryPage'
 import HistoryPage from './HistoryPage'
-import SettingsPage from './SettingsPage'
+import ProductPage from './ProductPage'
 import ReservationPage from './ReservationPage'
+import SalesPage from './SalesPage'
+import SettingsPage from './SettingsPage'
+import StaffPage from './StaffPage'
+import TablePage from './TablePage'
 
 const tabs = [
   { to: '/admin/products', label: '商品・カテゴリー' },
@@ -31,55 +31,46 @@ export default function AdminLayout() {
 
   useEffect(() => {
     if (!storeId || !user || user.isAnonymous) return
-    getDoc(doc(db, 'stores', storeId)).then(snap => {
-      if (snap.exists()) setStoreCode(snap.data().storeCode ?? '')
-    })
+    loadStoreCode(storeId).then(setStoreCode)
   }, [storeId, user])
 
   async function handleLogout() {
-    await signOut(auth)
+    await signOutCurrentUser()
     navigate('/login')
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <header style={{ background: '#222', color: '#fff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <h1 style={{ margin: 0, fontSize: 17 }}>管理画面</h1>
-          <NavLink to="/staff" style={{ color: '#aaa', fontSize: 13, textDecoration: 'none' }}>← スタッフ画面</NavLink>
+    <div className="admin-layout">
+      <header className="admin-layout__header">
+        <div className="admin-layout__header-main">
+          <h1 className="admin-layout__title">管理画面</h1>
+          <NavLink to="/staff" className="admin-layout__staff-link">← スタッフ画面</NavLink>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="admin-layout__header-actions">
           {storeCode && (
-            <span style={{ fontSize: 13, color: '#aaa' }}>
-              店舗コード: <span style={{ color: '#fff', fontWeight: 700, letterSpacing: 3 }}>{storeCode}</span>
+            <span className="admin-layout__store-code">
+              店舗コード: <span className="admin-layout__store-code-value">{storeCode}</span>
             </span>
           )}
-          <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #666', color: '#ccc', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+          <button type="button" onClick={handleLogout} className="admin-layout__logout">
             ログアウト
           </button>
         </div>
       </header>
 
-      <nav style={{ background: '#fff', borderBottom: '1px solid #ddd', display: 'flex', padding: '0 16px' }}>
+      <nav className="admin-layout__nav">
         {tabs.map(({ to, label }) => (
           <NavLink
             key={to}
             to={to}
-            style={({ isActive }) => ({
-              padding: '12px 16px',
-              textDecoration: 'none',
-              color: isActive ? '#1a73e8' : '#555',
-              borderBottom: isActive ? '2px solid #1a73e8' : '2px solid transparent',
-              fontSize: 14,
-              fontWeight: isActive ? 600 : 400,
-            })}
+            className={({ isActive }) => `admin-layout__tab${isActive ? ' is-active' : ''}`}
           >
             {label}
           </NavLink>
         ))}
       </nav>
 
-      <main style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
+      <main className="admin-layout__main">
         <Routes>
           <Route path="products" element={<ProductPage />} />
           <Route path="tables" element={<TablePage />} />
@@ -88,6 +79,7 @@ export default function AdminLayout() {
           <Route path="reservations" element={<ReservationPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="categories" element={<CategoryPage />} />
           <Route path="*" element={<Navigate to="/admin/categories" replace />} />
         </Routes>
       </main>

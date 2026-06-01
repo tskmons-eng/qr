@@ -1,0 +1,118 @@
+.admin-staff__heading {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-staff__panel {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-staff__section-title {
+  margin-bottom: 12px;
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-staff__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-staff__name-input,
+.admin-staff__code-input {
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.admin-staff__name-input {
+  flex: 2;
+  min-width: 120px;
+}
+
+.admin-staff__code-input {
+  flex: 1;
+  min-width: 100px;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.admin-staff__add-button {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.admin-staff__add-button:disabled {
+  cursor: default;
+}
+
+.admin-staff__error {
+  margin-top: 8px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.admin-staff__status {
+  padding: 32px;
+  color: #999;
+  text-align: center;
+}
+
+.admin-staff__status--empty {
+  color: #bbb;
+}
+
+.admin-staff__list {
+  overflow: hidden;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-staff__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.admin-staff__row.is-last {
+  border-bottom: none;
+}
+
+.admin-staff__member-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.admin-staff__masked-code {
+  margin-left: 10px;
+  color: #aaa;
+  font-size: 13px;
+  letter-spacing: 3px;
+}
+
+.admin-staff__delete {
+  padding: 5px 12px;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  background: #fff;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 12px;
+}

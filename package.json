@@ -6,7 +6,27 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "npm run check:product-form && npm run check:sort-order && npm run check:checkout && npm run check:option-modal && npm run check:settings && npm run check:customer-entry && npm run check:customer-order-status && npm run check:customer-cart && npm run check:staff-member && npm run check:staff-entry && npm run check:admin-table && npm run check:admin-category && npm run check:staff-table-list && npm run check:admin-sales && npm run check:admin-history && npm run check:owner-access && npm run check:kitchen-display && npm run check:staff-table-detail && npm run audit:structure",
+    "check:product-form": "node scripts/check-product-form.mjs",
+    "check:sort-order": "node scripts/check-sort-order.mjs",
+    "check:checkout": "node scripts/check-checkout-calculations.mjs",
+    "check:option-modal": "node scripts/check-option-modal.mjs",
+    "check:settings": "node scripts/check-settings-config.mjs",
+    "check:customer-entry": "node scripts/check-customer-entry.mjs",
+    "check:customer-order-status": "node scripts/check-customer-order-status.mjs",
+    "check:customer-cart": "node scripts/check-customer-cart.mjs",
+    "check:staff-member": "node scripts/check-staff-member.mjs",
+    "check:staff-entry": "node scripts/check-staff-entry.mjs",
+    "check:admin-table": "node scripts/check-admin-table.mjs",
+    "check:admin-category": "node scripts/check-admin-category.mjs",
+    "check:staff-table-list": "node scripts/check-staff-table-list.mjs",
+    "check:admin-sales": "node scripts/check-admin-sales.mjs",
+    "check:admin-history": "node scripts/check-admin-history.mjs",
+    "check:owner-access": "node scripts/check-owner-access.mjs",
+    "check:kitchen-display": "node scripts/check-kitchen-display.mjs",
+    "check:staff-table-detail": "node scripts/check-staff-table-detail.mjs",
+    "audit:structure": "node scripts/audit-structure.mjs"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",

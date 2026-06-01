@@ -1,0 +1,147 @@
+.owner-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.owner-header {
+  background: #111111;
+  color: #ffffff;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.owner-header__title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.owner-header__logout {
+  background: none;
+  border: 1px solid #555555;
+  color: #cccccc;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.owner-content {
+  max-width: 680px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.owner-content__heading {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.owner-content__description {
+  font-size: 13px;
+  color: #888888;
+  margin: 0 0 16px;
+}
+
+.owner-email-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--space-5);
+}
+
+.owner-email-form__input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #dddddd;
+  border-radius: var(--radius-panel);
+  outline: none;
+}
+
+.owner-email-form__button {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #222222;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.owner-email-form__button:disabled {
+  background: #cccccc;
+  cursor: default;
+}
+
+.owner-email-form__error {
+  color: #dc2626;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.owner-email-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.owner-email-list__empty {
+  color: #aaaaaa;
+  text-align: center;
+  margin-top: 32px;
+}
+
+.owner-email-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.owner-email-card__main {
+  min-width: 0;
+}
+
+.owner-email-card__address {
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.owner-email-card__date {
+  color: #bbbbbb;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.owner-email-card__remove {
+  padding: 6px 14px;
+  font-size: 13px;
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .owner-email-form {
+    flex-direction: column;
+  }
+
+  .owner-email-form__button {
+    width: 100%;
+  }
+}

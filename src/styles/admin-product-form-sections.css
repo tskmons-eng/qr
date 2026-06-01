@@ -1,0 +1,81 @@
+.product-status-row {
+  display: flex;
+  gap: var(--space-5);
+}
+
+.product-status-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.product-form-section {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 14px;
+}
+
+.product-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.product-section-header.has-content {
+  margin-bottom: var(--space-3);
+}
+
+.product-section-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.product-section-help {
+  font-size: 12px;
+  color: #aaaaaa;
+  margin-top: 2px;
+}
+
+.product-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  color: #888888;
+  background: #f5f5f5;
+  border: 1px solid #dddddd;
+  border-radius: 99px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.product-section-toggle.is-active {
+  color: #ffffff;
+  background: #222222;
+  border-color: #222222;
+  font-weight: 600;
+}
+
+.product-section-save {
+  width: 100%;
+  padding: 9px;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.product-section-save:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.product-section-save-spaced {
+  margin-top: 8px;
+}

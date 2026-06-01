@@ -1,0 +1,154 @@
+.reservation-page__title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.reservation-page__layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.reservation-calendar {
+  min-width: 320px;
+  flex: 1 1 320px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+}
+
+.reservation-calendar__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.reservation-calendar__nav button {
+  padding: 0 6px;
+  color: #555;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.reservation-calendar__nav span {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.reservation-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.reservation-calendar__weekday {
+  padding: 8px 0;
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.reservation-calendar__weekday.is-sunday,
+.reservation-calendar__day.is-sunday .reservation-calendar__day-number {
+  color: #dc2626;
+}
+
+.reservation-calendar__weekday.is-saturday,
+.reservation-calendar__day.is-saturday .reservation-calendar__day-number {
+  color: #2563eb;
+}
+
+.reservation-calendar__day {
+  min-height: 56px;
+  padding: 6px 4px;
+  text-align: center;
+  background: #fff;
+  border: 0;
+  border-top: 1px solid #f0f0f0;
+  border-left: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.reservation-calendar__day.is-selected {
+  background: #222;
+}
+
+.reservation-calendar__day.is-today {
+  background: #f0f9ff;
+}
+
+.reservation-calendar__day.is-selected.is-today {
+  background: #222;
+}
+
+.reservation-calendar__day-number {
+  display: block;
+  margin-bottom: 3px;
+  color: #333;
+  font-size: 13px;
+}
+
+.reservation-calendar__day.is-today .reservation-calendar__day-number {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.reservation-calendar__day.is-past .reservation-calendar__day-number {
+  color: #bbb;
+}
+
+.reservation-calendar__day.is-selected .reservation-calendar__day-number {
+  color: #fff;
+}
+
+.reservation-calendar__day-detail,
+.reservation-calendar__reservation,
+.reservation-calendar__more {
+  display: block;
+}
+
+.reservation-calendar__count {
+  display: inline-block;
+  margin-bottom: 2px;
+  padding: 1px 5px;
+  color: #2563eb;
+  background: #dbeafe;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.reservation-calendar__reservation {
+  overflow: hidden;
+  color: #555;
+  font-size: 9px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reservation-calendar__more {
+  color: #aaa;
+  font-size: 9px;
+}
+
+.reservation-calendar__day.is-selected .reservation-calendar__count {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.reservation-calendar__day.is-selected .reservation-calendar__reservation {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.reservation-calendar__day.is-selected .reservation-calendar__more {
+  color: rgba(255, 255, 255, 0.6);
+}
