@@ -4,6 +4,8 @@
 
 The application is already in use, so refactoring must not change production behavior accidentally. The priority is to reduce file bloat, separate CSS and driving logic, and make future bug checks and feature additions easier without disrupting current users.
 
+Typography should use `M PLUS Rounded 1c` as the main font for a rounded, strong Gothic admin feel. Body text should stay slightly heavy, labels and buttons should be bold, and totals or important numeric values should use weight 900 with tabular numbers. Fallbacks are `Noto Sans JP`, `Yu Gothic UI`, `Meiryo`, `system-ui`, and sans-serif.
+
 ## Current Hotspots
 
 - No source file currently exceeds the structure-audit threshold.

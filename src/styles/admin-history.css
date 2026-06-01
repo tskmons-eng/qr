@@ -42,13 +42,13 @@
   border-radius: 99px;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: var(--font-weight-label);
 }
 
 .admin-history-filter.is-active {
   color: #ffffff;
   background: #222222;
-  font-weight: 600;
+  font-weight: var(--font-weight-label);
 }
 
 .admin-history__status {

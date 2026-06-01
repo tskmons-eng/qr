@@ -168,7 +168,7 @@
   background: #fff;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: var(--font-weight-label);
 }
 
 .option-modal__choice-button.is-selected {

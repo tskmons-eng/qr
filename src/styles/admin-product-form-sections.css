@@ -49,14 +49,14 @@
   border-radius: 99px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: var(--font-weight-label);
 }
 
 .product-section-toggle.is-active {
   color: #ffffff;
   background: #222222;
   border-color: #222222;
-  font-weight: 600;
+  font-weight: var(--font-weight-label);
 }
 
 .product-section-save {

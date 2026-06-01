@@ -21,5 +21,10 @@
   --space-5: 20px;
   --space-6: 24px;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-main: "M PLUS Rounded 1c", "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  --font-sans: var(--font-main);
+  --font-number: "M PLUS Rounded 1c", "Arial Rounded MT Bold", "Arial Black", sans-serif;
+  --font-weight-body: 500;
+  --font-weight-label: 700;
+  --font-weight-number-strong: 900;
 }

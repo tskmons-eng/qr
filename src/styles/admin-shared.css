@@ -12,13 +12,13 @@
   background: none;
   cursor: pointer;
   color: var(--color-text-muted);
-  font-weight: 400;
+  font-weight: var(--font-weight-label);
 }
 
 .admin-tab.is-active {
   border-bottom-color: var(--color-action-main);
   color: var(--color-text-main);
-  font-weight: 600;
+  font-weight: var(--font-weight-label);
 }
 
 .tag-template-tools {

@@ -5,5 +5,26 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-weight: var(--font-weight-body);
+  color: var(--color-text-main);
   -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button,
+label,
+.button {
+  font-weight: var(--font-weight-label);
+}
+
+input,
+select,
+textarea {
+  font-weight: var(--font-weight-body);
 }

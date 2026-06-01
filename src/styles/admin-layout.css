@@ -71,14 +71,14 @@
   color: #555555;
   border-bottom: 2px solid transparent;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: var(--font-weight-label);
   text-decoration: none;
 }
 
 .admin-layout__tab.is-active {
   color: #1a73e8;
   border-bottom-color: #1a73e8;
-  font-weight: 600;
+  font-weight: var(--font-weight-label);
 }
 
 .admin-layout__main {
