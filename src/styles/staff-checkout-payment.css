@@ -128,6 +128,20 @@
   font-size: 14px;
 }
 
+.checkout-cash-presets .checkout-cash-preset--exact {
+  flex: 1 1 100%;
+  min-height: 42px;
+  border-color: #16a34a;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.checkout-cash-presets .checkout-cash-preset--exact.is-active {
+  color: #ffffff;
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
 .checkout-cash-input {
   padding: 12px;
   font-size: 22px;

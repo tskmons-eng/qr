@@ -6,6 +6,8 @@ The application is already in use, so refactoring must not change production beh
 
 Typography should use `M PLUS Rounded 1c` as the main font for a rounded, strong Gothic admin feel. Body text should stay slightly heavy, labels and buttons should be bold, and totals or important numeric values should use weight 900 with tabular numbers. Fallbacks are `Noto Sans JP`, `Yu Gothic UI`, `Meiryo`, `system-ui`, and sans-serif.
 
+Checkout payment controls should prioritize staff speed at the register. The received-cash presets need an exact-total button before fixed bills such as 1000, 5000, and 10000 yen, and duplicate amounts should be avoided when the exact total matches a fixed preset.
+
 ## Current Hotspots
 
 - No source file currently exceeds the structure-audit threshold.

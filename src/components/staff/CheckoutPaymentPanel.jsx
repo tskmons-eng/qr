@@ -1,5 +1,14 @@
 const CASH_PRESETS = [1000, 2000, 5000, 10000]
 
+function buildCashPresets(total) {
+  const presets = [
+    { amount: total, label: `ちょうど ¥${total.toLocaleString()}`, variant: 'exact' },
+    ...CASH_PRESETS.map(amount => ({ amount, label: `¥${amount.toLocaleString()}`, variant: 'cash' })),
+  ]
+
+  return presets.filter(({ amount }, index) => amount > 0 && presets.findIndex(preset => preset.amount === amount) === index)
+}
+
 export default function CheckoutPaymentPanel({
   subtotalBeforeItemDiscount,
   itemDiscountAmount,
@@ -18,6 +27,8 @@ export default function CheckoutPaymentPanel({
   onDiscountNoteChange,
   onReceivedCashChange,
 }) {
+  const cashPresets = buildCashPresets(total)
+
   return (
     <>
       <div className="checkout-row is-muted">
@@ -88,14 +99,17 @@ export default function CheckoutPaymentPanel({
       <div className="checkout-panel is-payment">
         <div className="checkout-panel__title">お預かり金額</div>
         <div className="checkout-cash-presets">
-          {CASH_PRESETS.map(amount => (
+          {cashPresets.map(({ amount, label, variant }) => (
             <button
               key={amount}
               type="button"
-              className={Number(receivedCash) === amount ? 'is-active' : ''}
+              className={[
+                variant === 'exact' ? 'checkout-cash-preset--exact' : '',
+                Number(receivedCash) === amount ? 'is-active' : '',
+              ].filter(Boolean).join(' ')}
               onClick={() => onReceivedCashChange(String(amount))}
             >
-              ¥{amount.toLocaleString()}
+              {label}
             </button>
           ))}
         </div>
