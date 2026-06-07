@@ -34,6 +34,17 @@ export function StoreProvider({ children }) {
 
     // Googleユーザー: stores/{uid} を初期化
     async function initStore() {
+      const normalizedEmail = user.email?.trim().toLowerCase()
+      if (normalizedEmail) {
+        const assignmentSnap = await getDoc(doc(db, 'storeAdminEmails', normalizedEmail))
+        const assignedStoreId = assignmentSnap.exists() ? assignmentSnap.data().storeId : null
+        if (assignedStoreId) {
+          setStoreId(assignedStoreId)
+          setLoading(false)
+          return
+        }
+      }
+
       const storeRef = doc(db, 'stores', user.uid)
       const snap = await getDoc(storeRef)
       let code

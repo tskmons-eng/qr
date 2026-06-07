@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import { useStaffMember } from '../contexts/StaffMemberContext'
+import { hasStaffPermission } from '../lib/staffPermissions'
 
 export default function StaffBottomNav({
   current,
@@ -9,6 +11,8 @@ export default function StaffBottomNav({
   pendingCount = 0,
 }) {
   const navigate = useNavigate()
+  const staffContext = useStaffMember()
+  const canUseKitchen = hasStaffPermission(staffContext?.activeStaff, 'useKitchen')
   const hasTable = !!tableId
   const hasOrder = !!orderId
   const checkoutState = { orderId, storeId, guestCount }
@@ -32,14 +36,16 @@ export default function StaffBottomNav({
           <span className="staff-bottom-nav__icon">席</span>
           <span>戻る</span>
         </button>
-        <button
-          type="button"
-          onClick={() => navigate('/staff/kitchen')}
-          className={itemClassName(current === 'kitchen')}
-        >
-          <span className="staff-bottom-nav__icon">厨房</span>
-          <span>パネル</span>
-        </button>
+        {canUseKitchen && (
+          <button
+            type="button"
+            onClick={() => navigate('/staff/kitchen')}
+            className={itemClassName(current === 'kitchen')}
+          >
+            <span className="staff-bottom-nav__icon">厨房</span>
+            <span>パネル</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={() => hasOrder && navigate(`/staff/table/${tableId}/remaining`, { state: { orderId, storeId } })}

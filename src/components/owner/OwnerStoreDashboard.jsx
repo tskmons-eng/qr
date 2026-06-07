@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { formatOwnerCurrency, formatOwnerDateTime } from '../../lib/ownerDashboard'
 
 const summaryCards = [
@@ -8,7 +9,14 @@ const summaryCards = [
   { key: 'openOrderCount', label: '未会計注文', format: value => `${value}件` },
 ]
 
-export default function OwnerStoreDashboard({ dashboard, error, loading, onRefresh }) {
+export default function OwnerStoreDashboard({
+  dashboard,
+  error,
+  loading,
+  ownerEmailSavingStoreId,
+  onOwnerEmailSave,
+  onRefresh,
+}) {
   return (
     <section className="owner-dashboard">
       <div className="owner-dashboard__header">
@@ -37,14 +45,24 @@ export default function OwnerStoreDashboard({ dashboard, error, loading, onRefre
             ))}
           </div>
 
-          <OwnerStoreTable stores={dashboard.stores} />
+          <OwnerStoreTable
+            ownerEmailSavingStoreId={ownerEmailSavingStoreId}
+            stores={dashboard.stores}
+            onOwnerEmailSave={onOwnerEmailSave}
+          />
         </>
       )}
     </section>
   )
 }
 
-function OwnerStoreTable({ stores }) {
+function OwnerStoreTable({ ownerEmailSavingStoreId, stores, onOwnerEmailSave }) {
+  const [emailDrafts, setEmailDrafts] = useState({})
+
+  useEffect(() => {
+    setEmailDrafts(Object.fromEntries(stores.map(store => [store.id, store.ownerEmail || ''])))
+  }, [stores])
+
   if (stores.length === 0) {
     return <p className="owner-dashboard__status owner-dashboard__status--empty">店舗はまだありません</p>
   }
@@ -57,6 +75,7 @@ function OwnerStoreTable({ stores }) {
             <th>店舗</th>
             <th>店舗コード</th>
             <th>状態</th>
+            <th>管理者メール</th>
             <th>本日売上</th>
             <th>本日会計</th>
             <th>未会計</th>
@@ -76,6 +95,29 @@ function OwnerStoreTable({ stores }) {
                 <span className={`owner-store-status${store.status === '稼働中' ? ' is-active' : ' is-paused'}`}>
                   {store.status}
                 </span>
+              </td>
+              <td>
+                <div className="owner-store-admin-email">
+                  <input
+                    value={emailDrafts[store.id] ?? ''}
+                    onChange={event => setEmailDrafts(prev => ({ ...prev, [store.id]: event.target.value }))}
+                    placeholder="owner@example.com"
+                    type="email"
+                    className="owner-store-admin-email__input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onOwnerEmailSave({
+                      storeId: store.id,
+                      currentEmail: store.ownerEmail,
+                      nextEmail: emailDrafts[store.id] ?? '',
+                    })}
+                    disabled={ownerEmailSavingStoreId === store.id || (emailDrafts[store.id] ?? '') === (store.ownerEmail || '')}
+                    className="owner-store-admin-email__button"
+                  >
+                    {ownerEmailSavingStoreId === store.id ? '保存中' : '保存'}
+                  </button>
+                </div>
               </td>
               <td className="owner-store-table__amount">{formatOwnerCurrency(store.todaySales)}</td>
               <td className="owner-store-table__number">{store.todayCheckCount}件</td>

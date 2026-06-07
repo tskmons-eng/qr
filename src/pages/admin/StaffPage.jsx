@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import StaffMemberForm from '../../components/admin/StaffMemberForm'
 import StaffMemberList from '../../components/admin/StaffMemberList'
 import { useStore } from '../../contexts/StoreContext'
+import { DEFAULT_STAFF_PERMISSION_PRESET, buildStaffPermissionsFromPreset } from '../../lib/staffPermissions'
 import { normalizeStaffCode, validateStaffMemberForm } from '../../lib/staffMember'
-import { createStaffMember, deleteStaffMember, loadStaffMembers } from '../../services/staffAuthService'
+import { createStaffMember, deleteStaffMember, loadStaffMembers, updateStaffMemberPermissions } from '../../services/staffAuthService'
 
 export default function StaffPage() {
   const { storeId } = useStore()
@@ -11,6 +12,7 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [permissionPreset, setPermissionPreset] = useState(DEFAULT_STAFF_PERMISSION_PRESET)
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,9 +36,10 @@ export default function StaffPage() {
 
     setAdding(true)
     try {
-      await createStaffMember({ storeId, name, code })
+      await createStaffMember({ storeId, name, code, permissionPreset })
       setName('')
       setCode('')
+      setPermissionPreset(DEFAULT_STAFF_PERMISSION_PRESET)
       await load()
     } finally {
       setAdding(false)
@@ -49,22 +52,40 @@ export default function StaffPage() {
     setMembers(prev => prev.filter(member => member.id !== id))
   }
 
+  async function handlePermissionPresetChange(member, nextPreset) {
+    if (nextPreset === 'legacy' || nextPreset === 'custom') return
+    const permissions = buildStaffPermissionsFromPreset(nextPreset)
+    await updateStaffMemberPermissions({
+      memberId: member.id,
+      permissionPreset: nextPreset,
+      permissions,
+    })
+    setMembers(prev => prev.map(existing => (
+      existing.id === member.id
+        ? { ...existing, permissionPreset: nextPreset, permissions }
+        : existing
+    )))
+  }
+
   return (
     <div className="admin-staff">
       <h2 className="admin-staff__heading">スタッフ管理</h2>
       <StaffMemberForm
         name={name}
         code={code}
+        permissionPreset={permissionPreset}
         adding={adding}
         error={error}
         onNameChange={setName}
         onCodeChange={value => setCode(normalizeStaffCode(value))}
+        onPermissionPresetChange={setPermissionPreset}
         onAdd={handleAdd}
       />
       <StaffMemberList
         loading={loading}
         members={members}
         onDelete={handleDelete}
+        onPermissionPresetChange={handlePermissionPresetChange}
       />
     </div>
   )

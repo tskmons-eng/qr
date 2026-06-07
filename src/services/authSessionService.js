@@ -7,6 +7,11 @@ export function signOutCurrentUser() {
 }
 
 export async function isAllowedEmail(email) {
-  const snap = await getDoc(doc(db, 'allowedEmails', email))
-  return snap.exists()
+  if (!email) return false
+  const normalizedEmail = email.trim().toLowerCase()
+  const [allowedSnap, storeAdminSnap] = await Promise.all([
+    getDoc(doc(db, 'allowedEmails', normalizedEmail)),
+    getDoc(doc(db, 'storeAdminEmails', normalizedEmail)),
+  ])
+  return allowedSnap.exists() || storeAdminSnap.exists()
 }

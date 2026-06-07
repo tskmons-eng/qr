@@ -156,3 +156,25 @@
 .staff-call-banner__item--checkout .staff-call-banner__respond {
   background: #2563eb;
 }
+
+.staff-shell__permission-denied {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 24px;
+  border: 1px solid #eeeeee;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.staff-shell__permission-title {
+  margin-bottom: 8px;
+  color: #222222;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.staff-shell__permission-text {
+  color: #777777;
+  font-size: 13px;
+}

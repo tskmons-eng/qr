@@ -4,6 +4,7 @@ import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
 import { loadSoundPrefs, playSound } from '../../lib/sounds'
 import { requestAndRegisterToken } from '../../lib/messaging'
+import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
 import SoundSettingsPanel from '../../components/staff/SoundSettingsPanel'
@@ -11,7 +12,10 @@ import StaffEntryPage from './StaffEntryPage'
 import StaffLoginScreen from '../../components/staff/StaffLoginScreen'
 import { useAuth } from '../../contexts/AuthContext'
 import { signOutCurrentUser } from '../../services/authSessionService'
+import { activateStaffMemberSession } from '../../services/staffAuthService'
 import { getNewCallIds, respondToStaffCall, subscribePendingCalls } from '../../services/staffCallService'
+import ProductPage from '../admin/ProductPage'
+import SalesPage from '../admin/SalesPage'
 import TableListPage from './TableListPage'
 import TableDetailPage from './TableDetailPage'
 import StaffMenuPage from './StaffMenuPage'
@@ -31,6 +35,11 @@ export default function StaffLayout() {
     if (staff) localStorage.setItem('activeStaff', JSON.stringify(staff))
     else localStorage.removeItem('activeStaff')
     setActiveStaff(staff)
+  }
+
+  async function handleStaffLogin(staff) {
+    await activateStaffMemberSession({ storeId, staff })
+    setActiveStaffPersisted(staff)
   }
 
   const [calls, setCalls] = useState([])
@@ -95,10 +104,14 @@ export default function StaffLayout() {
   if (!activeStaff) {
     return (
       <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
-        <StaffLoginScreen storeId={storeId} onLogin={setActiveStaffPersisted} onLogout={handleLogout} />
+        <StaffLoginScreen storeId={storeId} onLogin={handleStaffLogin} onLogout={handleLogout} />
       </StaffMemberContext.Provider>
     )
   }
+
+  const canUseKitchen = hasStaffPermission(activeStaff, 'useKitchen')
+  const canCloseRegister = hasStaffPermission(activeStaff, 'closeRegister', { useKitchen: true, closeRegister: false, manageMenu: false })
+  const canManageMenu = hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
 
   return (
     <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
@@ -108,11 +121,16 @@ export default function StaffLayout() {
           callCount={calls.length}
           notifStatus={notifStatus}
           showAdmin={!user?.isAnonymous}
+          canUseKitchen={canUseKitchen}
+          canCloseRegister={canCloseRegister}
+          canManageMenu={canManageMenu}
           onEnableNotif={handleEnableNotif}
           onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
           onSwitchStaff={() => setActiveStaffPersisted(null)}
           onOpenKitchen={() => navigate('/staff/kitchen')}
+          onOpenSales={() => navigate('/staff/sales')}
+          onOpenMenuAdmin={() => navigate('/staff/menu-admin')}
           onOpenAdmin={() => navigate('/admin')}
           onLogout={handleLogout}
         />
@@ -123,7 +141,21 @@ export default function StaffLayout() {
 
         <Routes>
           <Route index element={<TableListPage />} />
-          <Route path="kitchen" element={<KitchenPage />} />
+          <Route path="kitchen" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
+              <KitchenPage />
+            </StaffPermissionGate>
+          } />
+          <Route path="sales" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="closeRegister" elevated>
+              <SalesPage />
+            </StaffPermissionGate>
+          } />
+          <Route path="menu-admin" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="manageMenu" elevated>
+              <ProductPage />
+            </StaffPermissionGate>
+          } />
           <Route path="table/:tableId" element={<TableDetailPage />} />
           <Route path="table/:tableId/remaining" element={<RemainingPage />} />
           <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
@@ -132,5 +164,19 @@ export default function StaffLayout() {
         </Routes>
       </div>
     </StaffMemberContext.Provider>
+  )
+}
+
+function StaffPermissionGate({ activeStaff, children, elevated = false, permission }) {
+  const legacyDefaults = elevated
+    ? { useKitchen: true, closeRegister: false, manageMenu: false }
+    : undefined
+  if (hasStaffPermission(activeStaff, permission, legacyDefaults)) return children
+
+  return (
+    <div className="staff-shell__permission-denied">
+      <div className="staff-shell__permission-title">権限がありません</div>
+      <div className="staff-shell__permission-text">管理者にスタッフ権限の変更を依頼してください。</div>
+    </div>
   )
 }

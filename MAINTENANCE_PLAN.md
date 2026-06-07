@@ -12,6 +12,10 @@ Owner-level trial management must not affect active stores. Add read-only oversi
 
 Allowed-email management is security-sensitive. Only the fixed super-admin account may list, add, or remove Google admin access emails; normal allowed managers should not load or mutate the shared `allowedEmails` collection.
 
+Store administrator email changes must not migrate live store IDs. The safe model is an owner-only `storeAdminEmails/{email}` assignment that points a Google account to an existing `storeId`, while legacy `stores/{uid}` ownership continues to work.
+
+Staff capability management must preserve existing active stores. Missing staff permission fields are treated as legacy floor access for current staff workflows, while new elevated actions such as menu management and register closing require explicit permission toggles.
+
 ## Owner Dashboard Safety Plan
 
 1. Reuse this maintenance plan instead of adding another planning MD.

@@ -113,7 +113,7 @@
 
 .owner-store-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
@@ -158,6 +158,39 @@
 .owner-store-table__date {
   color: #666666;
   white-space: nowrap;
+}
+
+.owner-store-admin-email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 250px;
+}
+
+.owner-store-admin-email__input {
+  width: 180px;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.owner-store-admin-email__button {
+  padding: 7px 10px;
+  color: #ffffff;
+  background: #222222;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: var(--font-weight-label);
+  white-space: nowrap;
+}
+
+.owner-store-admin-email__button:disabled {
+  background: #cccccc;
+  cursor: default;
 }
 
 .owner-store-status {

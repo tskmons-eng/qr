@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadStaffMembers } from '../../services/staffAuthService'
+import { buildStaffPermissionsFromPreset, normalizeStaffPermissions } from '../../lib/staffPermissions'
 
 export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
   const [members, setMembers] = useState([])
@@ -28,7 +29,12 @@ export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
 
   function handleVerify() {
     if (selected.code === code) {
-      onLogin({ id: selected.id, name: selected.name })
+      onLogin({
+        id: selected.id,
+        name: selected.name,
+        permissionPreset: selected.permissionPreset,
+        permissions: normalizeStaffPermissions(selected.permissions),
+      })
     } else {
       setError('コードが違います')
       setCode('')
@@ -53,7 +59,12 @@ export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
             <p className="staff-login__empty-text">管理画面 → スタッフ から追加してください</p>
             <button
               type="button"
-              onClick={() => onLogin({ id: 'admin', name: '管理者' })}
+              onClick={() => onLogin({
+                id: 'admin',
+                name: '管理者',
+                permissionPreset: 'manager',
+                permissions: buildStaffPermissionsFromPreset('manager'),
+              })}
               className="staff-login__primary"
             >
               管理者として入る

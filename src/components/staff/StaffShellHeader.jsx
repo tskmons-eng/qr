@@ -1,6 +1,9 @@
 export default function StaffShellHeader({
   activeStaff,
   callCount,
+  canCloseRegister,
+  canManageMenu,
+  canUseKitchen,
   notifStatus,
   showAdmin,
   onEnableNotif,
@@ -8,6 +11,8 @@ export default function StaffShellHeader({
   onRefresh,
   onSwitchStaff,
   onOpenKitchen,
+  onOpenMenuAdmin,
+  onOpenSales,
   onOpenAdmin,
   onLogout,
 }) {
@@ -48,9 +53,21 @@ export default function StaffShellHeader({
         <button type="button" onClick={onSwitchStaff} className="staff-shell__button staff-shell__button--compact">
           切替
         </button>
-        <button type="button" onClick={onOpenKitchen} className="staff-shell__button">
-          キッチン
-        </button>
+        {canUseKitchen && (
+          <button type="button" onClick={onOpenKitchen} className="staff-shell__button">
+            キッチン
+          </button>
+        )}
+        {canCloseRegister && (
+          <button type="button" onClick={onOpenSales} className="staff-shell__button">
+            レジ締め
+          </button>
+        )}
+        {canManageMenu && (
+          <button type="button" onClick={onOpenMenuAdmin} className="staff-shell__button">
+            メニュー管理
+          </button>
+        )}
         {showAdmin && (
           <button type="button" onClick={onOpenAdmin} className="staff-shell__button">
             管理

@@ -21,7 +21,7 @@ assert.equal(formatOwnerDateTime(todayTimestamp).includes('2026'), true)
 
 const dashboard = buildOwnerDashboardSnapshot({
   stores: [
-    { id: 'store-a', storeName: 'A店', storeCode: 'ABC123', isOpen: true, createdAt: oldTimestamp },
+    { id: 'store-a', storeName: 'A店', storeCode: 'ABC123', ownerEmail: 'owner-a@example.com', isOpen: true, createdAt: oldTimestamp },
     { id: 'store-b', storeName: '', storeCode: 'DEF456', isOpen: false, createdAt: todayTimestamp },
   ],
   checks: [
@@ -42,6 +42,7 @@ assert.equal(dashboard.summary.todaySales, 4200)
 assert.equal(dashboard.summary.todayCheckCount, 2)
 assert.equal(dashboard.summary.openOrderCount, 1)
 assert.equal(dashboard.stores.find(store => store.id === 'store-a').allTimeSales, 2000)
+assert.equal(dashboard.stores.find(store => store.id === 'store-a').ownerEmail, 'owner-a@example.com')
 assert.equal(dashboard.stores.find(store => store.id === 'store-b').storeName, '店舗名未設定')
 
 console.log('owner dashboard checks passed')

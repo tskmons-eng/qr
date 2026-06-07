@@ -6,7 +6,7 @@ import OwnerStoreDashboard from '../../components/owner/OwnerStoreDashboard'
 import { useAuth } from '../../contexts/AuthContext'
 import { normalizeOwnerEmail, validateOwnerEmail } from '../../lib/ownerAccess'
 import { signOutCurrentUser } from '../../services/authSessionService'
-import { loadOwnerDashboardData } from '../../services/ownerDashboardService'
+import { loadOwnerDashboardData, updateStoreAdminEmail } from '../../services/ownerDashboardService'
 import {
   addOwnerAllowedEmail,
   removeOwnerAllowedEmail,
@@ -20,6 +20,7 @@ export default function OwnerPage() {
   const [dashboard, setDashboard] = useState(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [dashboardError, setDashboardError] = useState('')
+  const [ownerEmailSavingStoreId, setOwnerEmailSavingStoreId] = useState('')
   const [emailInput, setEmailInput] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
@@ -67,6 +68,24 @@ export default function OwnerPage() {
     removeOwnerAllowedEmail(email)
   }
 
+  async function handleStoreAdminEmailSave({ storeId, currentEmail, nextEmail }) {
+    setOwnerEmailSavingStoreId(storeId)
+    setDashboardError('')
+    try {
+      await updateStoreAdminEmail({
+        storeId,
+        currentEmail,
+        nextEmail,
+        updatedBy: user?.email ?? null,
+      })
+      await loadDashboard()
+    } catch (saveError) {
+      setDashboardError(saveError.message || '店舗管理者メールの保存に失敗しました')
+    } finally {
+      setOwnerEmailSavingStoreId('')
+    }
+  }
+
   return (
     <div className="owner-page">
       <OwnerHeader onSignOut={signOutCurrentUser} />
@@ -93,6 +112,8 @@ export default function OwnerPage() {
             dashboard={dashboard}
             error={dashboardError}
             loading={dashboardLoading}
+            ownerEmailSavingStoreId={ownerEmailSavingStoreId}
+            onOwnerEmailSave={handleStoreAdminEmailSave}
             onRefresh={loadDashboard}
           />
         ) : (

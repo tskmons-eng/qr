@@ -16,8 +16,19 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/allowedEmails/$(request.auth.token.email));
     }
 
+    function isStoreAdminEmail(storeId) {
+      return isGoogle()
+        && exists(/databases/$(database)/documents/storeAdminEmails/$(request.auth.token.email))
+        && get(/databases/$(database)/documents/storeAdminEmails/$(request.auth.token.email)).data.storeId == storeId;
+    }
+
     function isOwnerOf(storeId) {
-      return isGoogle() && request.auth.uid == storeId;
+      return isGoogle()
+        && request.auth.uid == storeId
+        && (
+          !exists(/databases/$(database)/documents/stores/$(storeId))
+          || get(/databases/$(database)/documents/stores/$(storeId)).data.get('ownerEmail', request.auth.token.email) == request.auth.token.email
+        );
     }
 
     function isStaffOf(storeId) {
@@ -28,11 +39,35 @@ service cloud.firestore {
     }
 
     function canAccess(storeId) {
-      return isSuper() || isOwnerOf(storeId) || isStaffOf(storeId);
+      return isSuper() || isOwnerOf(storeId) || isStoreAdminEmail(storeId) || isStaffOf(storeId);
+    }
+
+    function canManageStore(storeId) {
+      return isSuper() || isOwnerOf(storeId) || isStoreAdminEmail(storeId);
+    }
+
+    function staffPermission(storeId, permission, legacyDefault) {
+      return isStaffOf(storeId)
+        && get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data
+          .get('permissions', {})
+          .get(permission, legacyDefault) == true;
+    }
+
+    function canManageMenu(storeId) {
+      return canManageStore(storeId) || staffPermission(storeId, 'manageMenu', false);
+    }
+
+    function canCloseRegister(storeId) {
+      return canManageStore(storeId) || staffPermission(storeId, 'closeRegister', false);
     }
 
     // 許可メール（オーナーが管理）
     match /allowedEmails/{email} {
+      allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
+      allow write: if isSuper();
+    }
+
+    match /storeAdminEmails/{email} {
       allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
       allow write: if isSuper();
     }
@@ -57,7 +92,7 @@ service cloud.firestore {
     match /stores/{storeId} {
       allow read: if canAccess(storeId);
       allow create: if isSuper() || isAllowedOwner();
-      allow update, delete: if isSuper() || isOwnerOf(storeId);
+      allow update, delete: if canManageStore(storeId);
     }
 
     // テーブル（お客さんも読める）
@@ -72,29 +107,29 @@ service cloud.firestore {
     // カテゴリー（お客さんも読める）
     match /categories/{categoryId} {
       allow read: if true;
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if canManageMenu(request.resource.data.storeId);
+      allow update, delete: if canManageMenu(resource.data.storeId);
     }
 
     // 商品（お客さんも読める）
     match /products/{productId} {
       allow read: if true;
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if canManageMenu(request.resource.data.storeId);
+      allow update, delete: if canManageMenu(resource.data.storeId);
     }
 
     // オプションテンプレート
     match /optionTemplates/{templateId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if canManageMenu(request.resource.data.storeId);
+      allow update, delete: if canManageMenu(resource.data.storeId);
     }
 
     // タグテンプレート
     match /tagTemplates/{templateId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if canManageMenu(request.resource.data.storeId);
+      allow update, delete: if canManageMenu(resource.data.storeId);
     }
 
     // 注文（お客さんも作成できる）
@@ -122,9 +157,9 @@ service cloud.firestore {
 
     // レジ締め
     match /cashClosings/{closingId} {
-      allow read: if canAccess(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow read: if canCloseRegister(resource.data.storeId);
+      allow create: if canCloseRegister(request.resource.data.storeId);
+      allow update, delete: if canCloseRegister(resource.data.storeId);
     }
 
     // スタッフアクション
@@ -150,8 +185,8 @@ service cloud.firestore {
     // スタッフメンバー
     match /staffMembers/{memberId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if canManageStore(request.resource.data.storeId);
+      allow update, delete: if canManageStore(resource.data.storeId);
     }
 
     // 呼び出し（お客さんも作成できる）
