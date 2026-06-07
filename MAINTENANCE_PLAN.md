@@ -10,6 +10,8 @@ Checkout payment controls should prioritize staff speed at the register. The rec
 
 Owner-level trial management must not affect active stores. Add read-only oversight under `/owner` only, keep `/admin`, `/staff`, `/order/:qrToken`, `StoreContext`, and Firestore rules unchanged for the first slice, and do not add write controls such as store switching, pausing, or proxy admin access until the read-only dashboard is proven safe.
 
+Allowed-email management is security-sensitive. Only the fixed super-admin account may list, add, or remove Google admin access emails; normal allowed managers should not load or mutate the shared `allowedEmails` collection.
+
 ## Owner Dashboard Safety Plan
 
 1. Reuse this maintenance plan instead of adding another planning MD.

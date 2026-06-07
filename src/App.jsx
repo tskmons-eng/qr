@@ -8,13 +8,14 @@ import KitchenPage from './pages/kitchen/KitchenPage'
 import LoginPage from './pages/staff/LoginPage'
 import OwnerPage from './pages/owner/OwnerPage'
 import PrivateRoute from './components/PrivateRoute'
-import ApprovalGate, { OWNER_EMAIL } from './components/ApprovalGate'
+import ApprovalGate from './components/ApprovalGate'
 import { useAuth } from './contexts/AuthContext'
+import { isSuperAdminEmail } from './lib/ownerIdentity'
 
 function OwnerRoute({ children }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (user.email !== OWNER_EMAIL) return <Navigate to="/staff" replace />
+  if (!isSuperAdminEmail(user.email)) return <Navigate to="/staff" replace />
   return children
 }
 

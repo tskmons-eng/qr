@@ -12,6 +12,7 @@ import {
   TAX_PRESETS,
   validateAllowedEmail,
 } from '../../lib/settingsConfig'
+import { isSuperAdminEmail } from '../../lib/ownerIdentity'
 import {
   addAllowedEmail,
   loadAllowedEmails,
@@ -34,6 +35,7 @@ export default function SettingsPage() {
   const [newEmail, setNewEmail] = useState('')
   const [emailAdding, setEmailAdding] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const canManageAllowedEmails = isSuperAdminEmail(user?.email)
 
   useEffect(() => {
     if (!storeId || !user || user.isAnonymous) return
@@ -41,8 +43,9 @@ export default function SettingsPage() {
   }, [storeId, user])
 
   useEffect(() => {
+    if (!canManageAllowedEmails) return
     loadAllowedEmails().then(setAllowedEmails)
-  }, [])
+  }, [canManageAllowedEmails])
 
   useEffect(() => {
     if (!storeId) return
@@ -145,7 +148,7 @@ export default function SettingsPage() {
         onSave={handleSave}
       />
 
-      {user?.email === 'tsk.mons@gmail.com' && (
+      {canManageAllowedEmails && (
         <AllowedEmailSettings
           allowedEmails={allowedEmails}
           newEmail={newEmail}

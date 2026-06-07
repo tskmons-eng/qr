@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { isSuperAdminEmail } from '../lib/ownerIdentity'
 import { isAllowedEmail, signOutCurrentUser } from '../services/authSessionService'
-
-export const OWNER_EMAIL = 'tsk.mons@gmail.com'
 
 export default function ApprovalGate({ children }) {
   const { user } = useAuth()
@@ -10,7 +9,7 @@ export default function ApprovalGate({ children }) {
 
   useEffect(() => {
     if (!user) return
-    if (user.email === OWNER_EMAIL) { setStatus('approved'); return }
+    if (isSuperAdminEmail(user.email)) { setStatus('approved'); return }
 
     async function check() {
       setStatus(await isAllowedEmail(user.email) ? 'approved' : 'denied')
