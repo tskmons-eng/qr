@@ -186,7 +186,7 @@ service cloud.firestore {
     // 店舗設定（お客さんも読める）
     match /storeConfig/{configId} {
       allow read: if true;
-      allow write: if isSuper() || isOwnerOf(configId) || isStaffOf(configId);
+      allow write: if canManageStore(configId) || staffPermission(configId, 'manageMenu', false);
     }
 
     // スタッフメンバー
