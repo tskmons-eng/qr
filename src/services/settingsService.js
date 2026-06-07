@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { normalizeStoreConfig } from '../lib/settingsConfig'
 
@@ -10,6 +10,14 @@ export async function loadStoreCode(storeId) {
 export async function loadStoreConfig(storeId) {
   const snap = await getDoc(doc(db, 'storeConfig', storeId))
   return normalizeStoreConfig(snap.exists() ? snap.data() : {})
+}
+
+export async function loadStoreConfigProducts(storeId) {
+  const snap = await getDocs(query(collection(db, 'products'), where('storeId', '==', storeId)))
+  return snap.docs
+    .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+    .filter(product => product.isVisible !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 }
 
 export function saveStoreConfig(storeId, config) {

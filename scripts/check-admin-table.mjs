@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict'
-import { buildTableOrderUrl, generateTableQrToken, normalizeTableName, TABLE_STATUS_LABELS } from '../src/lib/adminTable.js'
+import {
+  buildTableOrderUrl,
+  DEFAULT_PUBLIC_ORDER_BASE_URL,
+  generateTableQrToken,
+  getPublicOrderBaseUrl,
+  normalizeTableName,
+  TABLE_STATUS_LABELS,
+} from '../src/lib/adminTable.js'
 
 assert.equal(normalizeTableName('  A1  '), 'A1')
 assert.equal(buildTableOrderUrl('https://example.com', 'abc'), 'https://example.com/order/abc')
+assert.equal(buildTableOrderUrl('https://example.com/', 'abc'), 'https://example.com/order/abc')
+assert.equal(getPublicOrderBaseUrl(), DEFAULT_PUBLIC_ORDER_BASE_URL)
 assert.equal(TABLE_STATUS_LABELS.vacant, '空席')
 assert.equal(TABLE_STATUS_LABELS.checkout_pending, '会計待ち')
 

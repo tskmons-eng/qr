@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { loadSoundPrefs, playSound, saveSoundPrefs, SOUNDS } from '../../lib/sounds'
 
-export default function SoundSettingsPanel({ onClose }) {
+export default function SoundSettingsPanel({
+  notificationsEnabled,
+  notifStatus,
+  onClose,
+  onDisableNotif,
+  onEnableNotif,
+}) {
   const [prefs, setPrefs] = useState(loadSoundPrefs)
 
   function handleSoundChange(soundId) {
@@ -21,6 +27,27 @@ export default function SoundSettingsPanel({ onClose }) {
     <div className="sound-settings" onClick={onClose}>
       <div className="sound-settings__panel" onClick={event => event.stopPropagation()}>
         <div className="sound-settings__title">通知音設定</div>
+
+        <div className="sound-settings__section">
+          <div className="sound-settings__label">通知</div>
+          <button
+            type="button"
+            onClick={notifStatus === 'ok' ? onDisableNotif : onEnableNotif}
+            disabled={!notificationsEnabled || notifStatus === 'loading'}
+            className={`sound-settings__notif-toggle${notifStatus === 'ok' ? ' is-on' : ''}`}
+          >
+            {!notificationsEnabled
+              ? '店舗設定で通知OFF'
+              : notifStatus === 'loading'
+                ? '設定中...'
+                : notifStatus === 'ok'
+                  ? '通知ON'
+                  : '通知OFF'}
+          </button>
+          <div className="sound-settings__hint">
+            ログアウト時はこの端末の通知登録を解除します。
+          </div>
+        </div>
 
         <div className="sound-settings__section">
           <div className="sound-settings__label">音量</div>

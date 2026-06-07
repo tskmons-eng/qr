@@ -21,6 +21,7 @@ import {
   subscribeKitchenTables,
   subscribePendingKitchenItems,
 } from '../../services/kitchenService'
+import { loadStoreConfig } from '../../services/settingsService'
 
 export default function KitchenPage() {
   const { storeId, loading: storeLoading } = useStore()
@@ -31,7 +32,9 @@ export default function KitchenPage() {
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [showSoundSettings, setShowSoundSettings] = useState(false)
   const [filterGroup, setFilterGroup] = useState('all')
+  const [storeConfig, setStoreConfig] = useState(null)
   const prevItemIdsRef = useRef(null)
+  const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 30000)
@@ -41,6 +44,11 @@ export default function KitchenPage() {
   useEffect(() => {
     if (!storeId) return undefined
     return subscribeKitchenTables(storeId, setTables)
+  }, [storeId])
+
+  useEffect(() => {
+    if (!storeId) return
+    loadStoreConfig(storeId).then(setStoreConfig)
   }, [storeId])
 
   useEffect(() => {
@@ -84,6 +92,11 @@ export default function KitchenPage() {
         onToggleSound={() => setShowSoundSettings(value => !value)}
       />
       {showSoundSettings && <KitchenSoundPanel onClose={() => setShowSoundSettings(false)} />}
+      {!servedWorkflowEnabled && (
+        <div className="staff-kitchen-notice">
+          提供済み管理がOFFのため、提供済み操作と何分待ち表示は出ません。
+        </div>
+      )}
 
       {tableGroups.length === 0 ? (
         <KitchenEmptyState />
@@ -91,6 +104,7 @@ export default function KitchenPage() {
         <KitchenTableGrid
           groups={tableGroups}
           nowMs={nowMs}
+          servedWorkflowEnabled={servedWorkflowEnabled}
           onCancelItem={cancelItem}
           onMarkAllServed={markKitchenItemsServed}
           onMarkServed={markKitchenItemServed}

@@ -7,6 +7,7 @@ import StaffMenuCategoryTabs from '../../components/staff/StaffMenuCategoryTabs'
 import StaffMenuHeader from '../../components/staff/StaffMenuHeader'
 import StaffMenuProductList from '../../components/staff/StaffMenuProductList'
 import StaffMenuSubmitBar from '../../components/staff/StaffMenuSubmitBar'
+import StaffOrderCompleteScreen from '../../components/staff/StaffOrderCompleteScreen'
 import { getDiscountedProductPrice } from '../../lib/discounts'
 import { productMatchesCategory } from '../../lib/productTags'
 import { loadCustomerMenuData } from '../../services/customerMenuService'
@@ -23,6 +24,7 @@ export default function StaffMenuPage() {
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [optionTarget, setOptionTarget] = useState(null)
   const [suggestions, setSuggestions] = useState([])
 
@@ -106,7 +108,8 @@ export default function StaffMenuPage() {
     setSubmitting(true)
     try {
       await submitStaffMenuOrder({ cart, orderId, storeId, tableId })
-      navigate(`/staff/table/${tableId}`, { replace: true })
+      setCart([])
+      setSubmitted(true)
     } catch {
       alert('送信に失敗しました')
     } finally {
@@ -126,6 +129,10 @@ export default function StaffMenuPage() {
     : products
 
   if (loading) return <div className="staff-menu__loading">読み込み中...</div>
+
+  if (submitted) {
+    return <StaffOrderCompleteScreen onBackToTable={() => navigate(`/staff/table/${tableId}`, { replace: true })} />
+  }
 
   return (
     <div className={`staff-menu${cartCount > 0 ? ' has-cart' : ''}`}>

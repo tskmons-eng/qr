@@ -6,14 +6,14 @@ export default function CartFloatingButton({ count, total, onClick }) {
       type="button"
       className="customer-cart-fab"
       onClick={onClick}
-      aria-label="カートを確認"
+      aria-label="追加内容を確認"
     >
       <span className="customer-cart-fab__icon">
         🛒
         <span className="customer-cart-fab__count">{count}</span>
       </span>
       <span className="customer-cart-fab__text">
-        <span>カート</span>
+        <span>追加</span>
         <span>¥{total.toLocaleString()}</span>
       </span>
     </button>

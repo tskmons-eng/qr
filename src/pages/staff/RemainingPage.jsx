@@ -9,6 +9,7 @@ import {
   subscribeStaffTable,
   subscribeStaffTableOrderItems,
 } from '../../services/staffTableService'
+import { loadStoreConfig } from '../../services/settingsService'
 
 export default function RemainingPage() {
   const { tableId } = useParams()
@@ -16,6 +17,7 @@ export default function RemainingPage() {
   const location = useLocation()
   const [table, setTable] = useState(null)
   const [items, setItems] = useState([])
+  const [storeConfig, setStoreConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const activeOrderId = location.state?.orderId ?? table?.currentOrderId ?? null
   const activeStoreId = location.state?.storeId ?? table?.storeId ?? null
@@ -36,12 +38,18 @@ export default function RemainingPage() {
     return subscribeStaffTableOrderItems(activeOrderId, setItems)
   }, [activeOrderId])
 
+  useEffect(() => {
+    if (!activeStoreId) return
+    loadStoreConfig(activeStoreId).then(setStoreConfig)
+  }, [activeStoreId])
+
   async function markServed(item) {
     if (item.itemStatus !== 'ordered') return
     await markOrderItemServed({ tableId, itemId: item.id })
   }
 
   const { orderedItems: remainingItems, servedItems } = splitTableOrderItems(items)
+  const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
 
   if (loading) return <div className="staff-remaining-loading">読み込み中...</div>
 
@@ -57,9 +65,10 @@ export default function RemainingPage() {
         title="まだ残っているもの"
         items={remainingItems}
         emptyText="残っている注文はありません"
+        servedWorkflowEnabled={servedWorkflowEnabled}
         onMarkServed={markServed}
       />
-      {servedItems.length > 0 && (
+      {servedWorkflowEnabled && servedItems.length > 0 && (
         <RemainingOrderList
           title="提供済み"
           items={servedItems}

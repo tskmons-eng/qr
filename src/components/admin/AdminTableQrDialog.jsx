@@ -23,6 +23,7 @@ export default function AdminTableQrDialog({
           <QRCodeCanvas ref={qrCanvasRef} value={orderUrl} size={1024} includeMargin level="H" />
         </div>
         <p className="admin-dialog-link">{orderUrl}</p>
+        <p className="admin-dialog-note">席名やグループを変更しても、このURLは変わりません。QR再発行時だけ古いURLが使えなくなります。</p>
         <button
           type="button"
           onClick={() => onDownloadPosterPdf(table)}

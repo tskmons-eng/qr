@@ -6,13 +6,21 @@ import {
 } from '../src/lib/customerOrderStatus.js'
 
 assert.deepEqual(getCustomerOrderSettings(null), {
+  servedWorkflowEnabled: true,
   showServedStatus: true,
   showItemPrice: true,
   allowAdditionalOrders: true,
 })
 assert.deepEqual(getCustomerOrderSettings({ showItemPrice: false }), {
+  servedWorkflowEnabled: true,
   showServedStatus: true,
   showItemPrice: false,
+  allowAdditionalOrders: true,
+})
+assert.deepEqual(getCustomerOrderSettings({ servedWorkflowEnabled: false, showServedStatus: true }), {
+  servedWorkflowEnabled: false,
+  showServedStatus: false,
+  showItemPrice: true,
   allowAdditionalOrders: true,
 })
 

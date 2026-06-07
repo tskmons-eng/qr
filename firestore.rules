@@ -104,6 +104,13 @@ service cloud.firestore {
       allow delete: if canAccess(resource.data.storeId);
     }
 
+    // 席グループ
+    match /tableGroups/{groupId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create: if canManageStore(request.resource.data.storeId);
+      allow update, delete: if canManageStore(resource.data.storeId);
+    }
+
     // カテゴリー（お客さんも読める）
     match /categories/{categoryId} {
       allow read: if true;

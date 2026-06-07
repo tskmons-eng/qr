@@ -5,8 +5,10 @@ export const ORDER_ITEM_STATUS_LABELS = {
 }
 
 export function getCustomerOrderSettings(storeConfig) {
+  const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled ?? true
   return {
-    showServedStatus: storeConfig?.showServedStatus ?? true,
+    servedWorkflowEnabled,
+    showServedStatus: servedWorkflowEnabled && (storeConfig?.showServedStatus ?? true),
     showItemPrice: storeConfig?.showItemPrice ?? true,
     allowAdditionalOrders: storeConfig?.allowAdditionalOrders ?? true,
   }

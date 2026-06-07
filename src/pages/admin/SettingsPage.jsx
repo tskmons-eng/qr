@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import AllowedEmailSettings from '../../components/admin/AllowedEmailSettings'
 import CustomerDisplaySettings from '../../components/admin/CustomerDisplaySettings'
 import SettingsSaveButton from '../../components/admin/SettingsSaveButton'
+import StoreWorkflowSettings from '../../components/admin/StoreWorkflowSettings'
 import StoreCodeCard from '../../components/admin/StoreCodeCard'
 import TaxRateSettings from '../../components/admin/TaxRateSettings'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStore } from '../../contexts/StoreContext'
 import {
   CUSTOMER_SETTING_TOGGLES,
+  WORKFLOW_SETTING_TOGGLES,
   normalizeAllowedEmail,
   TAX_PRESETS,
   validateAllowedEmail,
@@ -18,6 +20,7 @@ import {
   loadAllowedEmails,
   loadStoreCode,
   loadStoreConfig,
+  loadStoreConfigProducts,
   removeAllowedEmail,
   saveStoreConfig,
 } from '../../services/settingsService'
@@ -32,6 +35,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [allowedEmails, setAllowedEmails] = useState([])
+  const [products, setProducts] = useState([])
   const [newEmail, setNewEmail] = useState('')
   const [emailAdding, setEmailAdding] = useState(false)
   const [emailError, setEmailError] = useState('')
@@ -53,6 +57,7 @@ export default function SettingsPage() {
       setConfig(nextConfig)
       setTaxInput(String(nextConfig.taxRate ?? 10))
     })
+    loadStoreConfigProducts(storeId).then(setProducts)
   }, [storeId])
 
   function handleCopyCode() {
@@ -98,6 +103,17 @@ export default function SettingsPage() {
     setSaved(false)
   }
 
+  function handleGuestAutoAddChange(patch) {
+    setConfig(prev => ({
+      ...prev,
+      guestAutoAdd: {
+        ...(prev.guestAutoAdd ?? {}),
+        ...patch,
+      },
+    }))
+    setSaved(false)
+  }
+
   function handleTaxPreset(value) {
     setConfig(prev => ({ ...prev, taxRate: value }))
     setTaxInput(String(value))
@@ -134,6 +150,13 @@ export default function SettingsPage() {
         toggles={CUSTOMER_SETTING_TOGGLES}
         config={config}
         onToggle={handleToggle}
+      />
+      <StoreWorkflowSettings
+        config={config}
+        products={products}
+        toggles={WORKFLOW_SETTING_TOGGLES}
+        onToggle={handleToggle}
+        onGuestAutoAddChange={handleGuestAutoAddChange}
       />
       <TaxRateSettings
         taxRate={config.taxRate}

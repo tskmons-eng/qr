@@ -49,7 +49,7 @@ export default function CartPage() {
     try {
       await submitCustomerCartOrder({ items, orderId, storeId, tableId })
       clearCart()
-      navigate('../complete', { replace: true })
+      navigate('../complete', { replace: true, state: { justOrdered: true } })
     } catch {
       alert('送信に失敗しました。もう一度試してください。')
     } finally {

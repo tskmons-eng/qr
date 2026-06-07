@@ -130,6 +130,18 @@
   font-size: 16px;
 }
 
+.staff-kitchen-notice {
+  max-width: 1200px;
+  margin: 12px auto 0;
+  padding: 10px 14px;
+  border: 1px solid #facc15;
+  border-radius: 8px;
+  background: #422006;
+  color: #fde68a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .staff-kitchen-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

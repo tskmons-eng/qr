@@ -4,9 +4,7 @@ export default function StaffShellHeader({
   canCloseRegister,
   canManageMenu,
   canUseKitchen,
-  notifStatus,
   showAdmin,
-  onEnableNotif,
   onToggleSoundSettings,
   onRefresh,
   onSwitchStaff,
@@ -24,23 +22,13 @@ export default function StaffShellHeader({
       </div>
       <div className="staff-shell__actions">
         <span className="staff-shell__staff-name">{activeStaff.name}</span>
-        {notifStatus !== 'ok' && (
-          <button
-            type="button"
-            onClick={onEnableNotif}
-            disabled={notifStatus === 'loading'}
-            className={`staff-shell__notif-button${notifStatus === 'failed' ? ' is-failed' : ''}`}
-          >
-            {notifStatus === 'loading' ? '...' : notifStatus === 'failed' ? '通知❌' : '通知ON'}
-          </button>
-        )}
         <button
           type="button"
           onClick={onToggleSoundSettings}
           className="staff-shell__icon-button"
-          title="通知音設定"
+          title="スタッフ設定"
         >
-          🔔
+          ⚙
         </button>
         <button
           type="button"
@@ -65,7 +53,7 @@ export default function StaffShellHeader({
         )}
         {canManageMenu && (
           <button type="button" onClick={onOpenMenuAdmin} className="staff-shell__button">
-            メニュー管理
+            メニュー
           </button>
         )}
         {showAdmin && (

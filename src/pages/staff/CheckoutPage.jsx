@@ -3,13 +3,16 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import StaffBottomNav from '../../components/StaffBottomNav'
 import CheckoutCompleteScreen from '../../components/staff/CheckoutCompleteScreen'
 import CheckoutConfirmBar from '../../components/staff/CheckoutConfirmBar'
+import CheckoutGuestCountPanel from '../../components/staff/CheckoutGuestCountPanel'
 import CheckoutHeader from '../../components/staff/CheckoutHeader'
 import CheckoutItemDiscountList from '../../components/staff/CheckoutItemDiscountList'
 import CheckoutItemDiscountModal from '../../components/staff/CheckoutItemDiscountModal'
 import CheckoutPaymentPanel from '../../components/staff/CheckoutPaymentPanel'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { calculateCheckoutTotals } from '../../lib/checkoutCalculations'
+import { stepGuestInputValue } from '../../lib/staffTableDetail'
 import { completeCashCheckout, loadCheckoutData } from '../../services/checkoutService'
+import { subscribeStaffTable, updateTableGuestCount } from '../../services/staffTableService'
 
 export default function CheckoutPage() {
   const { tableId } = useParams()
@@ -17,6 +20,7 @@ export default function CheckoutPage() {
   const location = useLocation()
   const { orderId, storeId, guestCount } = location.state || {}
   const { activeStaff } = useStaffMember()
+  const [table, setTable] = useState(null)
   const [items, setItems] = useState([])
   const [taxRate, setTaxRate] = useState(0)
   const [receivedCash, setReceivedCash] = useState('')
@@ -28,6 +32,8 @@ export default function CheckoutPage() {
   const [discountNote, setDiscountNote] = useState('')
   const [itemDiscounts, setItemDiscounts] = useState({})
   const [selectedItemId, setSelectedItemId] = useState(null)
+  const [editingGuests, setEditingGuests] = useState(false)
+  const [guestInput, setGuestInput] = useState('')
 
   useEffect(() => {
     if (!orderId) return
@@ -44,6 +50,10 @@ export default function CheckoutPage() {
     load()
     return () => { cancelled = true }
   }, [orderId, storeId])
+
+  useEffect(() => {
+    return subscribeStaffTable(tableId, setTable)
+  }, [tableId])
 
   function updateItemDiscount(itemId, patch) {
     setItemDiscounts(prev => ({
@@ -66,6 +76,26 @@ export default function CheckoutPage() {
     receivedCash,
   })
   const selectedItemRow = totals.itemDiscountRows.find(row => row.item.id === selectedItemId)
+  const currentGuestCount = table?.guestCount ?? guestCount ?? 0
+
+  function startEditGuests() {
+    setGuestInput(String(currentGuestCount))
+    setEditingGuests(true)
+  }
+
+  function stepGuestInput(delta) {
+    setGuestInput(value => stepGuestInputValue(value, delta))
+  }
+
+  async function saveGuests() {
+    const nextGuestCount = parseInt(guestInput, 10)
+    if (Number.isNaN(nextGuestCount) || nextGuestCount < 0 || !table) {
+      setEditingGuests(false)
+      return
+    }
+    await updateTableGuestCount({ table, tableId, guestCount: nextGuestCount, activeStaff })
+    setEditingGuests(false)
+  }
 
   async function handleConfirm() {
     if (totals.change === null || submitting) return
@@ -75,7 +105,7 @@ export default function CheckoutPage() {
         storeId,
         tableId,
         orderId,
-        guestCount,
+        guestCount: currentGuestCount,
         subtotalBeforeItemDiscount: totals.subtotalBeforeItemDiscount,
         itemDiscountAmount: totals.itemDiscountAmount,
         activeItemDiscounts: totals.activeItemDiscounts,
@@ -115,6 +145,16 @@ export default function CheckoutPage() {
         onUpdate={updateItemDiscount}
       />
       <CheckoutHeader activeStaff={activeStaff} onBack={() => navigate(-1)} />
+      <CheckoutGuestCountPanel
+        editing={editingGuests}
+        guestCount={currentGuestCount}
+        guestInput={guestInput}
+        onCancel={() => setEditingGuests(false)}
+        onChange={setGuestInput}
+        onEdit={startEditGuests}
+        onSave={saveGuests}
+        onStep={stepGuestInput}
+      />
       <CheckoutItemDiscountList
         rows={totals.itemDiscountRows}
         onSelect={setSelectedItemId}
@@ -147,7 +187,7 @@ export default function CheckoutPage() {
         tableId={tableId}
         orderId={orderId}
         storeId={storeId}
-        guestCount={guestCount}
+        guestCount={currentGuestCount}
       />
     </div>
   )

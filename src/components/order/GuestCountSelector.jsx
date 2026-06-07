@@ -1,4 +1,4 @@
-export default function GuestCountSelector({ count, loading, tableName, onChange, onStart }) {
+export default function GuestCountSelector({ autoAddLabel, count, loading, tableName, onChange, onStart }) {
   return (
     <div className="guest-count-page">
       <h1 className="guest-count-page__title">いらっしゃいませ</h1>
@@ -21,7 +21,7 @@ export default function GuestCountSelector({ count, loading, tableName, onChange
         disabled={loading}
         className="guest-count-page__start"
       >
-        {loading ? '...' : `${count}名で注文を始める`}
+        {loading ? '...' : autoAddLabel || `${count}名で注文を始める`}
       </button>
     </div>
   )

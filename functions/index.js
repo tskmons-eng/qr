@@ -13,13 +13,20 @@ exports.notifyStaff = onDocumentCreated('calls/{callId}', async (event) => {
   const isCheckout = type === 'checkout'
 
   const db = getFirestore()
+  const configSnap = await db.collection('storeConfig').doc(storeId).get()
+  if (configSnap.exists && configSnap.data()?.notificationsEnabled === false) return
+
   const tokensSnap = await db.collection('staffTokens')
     .where('storeId', '==', storeId)
     .get()
 
   if (tokensSnap.empty) return
 
-  const tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean)
+  const tokens = tokensSnap.docs
+    .map(d => d.data())
+    .filter(data => data.enabled !== false)
+    .map(data => data.token)
+    .filter(Boolean)
   if (tokens.length === 0) return
 
   const title = isCheckout ? `💳 会計希望 — ${tableName}` : `🔔 呼び出し — ${tableName}`

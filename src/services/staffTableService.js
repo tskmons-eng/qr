@@ -1,5 +1,6 @@
 import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import { hasStaffPermission } from '../lib/staffPermissions'
 import { filterVisibleOrderItems, sortOrderItemsByOrderedAt } from '../lib/staffTableDetail'
 
 function mapDocs(snapshot) {
@@ -34,9 +35,12 @@ export function markOrderItemOrdered({ tableId, itemId }) {
 }
 
 export async function cancelOrderItem({ table, tableId, item, passcode, activeStaff }) {
-  const storeSnap = await getDoc(doc(db, 'stores', table.storeId))
-  if (storeSnap.data()?.adminPasscode !== passcode) {
-    return { ok: false, reason: 'invalid-passcode' }
+  const canBypassPasscode = hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
+  if (!canBypassPasscode) {
+    const storeSnap = await getDoc(doc(db, 'stores', table.storeId))
+    if (storeSnap.data()?.adminPasscode !== passcode) {
+      return { ok: false, reason: 'invalid-passcode' }
+    }
   }
 
   const actor = auth.currentUser

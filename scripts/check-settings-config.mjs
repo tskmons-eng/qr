@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import {
   calculateIncludedTax,
+  GUEST_AUTO_ADD_DEFAULTS,
   normalizeAllowedEmail,
+  normalizeGuestAutoAdd,
   normalizeStoreConfig,
   STORE_CONFIG_DEFAULTS,
   validateAllowedEmail,
@@ -11,6 +13,13 @@ assert.deepEqual(normalizeStoreConfig({ showItemPrice: false, taxRate: 8 }), {
   ...STORE_CONFIG_DEFAULTS,
   showItemPrice: false,
   taxRate: 8,
+  guestAutoAdd: GUEST_AUTO_ADD_DEFAULTS,
+})
+
+assert.deepEqual(normalizeGuestAutoAdd({ enabled: true, productId: 'p1' }), {
+  ...GUEST_AUTO_ADD_DEFAULTS,
+  enabled: true,
+  productId: 'p1',
 })
 
 assert.equal(normalizeAllowedEmail('  USER@Example.COM  '), 'user@example.com')

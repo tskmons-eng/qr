@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import CustomerBottomNav from '../../components/CustomerBottomNav'
-import AdditionalOrderBar from '../../components/order/AdditionalOrderBar'
-import CustomerCallButton from '../../components/order/CustomerCallButton'
+import OrderSubmitCompleteScreen from '../../components/order/OrderSubmitCompleteScreen'
 import OrderStatusHeader from '../../components/order/OrderStatusHeader'
 import OrderStatusList from '../../components/order/OrderStatusList'
 import OrderStatusSummary from '../../components/order/OrderStatusSummary'
@@ -19,9 +18,11 @@ import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusS
 export default function OrderCompletePage() {
   const { orderId, table, tableId, storeId, storeConfig } = useOrder()
   const [items, setItems] = useState([])
+  const [showSubmitComplete, setShowSubmitComplete] = useState(false)
   const [checkoutStep, setCheckoutStep] = useState(null)
   const [callCooldown, setCallCooldown] = useState(false)
   const callTimerRef = useRef(null)
+  const location = useLocation()
   const navigate = useNavigate()
 
   const {
@@ -37,6 +38,10 @@ export default function OrderCompletePage() {
     if (!orderId) return
     return subscribeCustomerOrderItems(orderId, setItems)
   }, [orderId])
+
+  useEffect(() => {
+    setShowSubmitComplete(Boolean(location.state?.justOrdered))
+  }, [location.state])
 
   useEffect(() => () => clearTimeout(callTimerRef.current), [])
 
@@ -62,14 +67,23 @@ export default function OrderCompletePage() {
     setCheckoutStep('sent')
   }
 
+  if (showSubmitComplete) {
+    return (
+      <OrderSubmitCompleteScreen
+        onBackToMenu={() => navigate('../menu', { replace: true })}
+        onShowStatus={() => {
+          setShowSubmitComplete(false)
+          navigate('.', { replace: true, state: {} })
+        }}
+      />
+    )
+  }
+
   return (
-    <div className={`order-status${allowAdditionalOrders ? ' has-additional-orders' : ''}`}>
+    <div className="order-status">
       <OrderStatusHeader
         tableName={table.tableName}
         checkoutStep={checkoutStep}
-        onStartCheckout={() => setCheckoutStep('confirm')}
-        onCancelCheckout={() => setCheckoutStep(null)}
-        onConfirmCheckout={handleCheckout}
       />
       <OrderTotalPanel
         show={showTotal}
@@ -87,15 +101,6 @@ export default function OrderCompletePage() {
         items={items}
         showServedStatus={showServedStatus}
         showItemPrice={showItemPrice}
-      />
-      <AdditionalOrderBar
-        show={allowAdditionalOrders}
-        onClick={() => navigate('../menu')}
-      />
-      <CustomerCallButton
-        cooldown={callCooldown}
-        allowAdditionalOrders={allowAdditionalOrders}
-        onClick={handleCall}
       />
       <CustomerBottomNav
         current="checkout"

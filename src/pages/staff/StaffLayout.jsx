@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
 import { loadSoundPrefs, playSound } from '../../lib/sounds'
-import { requestAndRegisterToken } from '../../lib/messaging'
+import { hasRegisteredNotificationToken, removeRegisteredNotificationToken, requestAndRegisterToken } from '../../lib/messaging'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { activateStaffMemberSession } from '../../services/staffAuthService'
 import { getNewCallIds, respondToStaffCall, subscribePendingCalls } from '../../services/staffCallService'
+import { loadStoreConfig } from '../../services/settingsService'
 import ProductPage from '../admin/ProductPage'
 import SalesPage from '../admin/SalesPage'
 import TableListPage from './TableListPage'
@@ -44,10 +45,13 @@ export default function StaffLayout() {
 
   const [calls, setCalls] = useState([])
   const [showSoundSettings, setShowSoundSettings] = useState(false)
-  const [notifStatus, setNotifStatus] = useState('none')
+  const [notifStatus, setNotifStatus] = useState(() => hasRegisteredNotificationToken() ? 'ok' : 'none')
+  const [storeConfig, setStoreConfig] = useState(null)
   const prevCallIdsRef = useRef(null)
+  const notificationsEnabled = storeConfig?.notificationsEnabled !== false
 
   async function registerNotif(sid, staffId) {
+    if (!notificationsEnabled) return null
     setNotifStatus('loading')
     const token = await requestAndRegisterToken(sid, staffId)
     if (token) {
@@ -57,32 +61,52 @@ export default function StaffLayout() {
     }
   }
 
+  useEffect(() => {
+    if (!storeId) return
+    loadStoreConfig(storeId).then(setStoreConfig)
+  }, [storeId])
+
+  useEffect(() => {
+    if (storeConfig && !notificationsEnabled) {
+      removeRegisteredNotificationToken().then(() => setNotifStatus('none'))
+    }
+  }, [notificationsEnabled, storeConfig])
+
   // スタッフがログインしたら毎回トークンを更新する（PWA/ブラウザ切替に対応）
   useEffect(() => {
-    if (!storeId || !activeStaff) return
+    if (!storeId || !activeStaff || !notificationsEnabled) return
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return
     if (Notification.permission === 'granted') {
       registerNotif(storeId, activeStaff.id)
     }
-  }, [storeId, activeStaff?.id])
+  }, [notificationsEnabled, storeId, activeStaff?.id])
 
   async function handleEnableNotif() {
     await registerNotif(storeId, activeStaff.id)
+  }
+
+  async function handleDisableNotif() {
+    await removeRegisteredNotificationToken()
+    setNotifStatus('none')
   }
 
   useEffect(() => {
     if (!storeId || !activeStaff) return
     return subscribePendingCalls(storeId, data => {
       if (getNewCallIds(data, prevCallIdsRef.current).length > 0) {
-        const { soundId, volume } = loadSoundPrefs()
-        playSound(soundId, volume)
+        if (notificationsEnabled) {
+          const { soundId, volume } = loadSoundPrefs()
+          playSound(soundId, volume)
+        }
       }
       prevCallIdsRef.current = new Set(data.map(d => d.id))
       setCalls(data)
     })
-  }, [storeId, activeStaff?.id])
+  }, [notificationsEnabled, storeId, activeStaff?.id])
 
   async function handleLogout() {
+    await removeRegisteredNotificationToken()
+    setActiveStaffPersisted(null)
     clearDeviceStore()
     await signOutCurrentUser()
     navigate('/staff')
@@ -104,7 +128,13 @@ export default function StaffLayout() {
   if (!activeStaff) {
     return (
       <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
-        <StaffLoginScreen storeId={storeId} onLogin={handleStaffLogin} onLogout={handleLogout} />
+        <StaffLoginScreen
+          canOpenStaffAdmin={Boolean(user && !user.isAnonymous)}
+          storeId={storeId}
+          onLogin={handleStaffLogin}
+          onLogout={handleLogout}
+          onOpenStaffAdmin={() => navigate(user && !user.isAnonymous ? '/admin/staff' : '/login')}
+        />
       </StaffMemberContext.Provider>
     )
   }
@@ -119,12 +149,10 @@ export default function StaffLayout() {
         <StaffShellHeader
           activeStaff={activeStaff}
           callCount={calls.length}
-          notifStatus={notifStatus}
           showAdmin={!user?.isAnonymous}
           canUseKitchen={canUseKitchen}
           canCloseRegister={canCloseRegister}
           canManageMenu={canManageMenu}
-          onEnableNotif={handleEnableNotif}
           onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
           onSwitchStaff={() => setActiveStaffPersisted(null)}
@@ -135,7 +163,15 @@ export default function StaffLayout() {
           onLogout={handleLogout}
         />
 
-        {showSoundSettings && <SoundSettingsPanel onClose={() => setShowSoundSettings(false)} />}
+        {showSoundSettings && (
+          <SoundSettingsPanel
+            notificationsEnabled={notificationsEnabled}
+            notifStatus={notifStatus}
+            onClose={() => setShowSoundSettings(false)}
+            onDisableNotif={handleDisableNotif}
+            onEnableNotif={handleEnableNotif}
+          />
+        )}
 
         <StaffCallBanner calls={calls} onRespond={handleRespond} />
 

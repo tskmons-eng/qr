@@ -29,6 +29,13 @@ export function updateStaffMemberPermissions({ memberId, permissionPreset, permi
   })
 }
 
+export function updateStaffMemberCode({ memberId, code }) {
+  return updateDoc(doc(db, 'staffMembers', memberId), {
+    code,
+    updatedAt: serverTimestamp(),
+  })
+}
+
 export function deleteStaffMember(memberId) {
   return deleteDoc(doc(db, 'staffMembers', memberId))
 }

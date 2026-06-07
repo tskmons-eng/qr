@@ -1,6 +1,6 @@
 import { formatTableOrderOptions } from '../../lib/staffTableDetail'
 
-export default function RemainingOrderList({ emptyText, items, served, title, onMarkServed }) {
+export default function RemainingOrderList({ emptyText, items, served, servedWorkflowEnabled = true, title, onMarkServed }) {
   return (
     <section className="staff-remaining-section">
       <div className="staff-remaining-section__title">{title}</div>
@@ -9,7 +9,7 @@ export default function RemainingOrderList({ emptyText, items, served, title, on
           served ? (
             <ServedRemainingItem key={item.id} item={item} />
           ) : (
-            <RemainingItem key={item.id} item={item} onMarkServed={onMarkServed} />
+            <RemainingItem key={item.id} item={item} servedWorkflowEnabled={servedWorkflowEnabled} onMarkServed={onMarkServed} />
           )
         ))}
         {!served && items.length === 0 && (
@@ -20,7 +20,7 @@ export default function RemainingOrderList({ emptyText, items, served, title, on
   )
 }
 
-function RemainingItem({ item, onMarkServed }) {
+function RemainingItem({ item, servedWorkflowEnabled, onMarkServed }) {
   const optionsText = formatTableOrderOptions(item.optionSelections)
 
   return (
@@ -30,9 +30,11 @@ function RemainingItem({ item, onMarkServed }) {
         {optionsText && <div className="staff-remaining-row__options">{optionsText}</div>}
         <div className="staff-remaining-row__meta">{item.orderedBy === 'staff' ? 'スタッフ注文' : 'お客様注文'}</div>
       </div>
-      <button type="button" onClick={() => onMarkServed(item)} className="staff-remaining-row__button">
-        提供済み
-      </button>
+      {servedWorkflowEnabled && (
+        <button type="button" onClick={() => onMarkServed(item)} className="staff-remaining-row__button">
+          提供済み
+        </button>
+      )}
     </div>
   )
 }

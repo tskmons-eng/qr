@@ -1,5 +1,6 @@
 export default function TableCancelModal({
   item,
+  passcodeRequired = true,
   passcode,
   passcodeError,
   cancelling,
@@ -16,16 +17,22 @@ export default function TableCancelModal({
         <p className="staff-table-modal-body">
           「{item.productNameSnapshot} × {item.quantity}」をキャンセルします。
         </p>
-        <label className="staff-table-modal-label">管理者パスコード</label>
-        <input
-          type="password"
-          inputMode="numeric"
-          value={passcode}
-          onChange={event => onPasscodeChange(event.target.value)}
-          onKeyDown={event => event.key === 'Enter' && onConfirm()}
-          placeholder="パスコード"
-          className="staff-table-passcode-input"
-        />
+        {passcodeRequired ? (
+          <>
+            <label className="staff-table-modal-label">管理者パスコード</label>
+            <input
+              type="password"
+              inputMode="numeric"
+              value={passcode}
+              onChange={event => onPasscodeChange(event.target.value)}
+              onKeyDown={event => event.key === 'Enter' && onConfirm()}
+              placeholder="パスコード"
+              className="staff-table-passcode-input"
+            />
+          </>
+        ) : (
+          <p className="staff-table-modal-note">高権限スタッフのためパスコード入力は不要です。</p>
+        )}
         {passcodeError && <p className="staff-table-error">{passcodeError}</p>}
         <div className="staff-table-modal-actions">
           <button type="button" onClick={onClose} className="staff-table-modal-button staff-table-modal-button-secondary">

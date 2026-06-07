@@ -241,3 +241,64 @@
 .order-status__call-icon {
   font-size: 20px;
 }
+
+.order-submit-complete {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.order-submit-complete__mark {
+  display: flex;
+  width: 72px;
+  height: 72px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 42px;
+  font-weight: 900;
+}
+
+.order-submit-complete__title {
+  margin: 18px 0 6px;
+  color: #111827;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.order-submit-complete__text {
+  margin: 0 0 24px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.order-submit-complete__primary,
+.order-submit-complete__secondary {
+  width: 100%;
+  max-width: 320px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.order-submit-complete__primary {
+  border: none;
+  background: #111827;
+  color: #ffffff;
+}
+
+.order-submit-complete__secondary {
+  margin-top: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+}

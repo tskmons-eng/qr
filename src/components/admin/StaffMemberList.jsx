@@ -1,6 +1,17 @@
 import { STAFF_PERMISSION_PRESETS, getStaffPermissionSummary, getStaffPresetKeyFromPermissions } from '../../lib/staffPermissions'
 
-export default function StaffMemberList({ loading, members, onDelete, onPermissionPresetChange }) {
+export default function StaffMemberList({
+  loading,
+  members,
+  resetCode,
+  resettingMemberId,
+  onCancelCodeReset,
+  onDelete,
+  onPermissionPresetChange,
+  onResetCodeChange,
+  onSaveCodeReset,
+  onStartCodeReset,
+}) {
   if (loading) return <p className="admin-staff__status">読み込み中...</p>
   if (members.length === 0) return <p className="admin-staff__status admin-staff__status--empty">スタッフが登録されていません</p>
 
@@ -15,6 +26,24 @@ export default function StaffMemberList({ loading, members, onDelete, onPermissi
             <span className="admin-staff__member-name">{member.name}</span>
             <span className="admin-staff__masked-code">{'●'.repeat(4)}</span>
             <span className="admin-staff__permission-summary">{getStaffPermissionSummary(member.permissions)}</span>
+            {resettingMemberId === member.id && (
+              <div className="admin-staff__reset-row">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={resetCode}
+                  onChange={event => onResetCodeChange(event.target.value)}
+                  placeholder="新しい4桁"
+                  className="admin-staff__reset-input"
+                />
+                <button type="button" onClick={() => onSaveCodeReset(member)} className="admin-staff__reset-save">
+                  保存
+                </button>
+                <button type="button" onClick={onCancelCodeReset} className="admin-staff__reset-cancel">
+                  戻る
+                </button>
+              </div>
+            )}
           </div>
           <div className="admin-staff__row-actions">
             <select
@@ -32,6 +61,9 @@ export default function StaffMemberList({ loading, members, onDelete, onPermissi
               <summary>?</summary>
               <p>{getStaffPermissionSummary(member.permissions)}: 権限プリセットを変更すると、次回スタッフ切替時から表示メニューに反映されます。</p>
             </details>
+            <button type="button" onClick={() => onStartCodeReset(member)} className="admin-staff__reset">
+              パス変更
+            </button>
             <button type="button" onClick={() => onDelete(member.id)} className="admin-staff__delete">
               削除
             </button>

@@ -186,6 +186,45 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
+.admin-staff__reset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.admin-staff__reset-input {
+  width: 110px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+.admin-staff__reset,
+.admin-staff__reset-save,
+.admin-staff__reset-cancel {
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.admin-staff__reset,
+.admin-staff__reset-cancel {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.admin-staff__reset-save {
+  border: none;
+  background: #111827;
+  color: #fff;
+}
+
 .admin-staff__delete {
   padding: 5px 12px;
   border: 1px solid #fca5a5;

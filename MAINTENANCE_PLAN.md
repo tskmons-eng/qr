@@ -104,6 +104,21 @@ Staff capability management must preserve existing active stores. Missing staff 
 4. Slice 8 の注文完了画面を入れ、最後に Slice 9 の QR URL 安定化を検証する。
 5. 各スライスは個別に commit/push/deploy し、まとめて大きく壊れる変更にしない。
 
+### 2026-06-08 Execution Notes
+
+1. スタッフコード照合を文字列化し、古い数値保存コードでも4桁入力でログインできるようにした。
+2. スタッフ選択画面にスタッフ追加導線を追加し、管理画面のスタッフ管理には4桁パスリセットを追加した。
+3. 席詳細の下部アクションと会計画面に人数変更を追加し、会計保存時も最新人数を使うようにした。
+4. スタッフ/客側の下ナビをコンパクト化し、客側は「注文」「注文確認」「呼び出し」「会計」に整理した。
+5. 通知オン/オフをスタッフ設定パネルに集約し、ログアウトや店舗通知OFF時に端末の `staffTokens` を削除するようにした。
+6. 管理設定に通知、提供済み管理、人数分メニュー自動追加を追加した。自動追加は既定OFFで、指定商品を新規注文時に人数分追加する。
+7. 席グループを `tableGroups` と席の `groupId` で追加し、管理画面で作成/削除/割当、スタッフ席一覧でタブ絞り込みできるようにした。
+8. 提供済み管理OFF時は、キッチンの何分待ち表示と提供済み操作、席詳細/残り確認の提供済み操作を非表示にする。
+9. 高権限スタッフは注文行キャンセル時の管理者パスコード入力を不要にした。
+10. 客側/スタッフ側の注文送信後に完了画面を出し、注文できたことを明確にした。
+11. QR URL は `https://qrproduct-3340b.web.app` を基準に固定し、席編集やグループ変更では `qrToken` を変えないままにした。
+12. `npm run check`, `npm run build`, Hosting deploy, Firestore rules deploy, Functions deploy, live asset verification, browser load verificationまで完了した。
+
 ## Owner Dashboard Safety Plan
 
 1. Reuse this maintenance plan instead of adding another planning MD.

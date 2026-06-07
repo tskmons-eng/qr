@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { loadStaffMembers } from '../../services/staffAuthService'
 import { buildStaffPermissionsFromPreset, normalizeStaffPermissions } from '../../lib/staffPermissions'
+import { normalizeStaffCode } from '../../lib/staffMember'
 
-export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
+export default function StaffLoginScreen({ canOpenStaffAdmin, storeId, onLogin, onLogout, onOpenStaffAdmin }) {
   const [members, setMembers] = useState([])
   const [selected, setSelected] = useState(null)
   const [code, setCode] = useState('')
@@ -28,7 +29,7 @@ export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
   }
 
   function handleVerify() {
-    if (selected.code === code) {
+    if (normalizeStaffCode(String(selected.code ?? '')) === code) {
       onLogin({
         id: selected.id,
         name: selected.name,
@@ -45,9 +46,14 @@ export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
     <div className="staff-login">
       <header className="staff-login__header">
         <h1 className="staff-login__title">スタッフ選択</h1>
-        <button type="button" onClick={onLogout} className="staff-login__logout">
-          ログアウト
-        </button>
+        <div className="staff-login__header-actions">
+          <button type="button" onClick={onOpenStaffAdmin} className="staff-login__admin-link">
+            スタッフ追加
+          </button>
+          <button type="button" onClick={onLogout} className="staff-login__logout">
+            ログアウト
+          </button>
+        </div>
       </header>
 
       <div className="staff-login__body">
@@ -57,6 +63,13 @@ export default function StaffLoginScreen({ storeId, onLogin, onLogout }) {
           <div className="staff-login__empty">
             <p className="staff-login__empty-title">スタッフが登録されていません</p>
             <p className="staff-login__empty-text">管理画面 → スタッフ から追加してください</p>
+            <button
+              type="button"
+              onClick={onOpenStaffAdmin}
+              className="staff-login__secondary"
+            >
+              {canOpenStaffAdmin ? 'スタッフを追加する' : '管理者ログインへ'}
+            </button>
             <button
               type="button"
               onClick={() => onLogin({

@@ -4,11 +4,13 @@ export default function AdminTableRow({
   table,
   editing,
   editingTableName,
+  groups,
   savingTableName,
   onStartEdit,
   onEditingNameChange,
   onSaveName,
   onCancelEdit,
+  onGroupChange,
   onShowQr,
 }) {
   return (
@@ -49,6 +51,16 @@ export default function AdminTableRow({
           {TABLE_STATUS_LABELS[table.status] ?? table.status}
           {table.guestCount > 0 && ` · ${table.guestCount}名`}
         </div>
+        <select
+          value={table.groupId ?? ''}
+          onChange={event => onGroupChange(table.id, event.target.value)}
+          className="admin-table-group-select"
+        >
+          <option value="">グループ未設定</option>
+          {groups.map(group => (
+            <option key={group.id} value={group.id}>{group.name}</option>
+          ))}
+        </select>
       </div>
       {!editing && (
         <div className="admin-table-actions">

@@ -1,6 +1,8 @@
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { deleteDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { app, db } from './firebase'
+
+const STAFF_NOTIFICATION_TOKEN_KEY = 'staffNotificationToken'
 
 let messaging = null
 function getMsg() {
@@ -34,14 +36,31 @@ export async function requestAndRegisterToken(storeId, userId) {
       storeId,
       userId,
       token,
+      enabled: true,
       updatedAt: serverTimestamp(),
     }, { merge: true })
 
+    localStorage.setItem(STAFF_NOTIFICATION_TOKEN_KEY, token)
     return token
   } catch (e) {
     console.error('FCM token error:', e)
     return null
   }
+}
+
+export async function removeRegisteredNotificationToken() {
+  const token = localStorage.getItem(STAFF_NOTIFICATION_TOKEN_KEY)
+  localStorage.removeItem(STAFF_NOTIFICATION_TOKEN_KEY)
+  if (!token) return
+  try {
+    await deleteDoc(doc(db, 'staffTokens', token))
+  } catch (error) {
+    console.error('FCM token removal error:', error)
+  }
+}
+
+export function hasRegisteredNotificationToken() {
+  return Boolean(localStorage.getItem(STAFF_NOTIFICATION_TOKEN_KEY))
 }
 
 export function listenForeground(callback) {

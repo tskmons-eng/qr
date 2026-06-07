@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import CartFloatingButton from '../../components/order/CartFloatingButton'
 import CustomerCategoryTabs from '../../components/order/CustomerCategoryTabs'
 import CustomerMenuHeader from '../../components/order/CustomerMenuHeader'
 import CustomerMenuProductList from '../../components/order/CustomerMenuProductList'
@@ -14,7 +12,7 @@ import { createCustomerCall, loadCustomerMenuData } from '../../services/custome
 
 export default function MenuPage() {
   const { storeId, tableId, orderId, table } = useOrder()
-  const { items, addItem, updateQuantity, count, total } = useCart()
+  const { items, addItem, updateQuantity } = useCart()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [activeCat, setActiveCat] = useState(null)
@@ -24,7 +22,6 @@ export default function MenuPage() {
   const [optionTarget, setOptionTarget] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const cooldownRef = useRef(null)
-  const navigate = useNavigate()
 
   useEffect(() => () => clearTimeout(cooldownRef.current), [])
 
@@ -152,12 +149,6 @@ export default function MenuPage() {
         callDisabled={callSent}
         onCheckout={handleCheckout}
         checkoutDisabled={checkoutSent}
-        hideCart
-      />
-      <CartFloatingButton
-        count={count}
-        total={total}
-        onClick={() => navigate('../cart')}
       />
     </div>
   )

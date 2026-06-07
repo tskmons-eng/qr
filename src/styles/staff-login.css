@@ -19,6 +19,13 @@
   font-size: 17px;
 }
 
+.staff-login__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-login__admin-link,
 .staff-login__logout {
   padding: 5px 12px;
   border: 1px solid #555;
@@ -27,6 +34,12 @@
   color: #ccc;
   cursor: pointer;
   font-size: 13px;
+}
+
+.staff-login__admin-link {
+  border-color: #93c5fd;
+  color: #dbeafe;
+  font-weight: 700;
 }
 
 .staff-login__body {
@@ -62,6 +75,7 @@
 }
 
 .staff-login__primary,
+.staff-login__secondary,
 .staff-login__member-button,
 .staff-login__verify,
 .staff-login__back {
@@ -70,6 +84,7 @@
 }
 
 .staff-login__primary {
+  margin-top: 8px;
   padding: 14px;
   border: none;
   border-radius: 12px;
@@ -77,6 +92,16 @@
   color: #fff;
   font-size: 15px;
   font-weight: 600;
+}
+
+.staff-login__secondary {
+  padding: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .staff-login__question {

@@ -13,7 +13,6 @@ export default function StaffBottomNav({
   const navigate = useNavigate()
   const staffContext = useStaffMember()
   const canUseKitchen = hasStaffPermission(staffContext?.activeStaff, 'useKitchen')
-  const hasTable = !!tableId
   const hasOrder = !!orderId
   const checkoutState = { orderId, storeId, guestCount }
 
@@ -30,11 +29,11 @@ export default function StaffBottomNav({
       <div className="staff-bottom-nav__inner">
         <button
           type="button"
-          onClick={() => navigate(hasTable ? `/staff/table/${tableId}` : '/staff')}
+          onClick={() => navigate('/staff')}
           className={itemClassName(current === 'seat')}
         >
           <span className="staff-bottom-nav__icon">席</span>
-          <span>戻る</span>
+          <span>席一覧</span>
         </button>
         {canUseKitchen && (
           <button
@@ -43,7 +42,7 @@ export default function StaffBottomNav({
             className={itemClassName(current === 'kitchen')}
           >
             <span className="staff-bottom-nav__icon">厨房</span>
-            <span>パネル</span>
+            <span>キッチン</span>
           </button>
         )}
         <button

@@ -231,3 +231,8 @@
   color: var(--color-action-main);
   border: 2px solid var(--color-action-main);
 }
+
+.staff-table-guests-button {
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}

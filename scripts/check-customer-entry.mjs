@@ -10,6 +10,11 @@ assert.deepEqual(normalizeCustomerStoreConfig({ showItemPrice: false }), {
   ...CUSTOMER_ENTRY_CONFIG_DEFAULTS,
   showItemPrice: false,
 })
+assert.deepEqual(normalizeCustomerStoreConfig({ guestAutoAdd: { enabled: true, productId: 'p1' } }).guestAutoAdd, {
+  ...CUSTOMER_ENTRY_CONFIG_DEFAULTS.guestAutoAdd,
+  enabled: true,
+  productId: 'p1',
+})
 assert.equal(stepGuestCount(2, -1), 1)
 assert.equal(stepGuestCount(1, -1), 1)
 assert.equal(stepGuestCount(20, 1), 20)

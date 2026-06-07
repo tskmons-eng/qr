@@ -5,11 +5,15 @@ import StaffTableCard from '../../components/staff/StaffTableCard'
 import StaffTableListEmpty from '../../components/staff/StaffTableListEmpty'
 import { useStore } from '../../contexts/StoreContext'
 import useNow from '../../hooks/useNow'
+import { buildTableGroupTabs, filterTablesByGroup } from '../../lib/tableGroups'
 import { subscribeStaffPendingCounts, subscribeStaffTables } from '../../services/staffTableListService'
+import { subscribeTableGroups } from '../../services/tableGroupService'
 
 export default function TableListPage() {
   const { storeId } = useStore()
   const [tables, setTables] = useState([])
+  const [groups, setGroups] = useState([])
+  const [activeGroupId, setActiveGroupId] = useState('all')
   const [pendingMap, setPendingMap] = useState({})
   const navigate = useNavigate()
   const now = useNow()
@@ -24,12 +28,34 @@ export default function TableListPage() {
     return subscribeStaffPendingCounts(storeId, setPendingMap)
   }, [storeId])
 
+  useEffect(() => {
+    if (!storeId) return
+    return subscribeTableGroups(storeId, setGroups)
+  }, [storeId])
+
   if (tables.length === 0) return <StaffTableListEmpty />
+
+  const tabs = buildTableGroupTabs(groups)
+  const visibleTables = filterTablesByGroup(tables, activeGroupId)
 
   return (
     <div className="staff-table-list">
+      {tabs.length > 1 && (
+        <div className="staff-table-list__tabs" role="tablist" aria-label="席グループ">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveGroupId(tab.id)}
+              className={`staff-table-list__tab${activeGroupId === tab.id ? ' is-active' : ''}`}
+            >
+              {tab.name}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="staff-table-list__grid">
-        {tables.map(table => (
+        {visibleTables.map(table => (
           <StaffTableCard
             key={table.id}
             table={table}
@@ -39,6 +65,9 @@ export default function TableListPage() {
           />
         ))}
       </div>
+      {visibleTables.length === 0 && (
+        <p className="staff-table-list__empty-group">このグループの席はまだありません</p>
+      )}
       <StaffBottomNav current="seat" />
     </div>
   )

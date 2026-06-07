@@ -10,6 +10,7 @@ import TableMoveModal from '../../components/staff/TableMoveModal'
 import TableOrderSection from '../../components/staff/TableOrderSection'
 import TableOrderSummary from '../../components/staff/TableOrderSummary'
 import TableSeatingPanel from '../../components/staff/TableSeatingPanel'
+import { hasStaffPermission } from '../../lib/staffPermissions'
 import { calculateTableOrderTotal, splitTableOrderItems, stepGuestInputValue } from '../../lib/staffTableDetail'
 import {
   cancelOrderItem,
@@ -22,6 +23,7 @@ import {
   subscribeStaffTableOrderItems,
   updateTableGuestCount,
 } from '../../services/staffTableService'
+import { loadStoreConfig } from '../../services/settingsService'
 
 export default function TableDetailPage() {
   const { tableId } = useParams()
@@ -30,6 +32,7 @@ export default function TableDetailPage() {
   const { activeStaff } = useStaffMember()
   const [table, setTable] = useState(null)
   const [items, setItems] = useState([])
+  const [storeConfig, setStoreConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(() => Date.now())
 
@@ -69,6 +72,11 @@ export default function TableDetailPage() {
     if (!table?.currentOrderId) { setItems([]); return }
     return subscribeStaffTableOrderItems(table.currentOrderId, setItems)
   }, [table?.currentOrderId])
+
+  useEffect(() => {
+    if (!storeId) return
+    loadStoreConfig(storeId).then(setStoreConfig)
+  }, [storeId])
 
   async function markServed(item) {
     await markOrderItemServed({ tableId, itemId: item.id })
@@ -158,11 +166,14 @@ export default function TableDetailPage() {
   const total = calculateTableOrderTotal(items)
   const hasOrder = !!table.currentOrderId
   const guestCount = table.guestCount ?? 0
+  const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
+  const cancelPasscodeRequired = !hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
 
   return (
     <div className="staff-table-page">
       <TableCancelModal
         item={cancelTarget}
+        passcodeRequired={cancelPasscodeRequired}
         passcode={passcode}
         passcodeError={passcodeError}
         cancelling={cancelling}
@@ -203,27 +214,32 @@ export default function TableDetailPage() {
       ) : (
         <>
           <TableOrderSection
-            title="準備中"
-            items={orderedItems}
+            title={servedWorkflowEnabled ? '準備中' : '注文'}
+            items={servedWorkflowEnabled ? orderedItems : items}
             served={false}
+            servedWorkflowEnabled={servedWorkflowEnabled}
             onMarkServed={markServed}
             onMarkOrdered={markOrdered}
             onCancel={openCancel}
           />
-          <TableOrderSection
-            title="提供済み"
-            items={servedItems}
-            served
-            onMarkServed={markServed}
-            onMarkOrdered={markOrdered}
-            onCancel={openCancel}
-          />
+          {servedWorkflowEnabled && (
+            <TableOrderSection
+              title="提供済み"
+              items={servedItems}
+              served
+              servedWorkflowEnabled={servedWorkflowEnabled}
+              onMarkServed={markServed}
+              onMarkOrdered={markOrdered}
+              onCancel={openCancel}
+            />
+          )}
           <TableOrderSummary total={total} guestCount={guestCount} />
         </>
       )}
 
       <TableActionBar
         hasOrder={hasOrder}
+        onEditGuests={startEditGuests}
         onMove={openMoveModal}
         onAddOrder={() => navigate(`/staff/table/${tableId}/add-order`, { state: { orderId: table.currentOrderId, storeId: table.storeId, guestCount: table.guestCount } })}
       />

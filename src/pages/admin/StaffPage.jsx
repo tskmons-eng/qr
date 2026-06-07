@@ -4,7 +4,7 @@ import StaffMemberList from '../../components/admin/StaffMemberList'
 import { useStore } from '../../contexts/StoreContext'
 import { DEFAULT_STAFF_PERMISSION_PRESET, buildStaffPermissionsFromPreset } from '../../lib/staffPermissions'
 import { normalizeStaffCode, validateStaffMemberForm } from '../../lib/staffMember'
-import { createStaffMember, deleteStaffMember, loadStaffMembers, updateStaffMemberPermissions } from '../../services/staffAuthService'
+import { createStaffMember, deleteStaffMember, loadStaffMembers, updateStaffMemberCode, updateStaffMemberPermissions } from '../../services/staffAuthService'
 
 export default function StaffPage() {
   const { storeId } = useStore()
@@ -13,6 +13,8 @@ export default function StaffPage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [permissionPreset, setPermissionPreset] = useState(DEFAULT_STAFF_PERMISSION_PRESET)
+  const [resettingMemberId, setResettingMemberId] = useState(null)
+  const [resetCode, setResetCode] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
 
@@ -67,6 +69,30 @@ export default function StaffPage() {
     )))
   }
 
+  function startCodeReset(member) {
+    setResettingMemberId(member.id)
+    setResetCode('')
+    setError('')
+  }
+
+  function cancelCodeReset() {
+    setResettingMemberId(null)
+    setResetCode('')
+  }
+
+  async function handleCodeReset(member) {
+    const normalized = normalizeStaffCode(resetCode)
+    if (!/^\d{4}$/.test(normalized)) {
+      setError('新しいコードは4桁の数字にしてください')
+      return
+    }
+    await updateStaffMemberCode({ memberId: member.id, code: normalized })
+    setMembers(prev => prev.map(existing => (
+      existing.id === member.id ? { ...existing, code: normalized } : existing
+    )))
+    cancelCodeReset()
+  }
+
   return (
     <div className="admin-staff">
       <h2 className="admin-staff__heading">スタッフ管理</h2>
@@ -84,8 +110,14 @@ export default function StaffPage() {
       <StaffMemberList
         loading={loading}
         members={members}
+        resettingMemberId={resettingMemberId}
+        resetCode={resetCode}
         onDelete={handleDelete}
         onPermissionPresetChange={handlePermissionPresetChange}
+        onResetCodeChange={value => setResetCode(normalizeStaffCode(value))}
+        onStartCodeReset={startCodeReset}
+        onCancelCodeReset={cancelCodeReset}
+        onSaveCodeReset={handleCodeReset}
       />
     </div>
   )

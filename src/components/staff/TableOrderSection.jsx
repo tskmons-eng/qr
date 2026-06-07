@@ -4,6 +4,7 @@ export default function TableOrderSection({
   title,
   items,
   served,
+  servedWorkflowEnabled = true,
   onMarkServed,
   onMarkOrdered,
   onCancel,
@@ -19,6 +20,7 @@ export default function TableOrderSection({
             key={item.id}
             item={item}
             served={served}
+            servedWorkflowEnabled={servedWorkflowEnabled}
             onMarkServed={onMarkServed}
             onMarkOrdered={onMarkOrdered}
             onCancel={onCancel}
@@ -32,6 +34,7 @@ export default function TableOrderSection({
 function TableOrderItem({
   item,
   served,
+  servedWorkflowEnabled,
   onMarkServed,
   onMarkOrdered,
   onCancel,
@@ -54,14 +57,16 @@ function TableOrderItem({
           {!served && <> · {item.orderedBy === 'staff' ? 'スタッフ' : 'お客様'}</>}
         </div>
       </div>
-      {served ? (
-        <button type="button" onClick={() => onMarkOrdered(item)} className="staff-table-row-button staff-table-row-button-muted">
-          戻す
-        </button>
-      ) : (
-        <button type="button" onClick={() => onMarkServed(item)} className="staff-table-row-button staff-table-row-button-primary">
-          提供済み
-        </button>
+      {servedWorkflowEnabled && (
+        served ? (
+          <button type="button" onClick={() => onMarkOrdered(item)} className="staff-table-row-button staff-table-row-button-muted">
+            戻す
+          </button>
+        ) : (
+          <button type="button" onClick={() => onMarkServed(item)} className="staff-table-row-button staff-table-row-button-primary">
+            提供済み
+          </button>
+        )
       )}
       <button type="button" onClick={() => onCancel(item)} className="staff-table-row-button staff-table-row-button-danger">
         削除

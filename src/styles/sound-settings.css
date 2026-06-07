@@ -33,6 +33,37 @@
   font-size: 13px;
 }
 
+.sound-settings__notif-toggle {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sound-settings__notif-toggle.is-on {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.sound-settings__notif-toggle:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: default;
+}
+
+.sound-settings__hint {
+  margin-top: 6px;
+  color: #888;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .sound-settings__range-row {
   display: flex;
   align-items: center;

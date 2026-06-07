@@ -72,7 +72,7 @@ export default function CustomerBottomNav({
             className={itemClassName({ active: current === 'menu', disabled: menuDisabled })}
           >
             <span className="customer-bottom-nav__icon">注文</span>
-            <span>メニュー</span>
+            <span>注文</span>
           </button>
           {!hideCart && (
             <button
@@ -80,8 +80,8 @@ export default function CustomerBottomNav({
               onClick={() => navigate('../cart')}
               className={itemClassName({ active: current === 'cart' })}
             >
-              <span className="customer-bottom-nav__icon">カート</span>
-              <span>{count > 0 ? `${count}点 ¥${total.toLocaleString()}` : '確認'}</span>
+              <span className="customer-bottom-nav__icon">注文確認</span>
+              <span>{count > 0 ? `${count}点 ¥${total.toLocaleString()}` : '追加'}</span>
             </button>
           )}
           <button
@@ -91,7 +91,7 @@ export default function CustomerBottomNav({
             className={itemClassName({ disabled: callDisabled, variant: 'call' })}
           >
             <span className="customer-bottom-nav__icon">呼出</span>
-            <span>{callDisabled ? '送信済' : '確認して呼ぶ'}</span>
+            <span>{callDisabled ? '送信済' : '呼び出し'}</span>
           </button>
           <button
             type="button"
@@ -100,7 +100,7 @@ export default function CustomerBottomNav({
             className={itemClassName({ active: current === 'checkout', disabled: checkoutDisabled, variant: 'checkout' })}
           >
             <span className="customer-bottom-nav__icon">会計</span>
-            <span>{checkoutDisabled ? '送信済' : '確認して依頼'}</span>
+            <span>{checkoutDisabled ? '送信済' : '会計'}</span>
           </button>
         </div>
       </nav>
