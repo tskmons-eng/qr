@@ -1,0 +1,90 @@
+.staff-login__store-code-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.06);
+}
+
+.staff-login__store-code-title {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.staff-login__store-code-text {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.staff-login__store-code-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.staff-login__store-code-input {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.staff-login__store-code-submit {
+  flex: 0 0 84px;
+  border: none;
+  border-radius: 10px;
+  background: #222222;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.staff-login__store-code-submit:disabled {
+  background: #cccccc;
+  cursor: default;
+}
+
+.staff-login__store-code-remember {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  color: #475569;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-login__store-code-error {
+  margin: 8px 0 0;
+  text-align: left;
+}
+
+@media (max-width: 480px) {
+  .staff-login__body {
+    padding: 16px;
+  }
+
+  .staff-login__store-code-row {
+    flex-direction: column;
+  }
+
+  .staff-login__store-code-submit {
+    flex-basis: auto;
+    min-height: 42px;
+  }
+}

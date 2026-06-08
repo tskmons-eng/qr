@@ -138,6 +138,7 @@ export default function StaffLayout() {
       <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
         <StaffLoginScreen
           canOpenStaffAdmin={Boolean(user && !user.isAnonymous)}
+          forceAnonymousStoreEntry={Boolean(user && !user.isAnonymous)}
           storeId={storeId}
           onLogin={handleStaffLogin}
           onLogout={handleLogout}

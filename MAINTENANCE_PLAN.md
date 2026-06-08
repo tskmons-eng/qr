@@ -22,6 +22,8 @@ Store managers must be able to set staff-by-staff permissions without involving 
 
 Staff permission hints must expand inside the layout without being clipped. Staff pass changes must verify the current pass first; changing a pass from only a new value is not acceptable for store operations.
 
+The staff login screen itself must allow store-code entry, not only the first staff entry page. When a store code is entered from the staff login screen, clear the current staff shortcut and reopen the staff flow for that store.
+
 ## 2026-06-08 Active Store Feature Plan
 
 この計画は、すでに利用中の店舗へ支障を出さないことを最優先にする。既存データに新しい設定値がない場合は、必ず現状と同じ動きにフォールバックする。実装は一括で混ぜず、各スライスごとに `src/lib`, `src/services`, `src/components`, `src/styles` の既存分割に沿って進める。

@@ -50,6 +50,13 @@
   padding: 24px;
 }
 
+.staff-login__body--stack {
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 18px;
+}
+
 .staff-login__loading {
   color: #999;
 }
