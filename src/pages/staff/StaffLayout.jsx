@@ -18,6 +18,7 @@ import { getNewCallIds, respondToStaffCall, subscribePendingCalls } from '../../
 import { loadStoreConfig } from '../../services/settingsService'
 import ProductPage from '../admin/ProductPage'
 import SalesPage from '../admin/SalesPage'
+import StaffPage from '../admin/StaffPage'
 import TableListPage from './TableListPage'
 import TableDetailPage from './TableDetailPage'
 import StaffMenuPage from './StaffMenuPage'
@@ -149,6 +150,7 @@ export default function StaffLayout() {
   const canUseKitchen = hasStaffPermission(activeStaff, 'useKitchen')
   const canCloseRegister = hasStaffPermission(activeStaff, 'closeRegister', { useKitchen: true, closeRegister: false, manageMenu: false })
   const canManageMenu = hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
+  const canManageStaff = hasStaffPermission(activeStaff, 'manageStaff', { useKitchen: true, closeRegister: false, manageMenu: false, manageStaff: false })
 
   return (
     <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
@@ -160,12 +162,14 @@ export default function StaffLayout() {
           canUseKitchen={canUseKitchen}
           canCloseRegister={canCloseRegister}
           canManageMenu={canManageMenu}
+          canManageStaff={canManageStaff}
           onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
           onSwitchStaff={handleSwitchStaff}
           onOpenKitchen={() => navigate('/staff/kitchen')}
           onOpenSales={() => navigate('/staff/sales')}
           onOpenMenuAdmin={() => navigate('/staff/menu-admin')}
+          onOpenStaffAdmin={() => navigate('/staff/staff-admin')}
           onOpenAdmin={() => navigate('/admin')}
           onLogout={handleLogout}
         />
@@ -199,6 +203,11 @@ export default function StaffLayout() {
               <ProductPage />
             </StaffPermissionGate>
           } />
+          <Route path="staff-admin" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
+              <StaffPage />
+            </StaffPermissionGate>
+          } />
           <Route path="table/:tableId" element={<TableDetailPage />} />
           <Route path="table/:tableId/remaining" element={<RemainingPage />} />
           <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
@@ -212,7 +221,7 @@ export default function StaffLayout() {
 
 function StaffPermissionGate({ activeStaff, children, elevated = false, permission }) {
   const legacyDefaults = elevated
-    ? { useKitchen: true, closeRegister: false, manageMenu: false }
+    ? { useKitchen: true, closeRegister: false, manageMenu: false, manageStaff: false }
     : undefined
   if (hasStaffPermission(activeStaff, permission, legacyDefaults)) return children
 

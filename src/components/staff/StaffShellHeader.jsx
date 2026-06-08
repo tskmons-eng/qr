@@ -3,6 +3,7 @@ export default function StaffShellHeader({
   callCount,
   canCloseRegister,
   canManageMenu,
+  canManageStaff,
   canUseKitchen,
   showAdmin,
   onToggleSoundSettings,
@@ -10,6 +11,7 @@ export default function StaffShellHeader({
   onSwitchStaff,
   onOpenKitchen,
   onOpenMenuAdmin,
+  onOpenStaffAdmin,
   onOpenSales,
   onOpenAdmin,
   onLogout,
@@ -54,6 +56,11 @@ export default function StaffShellHeader({
         {canManageMenu && (
           <button type="button" onClick={onOpenMenuAdmin} className="staff-shell__button">
             メニュー
+          </button>
+        )}
+        {canManageStaff && (
+          <button type="button" onClick={onOpenStaffAdmin} className="staff-shell__button">
+            スタッフ
           </button>
         )}
         {showAdmin && (

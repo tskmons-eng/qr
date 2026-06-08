@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadStaffMembers } from '../../services/staffAuthService'
-import { buildStaffPermissionsFromPreset, normalizeStaffPermissions } from '../../lib/staffPermissions'
+import { buildStaffPermissionsFromPreset, normalizeStaffMemberPermissions } from '../../lib/staffPermissions'
 import {
   canAutoLoginStaff,
   getStaffAutoLoginPreference,
@@ -13,7 +13,7 @@ function buildStaffLoginPayload(member) {
     id: member.id,
     name: member.name,
     permissionPreset: member.permissionPreset,
-    permissions: normalizeStaffPermissions(member.permissions),
+    permissions: normalizeStaffMemberPermissions(member),
   }
 }
 

@@ -1,7 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 import { auth } from '../lib/firebase'
 import { db } from '../lib/firebase'
-import { DEFAULT_STAFF_PERMISSION_PRESET, buildStaffPermissionsFromPreset, normalizeStaffPermissions } from '../lib/staffPermissions'
+import { DEFAULT_STAFF_PERMISSION_PRESET, buildStaffPermissionsFromPreset, normalizeStaffMemberPermissions, normalizeStaffPermissions } from '../lib/staffPermissions'
 
 export async function loadStaffMembers(storeId) {
   const snap = await getDocs(query(collection(db, 'staffMembers'), where('storeId', '==', storeId)))
@@ -48,7 +48,7 @@ export function activateStaffMemberSession({ storeId, staff }) {
     staffMemberId: staff.id,
     staffName: staff.name,
     permissionPreset: staff.permissionPreset ?? 'legacy',
-    permissions: normalizeStaffPermissions(staff.permissions),
+    permissions: normalizeStaffMemberPermissions(staff),
     updatedAt: serverTimestamp(),
   }, { merge: true })
 }

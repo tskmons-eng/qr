@@ -18,6 +18,8 @@ Staff capability management must preserve existing active stores. Missing staff 
 
 Staff devices should reopen quickly for daily work. After a staff member has manually passed the 4-digit check once on a store device, the app may auto-enter that same staff member for the same store, but staff switch and logout must clear that shortcut, and staff pass resets or permission updates must force manual verification again.
 
+Store managers must be able to set staff-by-staff permissions without involving the owner screen. Permission controls should stay per-store, default new staff to the current safe operations role, and expose a concise hint button explaining what each permission enables before a manager changes it.
+
 ## 2026-06-08 Active Store Feature Plan
 
 この計画は、すでに利用中の店舗へ支障を出さないことを最優先にする。既存データに新しい設定値がない場合は、必ず現状と同じ動きにフォールバックする。実装は一括で混ぜず、各スライスごとに `src/lib`, `src/services`, `src/components`, `src/styles` の既存分割に沿って進める。
@@ -129,6 +131,15 @@ Staff devices should reopen quickly for daily work. After a staff member has man
 4. When a staff password reset or permission update changes `updatedAt`, stop auto-login and require the staff code again.
 5. Clear the auto-login preference on explicit staff switch and logout, so staff can intentionally change users on a shared terminal.
 6. Verify the helper behavior with `npm run check:staff-member`, then run the full check and build before deploy, commit, and push.
+
+## 2026-06-08 Staff Permission Management Plan
+
+1. Add a `manageStaff` capability for store-manager-level staff. Existing staff without the new field remain unchanged because the default is off.
+2. Keep Google store owners and assigned store admins able to manage staff through `/admin/staff`.
+3. Allow staff with `manageStaff` to open a staff-management route from the staff shell and update staff members for the same store only.
+4. Support both preset selection and per-permission toggles, so each staff member can be adjusted individually without needing a separate custom page.
+5. Replace passive details text with a clear hint button that opens the permission explanation for the selected preset or row.
+6. Update Firestore rules and checks, then deploy Hosting and Firestore rules before commit/push.
 
 ## Owner Dashboard Safety Plan
 

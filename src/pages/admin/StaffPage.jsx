@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import StaffMemberForm from '../../components/admin/StaffMemberForm'
 import StaffMemberList from '../../components/admin/StaffMemberList'
 import { useStore } from '../../contexts/StoreContext'
-import { DEFAULT_STAFF_PERMISSION_PRESET, buildStaffPermissionsFromPreset } from '../../lib/staffPermissions'
+import {
+  DEFAULT_STAFF_PERMISSION_PRESET,
+  buildStaffPermissionsFromPreset,
+  getStaffPresetKeyFromPermissions,
+  normalizeStaffMemberPermissions,
+  setStaffPermissionValue,
+} from '../../lib/staffPermissions'
 import { normalizeStaffCode, validateStaffMemberForm } from '../../lib/staffMember'
 import { createStaffMember, deleteStaffMember, loadStaffMembers, updateStaffMemberCode, updateStaffMemberPermissions } from '../../services/staffAuthService'
 
@@ -54,19 +60,30 @@ export default function StaffPage() {
     setMembers(prev => prev.filter(member => member.id !== id))
   }
 
-  async function handlePermissionPresetChange(member, nextPreset) {
-    if (nextPreset === 'legacy' || nextPreset === 'custom') return
-    const permissions = buildStaffPermissionsFromPreset(nextPreset)
+  async function saveMemberPermissions(member, permissionPreset, permissions) {
     await updateStaffMemberPermissions({
       memberId: member.id,
-      permissionPreset: nextPreset,
+      permissionPreset,
       permissions,
     })
     setMembers(prev => prev.map(existing => (
       existing.id === member.id
-        ? { ...existing, permissionPreset: nextPreset, permissions }
+        ? { ...existing, permissionPreset, permissions }
         : existing
     )))
+  }
+
+  async function handlePermissionPresetChange(member, nextPreset) {
+    if (nextPreset === 'legacy' || nextPreset === 'custom') return
+    const permissions = buildStaffPermissionsFromPreset(nextPreset)
+    await saveMemberPermissions(member, nextPreset, permissions)
+  }
+
+  async function handlePermissionToggle(member, key, enabled) {
+    const currentPermissions = normalizeStaffMemberPermissions(member)
+    const permissions = setStaffPermissionValue(currentPermissions, key, enabled)
+    const nextPreset = getStaffPresetKeyFromPermissions(permissions)
+    await saveMemberPermissions(member, nextPreset, permissions)
   }
 
   function startCodeReset(member) {
@@ -114,6 +131,7 @@ export default function StaffPage() {
         resetCode={resetCode}
         onDelete={handleDelete}
         onPermissionPresetChange={handlePermissionPresetChange}
+        onPermissionToggle={handlePermissionToggle}
         onResetCodeChange={value => setResetCode(normalizeStaffCode(value))}
         onStartCodeReset={startCodeReset}
         onCancelCodeReset={cancelCodeReset}

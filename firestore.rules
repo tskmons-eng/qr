@@ -61,6 +61,10 @@ service cloud.firestore {
       return canManageStore(storeId) || staffPermission(storeId, 'closeRegister', false);
     }
 
+    function canManageStaff(storeId) {
+      return canManageStore(storeId) || staffPermission(storeId, 'manageStaff', false);
+    }
+
     // 許可メール（オーナーが管理）
     match /allowedEmails/{email} {
       allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
@@ -192,8 +196,10 @@ service cloud.firestore {
     // スタッフメンバー
     match /staffMembers/{memberId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canManageStore(request.resource.data.storeId);
-      allow update, delete: if canManageStore(resource.data.storeId);
+      allow create: if canManageStaff(request.resource.data.storeId);
+      allow update: if canManageStaff(resource.data.storeId)
+        && request.resource.data.storeId == resource.data.storeId;
+      allow delete: if canManageStaff(resource.data.storeId);
     }
 
     // 呼び出し（お客さんも作成できる）

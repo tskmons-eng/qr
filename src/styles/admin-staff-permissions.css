@@ -1,0 +1,193 @@
+.admin-staff__role-field {
+  position: relative;
+  display: flex;
+  flex: 1.5;
+  align-items: center;
+  min-width: 220px;
+  gap: 6px;
+}
+
+.admin-staff__role-field .admin-staff__role-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-staff__member {
+  min-width: 160px;
+}
+
+.admin-staff__row-actions {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-staff__permission-editor {
+  display: grid;
+  min-width: 280px;
+  gap: 8px;
+}
+
+.admin-staff__permission-editor-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-staff__permission-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-staff__permission-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 5px;
+}
+
+.admin-staff__permission-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #111827;
+}
+
+.admin-staff__help {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.admin-staff__help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-staff__help-button[aria-expanded='true'] {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+.admin-staff__help-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(340px, calc(100vw - 40px));
+  padding: 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+}
+
+.admin-staff__role-field .admin-staff__help-panel {
+  right: auto;
+  left: 0;
+}
+
+.admin-staff__help-title {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-staff__help-summary {
+  margin: 6px 0 10px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-staff__help-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 8px;
+}
+
+.admin-staff__help-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+}
+
+.admin-staff__help-item-label {
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-staff__help-item-status {
+  align-self: start;
+  min-width: 34px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #475569;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-staff__help-item.is-enabled .admin-staff__help-item-status {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-staff__help-item-text {
+  grid-column: 1 / -1;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .admin-staff__row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-staff__row-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .admin-staff__permission-editor {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-staff__permission-editor-top {
+    width: 100%;
+  }
+
+  .admin-staff__role-select--row {
+    flex: 1;
+    width: auto;
+  }
+}
