@@ -4,6 +4,7 @@ import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
 import { loadSoundPrefs, playSound } from '../../lib/sounds'
 import { hasRegisteredNotificationToken, removeRegisteredNotificationToken, requestAndRegisterToken } from '../../lib/messaging'
+import { clearStaffAutoLoginPreference } from '../../lib/staffMember'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
@@ -106,10 +107,16 @@ export default function StaffLayout() {
 
   async function handleLogout() {
     await removeRegisteredNotificationToken()
+    clearStaffAutoLoginPreference(storeId)
     setActiveStaffPersisted(null)
     clearDeviceStore()
     await signOutCurrentUser()
     navigate('/staff')
+  }
+
+  function handleSwitchStaff() {
+    clearStaffAutoLoginPreference(storeId)
+    setActiveStaffPersisted(null)
   }
 
   async function handleRespond(call) {
@@ -155,7 +162,7 @@ export default function StaffLayout() {
           canManageMenu={canManageMenu}
           onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
-          onSwitchStaff={() => setActiveStaffPersisted(null)}
+          onSwitchStaff={handleSwitchStaff}
           onOpenKitchen={() => navigate('/staff/kitchen')}
           onOpenSales={() => navigate('/staff/sales')}
           onOpenMenuAdmin={() => navigate('/staff/menu-admin')}

@@ -16,6 +16,8 @@ Store administrator email changes must not migrate live store IDs. The safe mode
 
 Staff capability management must preserve existing active stores. Missing staff permission fields are treated as legacy floor access for current staff workflows, while new elevated actions such as menu management and register closing require explicit permission toggles.
 
+Staff devices should reopen quickly for daily work. After a staff member has manually passed the 4-digit check once on a store device, the app may auto-enter that same staff member for the same store, but staff switch and logout must clear that shortcut, and staff pass resets or permission updates must force manual verification again.
+
 ## 2026-06-08 Active Store Feature Plan
 
 この計画は、すでに利用中の店舗へ支障を出さないことを最優先にする。既存データに新しい設定値がない場合は、必ず現状と同じ動きにフォールバックする。実装は一括で混ぜず、各スライスごとに `src/lib`, `src/services`, `src/components`, `src/styles` の既存分割に沿って進める。
@@ -118,6 +120,15 @@ Staff capability management must preserve existing active stores. Missing staff 
 10. 客側/スタッフ側の注文送信後に完了画面を出し、注文できたことを明確にした。
 11. QR URL は `https://qrproduct-3340b.web.app` を基準に固定し、席編集やグループ変更では `qrToken` を変えないままにした。
 12. `npm run check`, `npm run build`, Hosting deploy, Firestore rules deploy, Functions deploy, live asset verification, browser load verificationまで完了した。
+
+## 2026-06-08 Staff Auto Login Plan
+
+1. Restore tracked files to the last pushed Codex commit before starting new edits, because another app had changed the workspace files.
+2. Keep the existing saved staff store code flow, then add a per-store staff auto-login preference after a successful manual 4-digit staff check.
+3. Store only the staff document id and its `updatedAt` seconds. Do not persist the 4-digit staff code.
+4. When a staff password reset or permission update changes `updatedAt`, stop auto-login and require the staff code again.
+5. Clear the auto-login preference on explicit staff switch and logout, so staff can intentionally change users on a shared terminal.
+6. Verify the helper behavior with `npm run check:staff-member`, then run the full check and build before deploy, commit, and push.
 
 ## Owner Dashboard Safety Plan
 

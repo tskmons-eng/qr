@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react'
 import { loadStaffMembers } from '../../services/staffAuthService'
 import { buildStaffPermissionsFromPreset, normalizeStaffPermissions } from '../../lib/staffPermissions'
-import { normalizeStaffCode } from '../../lib/staffMember'
+import {
+  canAutoLoginStaff,
+  getStaffAutoLoginPreference,
+  normalizeStaffCode,
+  saveStaffAutoLoginPreference,
+} from '../../lib/staffMember'
+
+function buildStaffLoginPayload(member) {
+  return {
+    id: member.id,
+    name: member.name,
+    permissionPreset: member.permissionPreset,
+    permissions: normalizeStaffPermissions(member.permissions),
+  }
+}
 
 export default function StaffLoginScreen({ canOpenStaffAdmin, storeId, onLogin, onLogout, onOpenStaffAdmin }) {
   const [members, setMembers] = useState([])
@@ -12,9 +26,20 @@ export default function StaffLoginScreen({ canOpenStaffAdmin, storeId, onLogin, 
 
   useEffect(() => {
     let active = true
-    loadStaffMembers(storeId).then(nextMembers => {
+    setLoading(true)
+    loadStaffMembers(storeId).then(async nextMembers => {
       if (!active) return
+      const savedPreference = getStaffAutoLoginPreference(storeId)
+      const autoLoginMember = nextMembers.find(member => canAutoLoginStaff(member, savedPreference))
       setMembers(nextMembers)
+      if (autoLoginMember) {
+        await onLogin(buildStaffLoginPayload(autoLoginMember))
+        return
+      }
+      setLoading(false)
+    }).catch(err => {
+      if (!active) return
+      setError(err?.message || 'staff login load failed')
       setLoading(false)
     })
     return () => {
@@ -30,12 +55,8 @@ export default function StaffLoginScreen({ canOpenStaffAdmin, storeId, onLogin, 
 
   function handleVerify() {
     if (normalizeStaffCode(String(selected.code ?? '')) === code) {
-      onLogin({
-        id: selected.id,
-        name: selected.name,
-        permissionPreset: selected.permissionPreset,
-        permissions: normalizeStaffPermissions(selected.permissions),
-      })
+      saveStaffAutoLoginPreference({ storeId, staff: selected })
+      onLogin(buildStaffLoginPayload(selected))
     } else {
       setError('コードが違います')
       setCode('')
