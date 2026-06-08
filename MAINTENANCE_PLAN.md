@@ -20,6 +20,8 @@ Staff devices should reopen quickly for daily work. After a staff member has man
 
 Store managers must be able to set staff-by-staff permissions without involving the owner screen. Permission controls should stay per-store, default new staff to the current safe operations role, and expose a concise hint button explaining what each permission enables before a manager changes it.
 
+Staff permission hints must expand inside the layout without being clipped. Staff pass changes must verify the current pass first; changing a pass from only a new value is not acceptable for store operations.
+
 ## 2026-06-08 Active Store Feature Plan
 
 この計画は、すでに利用中の店舗へ支障を出さないことを最優先にする。既存データに新しい設定値がない場合は、必ず現状と同じ動きにフォールバックする。実装は一括で混ぜず、各スライスごとに `src/lib`, `src/services`, `src/components`, `src/styles` の既存分割に沿って進める。

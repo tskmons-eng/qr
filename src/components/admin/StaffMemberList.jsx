@@ -10,13 +10,16 @@ import {
 export default function StaffMemberList({
   loading,
   members,
-  resetCode,
+  resetCurrentCode,
+  resetError,
+  resetNextCode,
   resettingMemberId,
   onCancelCodeReset,
   onDelete,
   onPermissionPresetChange,
   onPermissionToggle,
-  onResetCodeChange,
+  onResetCurrentCodeChange,
+  onResetNextCodeChange,
   onSaveCodeReset,
   onStartCodeReset,
 }) {
@@ -33,6 +36,7 @@ export default function StaffMemberList({
         const permissionSummary = member.permissions
           ? getStaffPermissionSummary(effectivePermissions)
           : getStaffPermissionSummary(null)
+        const resetting = resettingMemberId === member.id
 
         return (
           <div
@@ -43,22 +47,31 @@ export default function StaffMemberList({
               <span className="admin-staff__member-name">{member.name}</span>
               <span className="admin-staff__masked-code">{'●'.repeat(4)}</span>
               <span className="admin-staff__permission-summary">{permissionSummary}</span>
-              {resettingMemberId === member.id && (
+              {resetting && (
                 <div className="admin-staff__reset-row">
                   <input
-                    type="text"
+                    type="password"
                     inputMode="numeric"
-                    value={resetCode}
-                    onChange={event => onResetCodeChange(event.target.value)}
-                    placeholder="新しい4桁"
+                    value={resetCurrentCode}
+                    onChange={event => onResetCurrentCodeChange(event.target.value)}
+                    placeholder="旧パス"
+                    className="admin-staff__reset-input"
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={resetNextCode}
+                    onChange={event => onResetNextCodeChange(event.target.value)}
+                    placeholder="新パス"
                     className="admin-staff__reset-input"
                   />
                   <button type="button" onClick={() => onSaveCodeReset(member)} className="admin-staff__reset-save">
-                    保存
+                    変更する
                   </button>
                   <button type="button" onClick={onCancelCodeReset} className="admin-staff__reset-cancel">
                     戻る
                   </button>
+                  {resetError && <p className="admin-staff__reset-error">{resetError}</p>}
                 </div>
               )}
             </div>

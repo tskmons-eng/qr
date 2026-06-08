@@ -1,8 +1,8 @@
 .admin-staff__role-field {
-  position: relative;
   display: flex;
   flex: 1.5;
   align-items: center;
+  flex-wrap: wrap;
   min-width: 220px;
   gap: 6px;
 }
@@ -14,6 +14,10 @@
 
 .admin-staff__member {
   min-width: 160px;
+}
+
+.admin-staff__list {
+  overflow: visible;
 }
 
 .admin-staff__row-actions {
@@ -29,9 +33,9 @@
 }
 
 .admin-staff__permission-editor-top {
-  position: relative;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -63,10 +67,24 @@
   accent-color: #111827;
 }
 
+.admin-staff__reset-row .admin-staff__reset-input {
+  width: 96px;
+}
+
+.admin-staff__reset-error {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .admin-staff__help {
-  position: relative;
   display: inline-flex;
   flex: 0 0 auto;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .admin-staff__help-button {
@@ -90,22 +108,20 @@
   color: #fff;
 }
 
+.admin-staff__help.is-open {
+  flex-basis: 100%;
+  width: 100%;
+}
+
 .admin-staff__help-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 20;
-  width: min(340px, calc(100vw - 40px));
+  width: 100%;
+  max-width: 520px;
+  margin-top: 8px;
   padding: 12px;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
-}
-
-.admin-staff__role-field .admin-staff__help-panel {
-  right: auto;
-  left: 0;
 }
 
 .admin-staff__help-title {
@@ -184,6 +200,10 @@
 
   .admin-staff__permission-editor-top {
     width: 100%;
+  }
+
+  .admin-staff__help-panel {
+    max-width: none;
   }
 
   .admin-staff__role-select--row {

@@ -12,7 +12,7 @@ export default function StaffPermissionHelpButton({
   const normalized = normalizeStaffPermissions(permissions, {})
 
   return (
-    <div className={`admin-staff__help${className ? ` ${className}` : ''}`}>
+    <div className={`admin-staff__help${open ? ' is-open' : ''}${className ? ` ${className}` : ''}`}>
       <button
         type="button"
         className="admin-staff__help-button"

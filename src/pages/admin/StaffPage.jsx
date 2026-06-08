@@ -20,7 +20,9 @@ export default function StaffPage() {
   const [code, setCode] = useState('')
   const [permissionPreset, setPermissionPreset] = useState(DEFAULT_STAFF_PERMISSION_PRESET)
   const [resettingMemberId, setResettingMemberId] = useState(null)
-  const [resetCode, setResetCode] = useState('')
+  const [resetCurrentCode, setResetCurrentCode] = useState('')
+  const [resetNextCode, setResetNextCode] = useState('')
+  const [resetError, setResetError] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
 
@@ -88,24 +90,41 @@ export default function StaffPage() {
 
   function startCodeReset(member) {
     setResettingMemberId(member.id)
-    setResetCode('')
+    setResetCurrentCode('')
+    setResetNextCode('')
+    setResetError('')
     setError('')
   }
 
   function cancelCodeReset() {
     setResettingMemberId(null)
-    setResetCode('')
+    setResetCurrentCode('')
+    setResetNextCode('')
+    setResetError('')
   }
 
   async function handleCodeReset(member) {
-    const normalized = normalizeStaffCode(resetCode)
-    if (!/^\d{4}$/.test(normalized)) {
-      setError('新しいコードは4桁の数字にしてください')
+    const current = normalizeStaffCode(resetCurrentCode)
+    const next = normalizeStaffCode(resetNextCode)
+    const existing = normalizeStaffCode(String(member.code ?? ''))
+
+    if (current !== existing) {
+      setResetError('旧パスが違います')
+      setResetCurrentCode('')
       return
     }
-    await updateStaffMemberCode({ memberId: member.id, code: normalized })
-    setMembers(prev => prev.map(existing => (
-      existing.id === member.id ? { ...existing, code: normalized } : existing
+    if (!/^\d{4}$/.test(next)) {
+      setResetError('新パスは4桁の数字にしてください')
+      return
+    }
+    if (next === existing) {
+      setResetError('新パスは旧パスと違う数字にしてください')
+      return
+    }
+
+    await updateStaffMemberCode({ memberId: member.id, code: next })
+    setMembers(prev => prev.map(existingMember => (
+      existingMember.id === member.id ? { ...existingMember, code: next } : existingMember
     )))
     cancelCodeReset()
   }
@@ -128,11 +147,20 @@ export default function StaffPage() {
         loading={loading}
         members={members}
         resettingMemberId={resettingMemberId}
-        resetCode={resetCode}
+        resetCurrentCode={resetCurrentCode}
+        resetError={resetError}
+        resetNextCode={resetNextCode}
         onDelete={handleDelete}
         onPermissionPresetChange={handlePermissionPresetChange}
         onPermissionToggle={handlePermissionToggle}
-        onResetCodeChange={value => setResetCode(normalizeStaffCode(value))}
+        onResetCurrentCodeChange={value => {
+          setResetError('')
+          setResetCurrentCode(normalizeStaffCode(value))
+        }}
+        onResetNextCodeChange={value => {
+          setResetError('')
+          setResetNextCode(normalizeStaffCode(value))
+        }}
         onStartCodeReset={startCodeReset}
         onCancelCodeReset={cancelCodeReset}
         onSaveCodeReset={handleCodeReset}
