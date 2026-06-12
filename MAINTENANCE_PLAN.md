@@ -20,6 +20,8 @@ Staff devices should reopen quickly for daily work. After a staff member has man
 
 Store managers must be able to set staff-by-staff permissions without involving the owner screen. Permission controls should stay per-store, default new staff to the current safe operations role, and expose a concise hint button explaining what each permission enables before a manager changes it.
 
+Field leads should be trusted with seat and reservation operations in addition to kitchen and register closing. Store-manager-level staff should be able to use almost all store-level admin surfaces from the staff shell, while owner-only surfaces such as allowed-email management stay restricted to the owner/super-admin path.
+
 Staff permission hints must expand inside the layout without being clipped. Staff pass changes must verify the current pass first; changing a pass from only a new value is not acceptable for store operations.
 
 The staff login screen itself must allow store-code entry, not only the first staff entry page. When a store code is entered from the staff login screen, clear the current staff shortcut and reopen the staff flow for that store.
@@ -144,6 +146,14 @@ The staff login screen itself must allow store-code entry, not only the first st
 4. Support both preset selection and per-permission toggles, so each staff member can be adjusted individually without needing a separate custom page.
 5. Replace passive details text with a clear hint button that opens the permission explanation for the selected preset or row.
 6. Update Firestore rules and checks, then deploy Hosting and Firestore rules before commit/push.
+
+## 2026-06-12 Staff Permission Expansion Plan
+
+1. Add explicit `manageTables`, `manageReservations`, `viewHistory`, and `manageSettings` staff capabilities instead of overloading menu or staff management permissions.
+2. Give the `operations` / 現場責任者 preset seat and reservation management while keeping menu, settings, history, and staff permission management off.
+3. Give the `manager` / 店舗管理者レベル preset all store-level staff capabilities so it can use almost all store admin surfaces from `/staff`.
+4. Keep owner-only access management out of staff permissions; allowed-email management remains guarded by the fixed super-admin check.
+5. Update Firestore rules so table admin fields, table groups, reservations, settings, and history reads match the new permission boundaries.
 
 ## Owner Dashboard Safety Plan
 

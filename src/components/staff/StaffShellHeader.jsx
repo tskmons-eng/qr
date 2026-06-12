@@ -3,16 +3,24 @@ export default function StaffShellHeader({
   callCount,
   canCloseRegister,
   canManageMenu,
+  canManageReservations,
+  canManageSettings,
   canManageStaff,
+  canManageTables,
   canUseKitchen,
+  canViewHistory,
   showAdmin,
   onToggleSoundSettings,
   onRefresh,
   onSwitchStaff,
   onOpenKitchen,
+  onOpenHistory,
   onOpenMenuAdmin,
+  onOpenReservations,
+  onOpenSettings,
   onOpenStaffAdmin,
   onOpenSales,
+  onOpenTables,
   onOpenAdmin,
   onLogout,
 }) {
@@ -53,9 +61,29 @@ export default function StaffShellHeader({
             レジ締め
           </button>
         )}
+        {canManageTables && (
+          <button type="button" onClick={onOpenTables} className="staff-shell__button">
+            席
+          </button>
+        )}
+        {canManageReservations && (
+          <button type="button" onClick={onOpenReservations} className="staff-shell__button">
+            予約
+          </button>
+        )}
         {canManageMenu && (
           <button type="button" onClick={onOpenMenuAdmin} className="staff-shell__button">
             メニュー
+          </button>
+        )}
+        {canViewHistory && (
+          <button type="button" onClick={onOpenHistory} className="staff-shell__button">
+            履歴
+          </button>
+        )}
+        {canManageSettings && (
+          <button type="button" onClick={onOpenSettings} className="staff-shell__button">
+            設定
           </button>
         )}
         {canManageStaff && (

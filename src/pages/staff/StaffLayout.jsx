@@ -19,12 +19,27 @@ import { loadStoreConfig } from '../../services/settingsService'
 import ProductPage from '../admin/ProductPage'
 import SalesPage from '../admin/SalesPage'
 import StaffPage from '../admin/StaffPage'
+import TablePage from '../admin/TablePage'
+import ReservationPage from '../admin/ReservationPage'
+import HistoryPage from '../admin/HistoryPage'
+import SettingsPage from '../admin/SettingsPage'
 import TableListPage from './TableListPage'
 import TableDetailPage from './TableDetailPage'
 import StaffMenuPage from './StaffMenuPage'
 import CheckoutPage from './CheckoutPage'
 import RemainingPage from './RemainingPage'
 import KitchenPage from '../kitchen/KitchenPage'
+
+const ELEVATED_PERMISSION_DEFAULTS = {
+  useKitchen: true,
+  closeRegister: false,
+  manageMenu: false,
+  manageTables: false,
+  manageReservations: false,
+  viewHistory: false,
+  manageSettings: false,
+  manageStaff: false,
+}
 
 export default function StaffLayout() {
   const navigate = useNavigate()
@@ -149,9 +164,13 @@ export default function StaffLayout() {
   }
 
   const canUseKitchen = hasStaffPermission(activeStaff, 'useKitchen')
-  const canCloseRegister = hasStaffPermission(activeStaff, 'closeRegister', { useKitchen: true, closeRegister: false, manageMenu: false })
-  const canManageMenu = hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
-  const canManageStaff = hasStaffPermission(activeStaff, 'manageStaff', { useKitchen: true, closeRegister: false, manageMenu: false, manageStaff: false })
+  const canCloseRegister = hasStaffPermission(activeStaff, 'closeRegister', ELEVATED_PERMISSION_DEFAULTS)
+  const canManageMenu = hasStaffPermission(activeStaff, 'manageMenu', ELEVATED_PERMISSION_DEFAULTS)
+  const canManageTables = hasStaffPermission(activeStaff, 'manageTables', ELEVATED_PERMISSION_DEFAULTS)
+  const canManageReservations = hasStaffPermission(activeStaff, 'manageReservations', ELEVATED_PERMISSION_DEFAULTS)
+  const canViewHistory = hasStaffPermission(activeStaff, 'viewHistory', ELEVATED_PERMISSION_DEFAULTS)
+  const canManageSettings = hasStaffPermission(activeStaff, 'manageSettings', ELEVATED_PERMISSION_DEFAULTS)
+  const canManageStaff = hasStaffPermission(activeStaff, 'manageStaff', ELEVATED_PERMISSION_DEFAULTS)
 
   return (
     <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
@@ -163,13 +182,21 @@ export default function StaffLayout() {
           canUseKitchen={canUseKitchen}
           canCloseRegister={canCloseRegister}
           canManageMenu={canManageMenu}
+          canManageTables={canManageTables}
+          canManageReservations={canManageReservations}
+          canViewHistory={canViewHistory}
+          canManageSettings={canManageSettings}
           canManageStaff={canManageStaff}
           onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
           onSwitchStaff={handleSwitchStaff}
           onOpenKitchen={() => navigate('/staff/kitchen')}
           onOpenSales={() => navigate('/staff/sales')}
+          onOpenTables={() => navigate('/staff/tables')}
+          onOpenReservations={() => navigate('/staff/reservations')}
           onOpenMenuAdmin={() => navigate('/staff/menu-admin')}
+          onOpenHistory={() => navigate('/staff/history')}
+          onOpenSettings={() => navigate('/staff/settings')}
           onOpenStaffAdmin={() => navigate('/staff/staff-admin')}
           onOpenAdmin={() => navigate('/admin')}
           onLogout={handleLogout}
@@ -204,6 +231,26 @@ export default function StaffLayout() {
               <ProductPage />
             </StaffPermissionGate>
           } />
+          <Route path="tables" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="manageTables" elevated>
+              <TablePage />
+            </StaffPermissionGate>
+          } />
+          <Route path="reservations" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="manageReservations" elevated>
+              <ReservationPage />
+            </StaffPermissionGate>
+          } />
+          <Route path="history" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="viewHistory" elevated>
+              <HistoryPage />
+            </StaffPermissionGate>
+          } />
+          <Route path="settings" element={
+            <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
+              <SettingsPage />
+            </StaffPermissionGate>
+          } />
           <Route path="staff-admin" element={
             <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
               <StaffPage />
@@ -221,9 +268,7 @@ export default function StaffLayout() {
 }
 
 function StaffPermissionGate({ activeStaff, children, elevated = false, permission }) {
-  const legacyDefaults = elevated
-    ? { useKitchen: true, closeRegister: false, manageMenu: false, manageStaff: false }
-    : undefined
+  const legacyDefaults = elevated ? ELEVATED_PERMISSION_DEFAULTS : undefined
   if (hasStaffPermission(activeStaff, permission, legacyDefaults)) return children
 
   return (

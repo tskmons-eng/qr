@@ -53,6 +53,19 @@ service cloud.firestore {
           .get(permission, legacyDefault) == true;
     }
 
+    function staffPreset() {
+      return get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data
+        .get('permissionPreset', '');
+    }
+
+    function staffIsManager(storeId) {
+      return isStaffOf(storeId) && staffPreset() == 'manager';
+    }
+
+    function staffIsOperations(storeId) {
+      return isStaffOf(storeId) && staffPreset() == 'operations';
+    }
+
     function canManageMenu(storeId) {
       return canManageStore(storeId) || staffPermission(storeId, 'manageMenu', false);
     }
@@ -63,6 +76,39 @@ service cloud.firestore {
 
     function canManageStaff(storeId) {
       return canManageStore(storeId) || staffPermission(storeId, 'manageStaff', false);
+    }
+
+    function canManageTables(storeId) {
+      return canManageStore(storeId)
+        || staffPermission(storeId, 'manageTables', false)
+        || staffIsManager(storeId)
+        || staffIsOperations(storeId);
+    }
+
+    function canManageReservations(storeId) {
+      return canManageStore(storeId)
+        || staffPermission(storeId, 'manageReservations', false)
+        || staffIsManager(storeId)
+        || staffIsOperations(storeId);
+    }
+
+    function canViewHistory(storeId) {
+      return canManageStore(storeId)
+        || staffPermission(storeId, 'viewHistory', false)
+        || staffIsManager(storeId);
+    }
+
+    function canManageSettings(storeId) {
+      return canManageStore(storeId)
+        || staffPermission(storeId, 'manageSettings', false)
+        || staffIsManager(storeId);
+    }
+
+    function keepsTableManagementFields() {
+      return request.resource.data.storeId == resource.data.storeId
+        && request.resource.data.tableName == resource.data.tableName
+        && request.resource.data.qrToken == resource.data.qrToken
+        && request.resource.data.get('groupId', null) == resource.data.get('groupId', null);
     }
 
     // 許可メール（オーナーが管理）
@@ -102,17 +148,22 @@ service cloud.firestore {
     // テーブル（お客さんも読める）
     match /tables/{tableId} {
       allow read: if true;
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update: if canAccess(resource.data.storeId)
-                    || (resource.data.status == 'vacant' && request.resource.data.status == 'occupied');
-      allow delete: if canAccess(resource.data.storeId);
+      allow create: if canManageTables(request.resource.data.storeId);
+      allow update: if canManageTables(resource.data.storeId)
+                    || (canAccess(resource.data.storeId) && keepsTableManagementFields())
+                    || (
+                      resource.data.status == 'vacant'
+                      && request.resource.data.status == 'occupied'
+                      && keepsTableManagementFields()
+                    );
+      allow delete: if canManageTables(resource.data.storeId);
     }
 
     // 席グループ
     match /tableGroups/{groupId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canManageStore(request.resource.data.storeId);
-      allow update, delete: if canManageStore(resource.data.storeId);
+      allow create: if canManageTables(request.resource.data.storeId);
+      allow update, delete: if canManageTables(resource.data.storeId);
     }
 
     // カテゴリー（お客さんも読める）
@@ -161,7 +212,7 @@ service cloud.firestore {
 
     // 会計
     match /checks/{checkId} {
-      allow read: if canAccess(resource.data.storeId);
+      allow read: if canCloseRegister(resource.data.storeId) || canViewHistory(resource.data.storeId);
       allow create: if canAccess(request.resource.data.storeId);
       allow update, delete: if canAccess(resource.data.storeId);
     }
@@ -175,7 +226,7 @@ service cloud.firestore {
 
     // スタッフアクション
     match /staffActions/{actionId} {
-      allow read: if canAccess(resource.data.storeId);
+      allow read: if canViewHistory(resource.data.storeId);
       allow create: if canAccess(request.resource.data.storeId);
       allow update, delete: if canAccess(resource.data.storeId);
     }
@@ -183,14 +234,14 @@ service cloud.firestore {
     // 予約
     match /reservations/{reservationId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if canManageReservations(request.resource.data.storeId);
+      allow update, delete: if canManageReservations(resource.data.storeId);
     }
 
     // 店舗設定（お客さんも読める）
     match /storeConfig/{configId} {
       allow read: if true;
-      allow write: if canManageStore(configId) || staffPermission(configId, 'manageMenu', false);
+      allow write: if canManageSettings(configId);
     }
 
     // スタッフメンバー

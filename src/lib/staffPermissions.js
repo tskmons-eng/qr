@@ -1,4 +1,13 @@
-export const STAFF_PERMISSION_KEYS = ['useKitchen', 'closeRegister', 'manageMenu', 'manageStaff']
+export const STAFF_PERMISSION_KEYS = [
+  'useKitchen',
+  'closeRegister',
+  'manageMenu',
+  'manageTables',
+  'manageReservations',
+  'viewHistory',
+  'manageSettings',
+  'manageStaff',
+]
 
 export const STAFF_PERMISSION_DEFINITIONS = [
   {
@@ -17,6 +26,26 @@ export const STAFF_PERMISSION_DEFINITIONS = [
     description: '商品、カテゴリ、割引、期間限定メニューの追加と編集ができます。',
   },
   {
+    key: 'manageTables',
+    label: '席管理',
+    description: '席の追加、席名変更、QR再発行、席グループの作成や割り当てができます。',
+  },
+  {
+    key: 'manageReservations',
+    label: '予約管理',
+    description: '予約の確認、追加、来店済みやキャンセルなどの状態変更ができます。',
+  },
+  {
+    key: 'viewHistory',
+    label: '履歴閲覧',
+    description: '会計やスタッフ操作の履歴確認とCSV出力ができます。',
+  },
+  {
+    key: 'manageSettings',
+    label: '店舗設定',
+    description: 'お客様画面、店舗運用、税率など店舗単位の設定を変更できます。許可メール管理はオーナー専用です。',
+  },
+  {
     key: 'manageStaff',
     label: 'スタッフ権限管理',
     description: 'スタッフ追加、パス変更、スタッフごとの権限変更ができます。店舗管理者レベルの人だけに付ける権限です。',
@@ -27,6 +56,10 @@ export const LEGACY_STAFF_PERMISSIONS = {
   useKitchen: true,
   closeRegister: false,
   manageMenu: false,
+  manageTables: false,
+  manageReservations: false,
+  viewHistory: false,
+  manageSettings: false,
   manageStaff: false,
 }
 
@@ -34,22 +67,30 @@ export const STAFF_PERMISSION_PRESETS = [
   {
     key: 'manager',
     label: '店舗管理者レベル',
-    description: 'キッチン、レジ締め、メニュー管理、スタッフ権限管理まで任せる権限です。',
+    description: 'キッチン、レジ締め、席、予約、メニュー、店舗設定、履歴、スタッフ権限管理まで任せる権限です。',
     permissions: {
       useKitchen: true,
       closeRegister: true,
       manageMenu: true,
+      manageTables: true,
+      manageReservations: true,
+      viewHistory: true,
+      manageSettings: true,
       manageStaff: true,
     },
   },
   {
     key: 'operations',
     label: '現場責任者',
-    description: 'キッチンとレジ締めまで任せ、メニュー編集とスタッフ権限管理はできない権限です。',
+    description: 'キッチン、レジ締め、席管理、予約管理まで任せ、メニュー編集、店舗設定、スタッフ権限管理はできない権限です。',
     permissions: {
       useKitchen: true,
       closeRegister: true,
       manageMenu: false,
+      manageTables: true,
+      manageReservations: true,
+      viewHistory: false,
+      manageSettings: false,
       manageStaff: false,
     },
   },
@@ -61,6 +102,10 @@ export const STAFF_PERMISSION_PRESETS = [
       useKitchen: true,
       closeRegister: false,
       manageMenu: true,
+      manageTables: false,
+      manageReservations: false,
+      viewHistory: false,
+      manageSettings: false,
       manageStaff: false,
     },
   },
@@ -72,6 +117,10 @@ export const STAFF_PERMISSION_PRESETS = [
       useKitchen: true,
       closeRegister: false,
       manageMenu: false,
+      manageTables: false,
+      manageReservations: false,
+      viewHistory: false,
+      manageSettings: false,
       manageStaff: false,
     },
   },
