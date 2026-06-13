@@ -28,3 +28,5 @@
 - `npm run check:customer-entry` passed.
 - `npm run check` passed.
 - `npm run build` passed.
+- `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed.
+- Live hosting HTML references the deployed build assets `assets/index-CzkQ-u9w.js` and `assets/index-D6g3bT6Z.css`.
