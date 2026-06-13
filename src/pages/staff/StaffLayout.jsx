@@ -187,6 +187,7 @@ export default function StaffLayout() {
           canViewHistory={canViewHistory}
           canManageSettings={canManageSettings}
           canManageStaff={canManageStaff}
+          onOpenOrders={() => navigate('/staff')}
           onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
           onSwitchStaff={handleSwitchStaff}

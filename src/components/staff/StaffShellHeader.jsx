@@ -10,6 +10,7 @@ export default function StaffShellHeader({
   canUseKitchen,
   canViewHistory,
   showAdmin,
+  onOpenOrders,
   onToggleSoundSettings,
   onRefresh,
   onSwitchStaff,
@@ -32,6 +33,13 @@ export default function StaffShellHeader({
       </div>
       <div className="staff-shell__actions">
         <span className="staff-shell__staff-name">{activeStaff.name}</span>
+        <button
+          type="button"
+          onClick={onOpenOrders}
+          className="staff-shell__button staff-shell__button--primary"
+        >
+          注文
+        </button>
         <button
           type="button"
           onClick={onToggleSoundSettings}

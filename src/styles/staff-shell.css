@@ -85,6 +85,12 @@
   font-weight: 700;
 }
 
+.staff-shell__button--primary {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
 .staff-shell__icon-button {
   flex: 0 0 auto;
   min-width: 31px;

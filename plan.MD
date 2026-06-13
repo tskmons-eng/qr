@@ -20,6 +20,31 @@
 - Run `npm run build`.
 - Verify a vacant table's stale `/menu` and `/complete` URLs redirect to `/guests` after deploy.
 
+## 2026-06-13 Staff admin order-screen return button
+
+### Context
+
+- Staff management can be opened inside the staff shell at `/staff/staff-admin`.
+- Users need an obvious way to return from staff/admin tools to the order-taking table list.
+- The order-taking entry point is `/staff`.
+
+### Decision
+
+- Add a persistent `注文` button to the staff shell header.
+- Keep the destination scoped to `/staff` and avoid changing staff permission or admin page logic.
+
+### Verification Plan
+
+- Run `npm run check:staff-permissions`.
+- Run `npm run build`.
+- Commit and push the change.
+
+### Verification Results
+
+- `npm run check:staff-permissions` passed.
+- `npm run build` passed.
+- Local Vite server loaded `/staff/staff-admin` to the staff entry screen; the logged-in header path is covered by the source assertion for `onOpenOrders` and the `注文` button.
+
 ## 2026-06-13 Customer order false error hotfix
 
 ### Context
