@@ -46,14 +46,11 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setError('')
-    setLoading(true)
     try {
       await signInStaffWithGoogle()
     } catch (event) {
       console.error('Google sign-in failed:', event)
       setError(GOOGLE_LOGIN_ERROR_MESSAGE)
-    } finally {
-      setLoading(false)
     }
   }
 

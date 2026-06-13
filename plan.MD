@@ -7,6 +7,7 @@
 - Google login stopped working after the latest live update.
 - Live verification showed the login page renders without app errors and OAuth can start, but popup completion is unreliable.
 - User priority: fix login without disturbing people currently using the store screens.
+- Follow-up report: desktop login works, but the Google login button can become unpressable in another environment.
 
 ### Decision
 
@@ -14,6 +15,7 @@
 - Replace popup-based Google sign-in with redirect-based sign-in.
 - After redirect completion, send non-anonymous Google users back to `/staff`.
 - Do not touch seat, kitchen, menu, order, or checkout behavior in this hotfix.
+- Do not set the shared login `loading` state when Google redirect starts, because a stalled redirect can leave the button disabled.
 
 ### Verification Plan
 
@@ -30,6 +32,7 @@
 - Local `/login` rendered in the in-app browser; only existing React Router future warnings appeared.
 - `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed.
 - Live `/login` returned `assets/index-YM8taRxf.js` and rendered the Google login button.
+- Follow-up button-state fix deployed; live `/login` now returns `assets/index-CpJsCPKd.js`, and the Google button is enabled with no blocking overlay or console error.
 
 ## 2026-06-13 Seat and data loading performance guardrails
 
