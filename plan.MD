@@ -20,6 +20,16 @@
 - Run `npm run build`.
 - Verify a vacant table's stale `/menu` and `/complete` URLs redirect to `/guests` after deploy.
 
+### Verification Results
+
+- `npm run check:customer-entry` passed in a clean deploy worktree.
+- `npm run check` passed in a clean deploy worktree.
+- `npm run build` passed in a clean deploy worktree.
+- `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed from the clean deploy worktree.
+- Live hosting HTML references `assets/index-wnV88Uo6.js`.
+- A vacant table's stale `/menu` URL redirected to `/guests`.
+- A vacant table's stale `/complete` URL redirected to `/guests`.
+
 ## 2026-06-13 Staff admin order-screen return button
 
 ### Context
