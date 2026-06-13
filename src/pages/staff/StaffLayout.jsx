@@ -146,7 +146,7 @@ export default function StaffLayout() {
   }
 
   const pullRefresh = usePullToRefresh({
-    enabled: Boolean(activeStaff),
+    enabled: Boolean(storeId && activeStaff),
     onRefresh: () => window.location.reload(),
   })
 
