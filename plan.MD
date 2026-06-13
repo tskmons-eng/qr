@@ -1,5 +1,27 @@
 # QR System Plan
 
+## 2026-06-13 Seat and data loading performance guardrails
+
+### Context
+
+- Some staff/customer screens occasionally take a long time to load seat or store data.
+- User priority: performance fixes must not change existing features, screen layout, visual design, navigation, button placement, or normal operation flow.
+- Faster loading should feel like the same system becoming more responsive, not like a redesigned workflow.
+
+### Decision
+
+- Preserve current UI and behavior while improving Firestore reads.
+- Start with low-risk infrastructure changes such as Firestore indexes and query narrowing.
+- Do not remove an existing live subscription until a staged comparison confirms the replacement data path is accurate.
+- Keep kitchen/order/detail screens functionally unchanged; optimize only the data-fetching layer unless a visible change is explicitly approved.
+- If aggregate fields such as table pending counts are expanded, provide a repair or verification path before relying on them as the only source of truth.
+
+### Verification Plan
+
+- Confirm the staff table list, kitchen, table detail, customer menu, cart, and checkout flows still render the same visible states.
+- Run the relevant source checks and production build before deploy.
+- Commit and push every file change.
+
 ## 2026-06-13 Staff store-management menu consolidation
 
 ### Context
