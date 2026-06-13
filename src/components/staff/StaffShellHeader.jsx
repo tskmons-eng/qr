@@ -13,7 +13,6 @@ export default function StaffShellHeader({
   canViewHistory,
   showAdmin,
   onOpenOrders,
-  onRefresh,
   onSwitchStaff,
   onOpenKitchen,
   onOpenHistory,
@@ -79,14 +78,6 @@ export default function StaffShellHeader({
           className="staff-shell__button staff-shell__button--primary"
         >
           注文
-        </button>
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="staff-shell__button staff-shell__button--strong"
-          title="画面を更新"
-        >
-          更新
         </button>
         <button type="button" onClick={onSwitchStaff} className="staff-shell__button staff-shell__button--compact">
           切替

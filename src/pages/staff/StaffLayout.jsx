@@ -8,6 +8,7 @@ import { clearStaffAutoLoginPreference } from '../../lib/staffMember'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
+import StaffPullRefreshIndicator from '../../components/staff/StaffPullRefreshIndicator'
 import StaffEntryPage from './StaffEntryPage'
 import StaffLoginScreen from '../../components/staff/StaffLoginScreen'
 import { useAuth } from '../../contexts/AuthContext'
@@ -28,6 +29,7 @@ import StaffMenuPage from './StaffMenuPage'
 import CheckoutPage from './CheckoutPage'
 import RemainingPage from './RemainingPage'
 import KitchenPage from '../kitchen/KitchenPage'
+import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 
 const ELEVATED_PERMISSION_DEFAULTS = {
   useKitchen: true,
@@ -143,6 +145,11 @@ export default function StaffLayout() {
     if (handled) navigate(`/staff/table/${call.tableId}`)
   }
 
+  const pullRefresh = usePullToRefresh({
+    enabled: Boolean(activeStaff),
+    onRefresh: () => window.location.reload(),
+  })
+
   if (user === undefined || storeLoading) return null
 
   if (!storeId) return <StaffEntryPage />
@@ -179,87 +186,90 @@ export default function StaffLayout() {
 
   return (
     <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
-      <div className="staff-shell">
-        <StaffShellHeader
-          activeStaff={activeStaff}
-          callCount={calls.length}
-          showAdmin={!user?.isAnonymous}
-          canUseKitchen={canUseKitchen}
-          canCloseRegister={canCloseRegister}
-          canManageMenu={canManageMenu}
-          canManageTables={canManageTables}
-          canManageReservations={canManageReservations}
-          canViewHistory={canViewHistory}
-          canManageSettings={canManageSettings}
-          canManageStaff={canManageStaff}
-          onOpenOrders={() => navigate('/staff')}
-          onRefresh={() => window.location.reload()}
-          onSwitchStaff={handleSwitchStaff}
-          onOpenKitchen={() => navigate('/staff/kitchen')}
-          onOpenSales={() => navigate('/staff/sales')}
-          onOpenTables={() => navigate('/staff/tables')}
-          onOpenReservations={() => navigate('/staff/reservations')}
-          onOpenMenuAdmin={() => navigate('/staff/menu-admin')}
-          onOpenHistory={() => navigate('/staff/history')}
-          onOpenSettings={() => navigate('/staff/settings')}
-          onOpenStaffAdmin={() => navigate('/staff/staff-admin')}
-          onOpenAdmin={() => navigate('/admin')}
-          onLogout={handleLogout}
-        />
+      <div className={['staff-shell', pullRefresh.className].filter(Boolean).join(' ')} style={pullRefresh.style}>
+        <StaffPullRefreshIndicator phase={pullRefresh.phase} text={pullRefresh.text} />
 
-        <StaffCallBanner calls={calls} onRespond={handleRespond} />
+        <div className="staff-shell__pull-content">
+          <StaffShellHeader
+            activeStaff={activeStaff}
+            callCount={calls.length}
+            showAdmin={!user?.isAnonymous}
+            canUseKitchen={canUseKitchen}
+            canCloseRegister={canCloseRegister}
+            canManageMenu={canManageMenu}
+            canManageTables={canManageTables}
+            canManageReservations={canManageReservations}
+            canViewHistory={canViewHistory}
+            canManageSettings={canManageSettings}
+            canManageStaff={canManageStaff}
+            onOpenOrders={() => navigate('/staff')}
+            onSwitchStaff={handleSwitchStaff}
+            onOpenKitchen={() => navigate('/staff/kitchen')}
+            onOpenSales={() => navigate('/staff/sales')}
+            onOpenTables={() => navigate('/staff/tables')}
+            onOpenReservations={() => navigate('/staff/reservations')}
+            onOpenMenuAdmin={() => navigate('/staff/menu-admin')}
+            onOpenHistory={() => navigate('/staff/history')}
+            onOpenSettings={() => navigate('/staff/settings')}
+            onOpenStaffAdmin={() => navigate('/staff/staff-admin')}
+            onOpenAdmin={() => navigate('/admin')}
+            onLogout={handleLogout}
+          />
 
-        <Routes>
-          <Route index element={<TableListPage />} />
-          <Route path="kitchen" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
-              <KitchenPage />
-            </StaffPermissionGate>
-          } />
-          <Route path="sales" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="closeRegister" elevated>
-              <SalesPage />
-            </StaffPermissionGate>
-          } />
-          <Route path="menu-admin" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="manageMenu" elevated>
-              <ProductPage />
-            </StaffPermissionGate>
-          } />
-          <Route path="tables" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="manageTables" elevated>
-              <TablePage />
-            </StaffPermissionGate>
-          } />
-          <Route path="reservations" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="manageReservations" elevated>
-              <ReservationPage />
-            </StaffPermissionGate>
-          } />
-          <Route path="history" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="viewHistory" elevated>
-              <HistoryPage />
-            </StaffPermissionGate>
-          } />
-          <Route path="settings" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
-              <SettingsPage
-                notificationControls={notificationControls}
-                onConfigSaved={setStoreConfig}
-              />
-            </StaffPermissionGate>
-          } />
-          <Route path="staff-admin" element={
-            <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
-              <StaffPage />
-            </StaffPermissionGate>
-          } />
-          <Route path="table/:tableId" element={<TableDetailPage />} />
-          <Route path="table/:tableId/remaining" element={<RemainingPage />} />
-          <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
-          <Route path="table/:tableId/checkout" element={<CheckoutPage />} />
-          <Route path="*" element={<Navigate to="/staff" replace />} />
-        </Routes>
+          <StaffCallBanner calls={calls} onRespond={handleRespond} />
+
+          <Routes>
+            <Route index element={<TableListPage />} />
+            <Route path="kitchen" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
+                <KitchenPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="sales" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="closeRegister" elevated>
+                <SalesPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="menu-admin" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="manageMenu" elevated>
+                <ProductPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="tables" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="manageTables" elevated>
+                <TablePage />
+              </StaffPermissionGate>
+            } />
+            <Route path="reservations" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="manageReservations" elevated>
+                <ReservationPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="history" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="viewHistory" elevated>
+                <HistoryPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="settings" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
+                <SettingsPage
+                  notificationControls={notificationControls}
+                  onConfigSaved={setStoreConfig}
+                />
+              </StaffPermissionGate>
+            } />
+            <Route path="staff-admin" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
+                <StaffPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="table/:tableId" element={<TableDetailPage />} />
+            <Route path="table/:tableId/remaining" element={<RemainingPage />} />
+            <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
+            <Route path="table/:tableId/checkout" element={<CheckoutPage />} />
+            <Route path="*" element={<Navigate to="/staff" replace />} />
+          </Routes>
+        </div>
       </div>
     </StaffMemberContext.Provider>
   )

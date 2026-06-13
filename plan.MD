@@ -6,11 +6,14 @@
 
 - Staff header buttons had grown too wide as management actions were added individually.
 - User priority: keep the operational UI smart and compact by grouping history, seats, menu management, register closing, and related admin tools under a single `店舗管理` entry.
+- User priority: refresh should feel like Safari pull-to-refresh from the top of the staff page and must be visually understandable while pulling.
 - In app/PWA use, the bottom staff navigation should sit just slightly above the physical bottom edge for readability.
 
 ### Decision
 
-- Keep daily operation buttons visible: `注文`, refresh, staff switch, kitchen, and logout.
+- Keep daily operation buttons visible: `注文`, staff switch, kitchen, and logout.
+- Remove the header refresh button because it consumes prime action space and is not part of the normal order flow.
+- Preserve refresh access in app use with a compact pull-to-refresh gesture on the staff shell, including `下に引いて更新`, `離すと更新`, and `更新中...` states.
 - Move elevated/admin actions into one permission-aware `店舗管理` popover in the staff shell header.
 - Move sound and device notification controls into the existing settings screen; remove the separate header gear button.
 - Preserve the existing `/staff/...` routes and permission gates so deep links and current page behavior continue to work.
@@ -19,16 +22,19 @@
 ### Verification Plan
 
 - Update the staff permission source check to assert the grouped management menu remains wired.
+- Assert the refresh button stays removed and the pull-to-refresh UI remains wired.
 - Run `npm run check:staff-permissions`.
 - Run `npm run build`.
+- Verify the staff screen in a mobile viewport.
 - Commit and push the change.
 
 ### Verification Results
 
 - `npm run check:staff-permissions` passed.
+- `npm run check` passed.
 - `npm run build` passed.
-- Local Vite served `/staff` successfully with only existing React Router future warnings.
-- SSR rendering of `StaffShellHeader` with full permissions confirmed `店舗管理` appears and direct `レジ締め` / `メニュー` header buttons are no longer emitted.
+- Local Vite served `/staff` in a mobile viewport and reached the existing store-code entry screen with only existing React Router future warnings.
+- Source assertions confirm the staff shell no longer emits the direct `更新` button and keeps the pull-to-refresh DOM/CSS wired.
 
 ## 2026-06-13 Admin settings device sound controls
 

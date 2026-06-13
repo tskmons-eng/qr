@@ -1,6 +1,80 @@
 .staff-shell {
   min-height: 100vh;
   background: #f5f5f5;
+  overscroll-behavior-y: contain;
+  --staff-pull-indicator-y: -14px;
+  --staff-pull-offset: 0px;
+  --staff-pull-opacity: 0;
+  --staff-pull-rotation: 0deg;
+}
+
+.staff-shell__pull-content {
+  min-height: 100vh;
+  transform: translateY(var(--staff-pull-offset));
+  transition: transform 180ms ease;
+  will-change: transform;
+}
+
+.staff-shell.is-pull-refresh-pulling .staff-shell__pull-content,
+.staff-shell.is-pull-refresh-ready .staff-shell__pull-content {
+  transition: none;
+}
+
+.staff-shell__pull-refresh {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-50%, -14px, 0);
+  transition: opacity 140ms ease, transform 180ms ease;
+}
+
+.staff-shell.is-pull-refresh-pulling .staff-shell__pull-refresh,
+.staff-shell.is-pull-refresh-ready .staff-shell__pull-refresh,
+.staff-shell.is-pull-refresh-refreshing .staff-shell__pull-refresh {
+  opacity: var(--staff-pull-opacity);
+  transform: translate3d(-50%, var(--staff-pull-indicator-y), 0);
+}
+
+.staff-shell__pull-refresh-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.94);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.staff-shell__pull-refresh-ring {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  transform: rotate(var(--staff-pull-rotation));
+}
+
+.staff-shell.is-pull-refresh-ready .staff-shell__pull-refresh-ring {
+  border-top-color: #34d399;
+}
+
+.staff-shell.is-pull-refresh-refreshing .staff-shell__pull-refresh-ring {
+  animation: staff-pull-refresh-spin 780ms linear infinite;
+}
+
+@keyframes staff-pull-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .staff-shell__header {
@@ -58,8 +132,7 @@
   white-space: nowrap;
 }
 
-.staff-shell__button,
-.staff-shell__icon-button {
+.staff-shell__button {
   border: 1px solid #555;
   border-radius: 5px;
   background: none;
@@ -80,11 +153,6 @@
   font-size: 12px;
 }
 
-.staff-shell__button--strong {
-  padding: 5px 10px;
-  font-weight: 700;
-}
-
 .staff-shell__button--primary {
   border-color: #2563eb;
   background: #2563eb;
@@ -94,14 +162,6 @@
 .staff-shell__button--management {
   border-color: #f59e0b;
   color: #ffffff;
-}
-
-.staff-shell__icon-button {
-  flex: 0 0 auto;
-  min-width: 31px;
-  min-height: 30px;
-  padding: 4px 8px;
-  font-size: 14px;
 }
 
 .staff-shell__management {
@@ -155,21 +215,6 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 1.35;
-}
-
-.staff-shell__notif-button {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  background: #854d0e;
-  color: #fef08a;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.staff-shell__notif-button.is-failed {
-  background: #7f1d1d;
 }
 
 .staff-call-banner {
