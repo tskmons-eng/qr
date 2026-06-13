@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import OrderEntryStatus from '../../components/order/OrderEntryStatus'
 import { CartProvider } from '../../contexts/CartContext'
 import { OrderProvider } from '../../contexts/OrderContext'
-import { CUSTOMER_ENTRY_CONFIG_DEFAULTS } from '../../lib/customerEntry'
+import { CUSTOMER_ENTRY_CONFIG_DEFAULTS, getCustomerEntryStartPath } from '../../lib/customerEntry'
 import { loadCustomerStoreConfig, subscribeCustomerTableByQrToken } from '../../services/customerEntryService'
 import CartPage from './CartPage'
 import GuestCountPage from './GuestCountPage'
@@ -46,19 +46,25 @@ export default function OrderEntryPage() {
 
   if (loading || error) return <OrderEntryStatus loading={loading} error={error} />
 
+  const entryBasePath = `/order/${qrToken}`
+  const hasActiveOrder = Boolean(orderId)
+  const requireActiveOrder = element => (
+    hasActiveOrder ? element : <Navigate to={`${entryBasePath}/guests`} replace />
+  )
+
   return (
     <OrderProvider value={{ table, tableId: table.id, storeId: table.storeId, orderId, setOrderId, setTable, storeConfig }}>
       <CartProvider>
         <Routes>
           <Route index element={
-            orderId
-              ? <Navigate to="menu" replace />
-              : <Navigate to="guests" replace />
+            <Navigate to={`${entryBasePath}/${getCustomerEntryStartPath(orderId)}`} replace />
           } />
-          <Route path="guests" element={<GuestCountPage />} />
-          <Route path="menu" element={<MenuPage />} />
-          <Route path="cart" element={<CartPage />} />
-          <Route path="complete" element={<OrderCompletePage />} />
+          <Route path="guests" element={
+            hasActiveOrder ? <Navigate to={`${entryBasePath}/menu`} replace /> : <GuestCountPage />
+          } />
+          <Route path="menu" element={requireActiveOrder(<MenuPage />)} />
+          <Route path="cart" element={requireActiveOrder(<CartPage />)} />
+          <Route path="complete" element={requireActiveOrder(<OrderCompletePage />)} />
         </Routes>
       </CartProvider>
     </OrderProvider>

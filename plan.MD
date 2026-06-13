@@ -1,5 +1,25 @@
 # QR System Plan
 
+## 2026-06-13 Customer QR checkout reset guard
+
+### Context
+
+- After staff checkout, a customer revisiting an old QR child URL such as `/menu` or `/complete` could avoid the normal `/guests` entry route.
+- A vacant table has no active `currentOrderId`, so those child screens should not load menu products or order status data.
+- Live read-only verification confirmed the base QR URL redirects to `/guests`, while a stale `/menu` URL could still load the menu for a vacant table.
+
+### Decision
+
+- Guard customer QR child routes in `OrderEntryPage`.
+- If there is no active `orderId`, redirect `/menu`, `/cart`, and `/complete` to `/guests`.
+- If there is already an active `orderId`, redirect `/guests` to `/menu`.
+
+### Verification Plan
+
+- Run `npm run check:customer-entry`.
+- Run `npm run build`.
+- Verify a vacant table's stale `/menu` and `/complete` URLs redirect to `/guests` after deploy.
+
 ## 2026-06-13 Customer order false error hotfix
 
 ### Context

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {
   applyCustomerOrderStartToTable,
   CUSTOMER_ENTRY_CONFIG_DEFAULTS,
+  getCustomerEntryStartPath,
   normalizeCustomerStoreConfig,
   stepGuestCount,
 } from '../src/lib/customerEntry.js'
@@ -19,6 +20,8 @@ assert.equal(stepGuestCount(2, -1), 1)
 assert.equal(stepGuestCount(1, -1), 1)
 assert.equal(stepGuestCount(20, 1), 20)
 assert.equal(stepGuestCount(19, 1), 20)
+assert.equal(getCustomerEntryStartPath(null), 'guests')
+assert.equal(getCustomerEntryStartPath('order-1'), 'menu')
 assert.deepEqual(applyCustomerOrderStartToTable({ id: 'table-1', tableName: 'A' }, 3, 'order-1'), {
   id: 'table-1',
   tableName: 'A',
