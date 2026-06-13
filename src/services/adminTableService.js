@@ -1,6 +1,7 @@
 import { addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { generateTableQrToken, normalizeTableName } from '../lib/adminTable'
 import { db } from '../lib/firebase'
+import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
 
 export function subscribeAdminTables(storeId, onChange) {
   const q = query(collection(db, 'tables'), where('storeId', '==', storeId))
@@ -22,6 +23,8 @@ export function createAdminTable({ storeId, tableName }) {
     guestCount: 0,
     currentOrderId: null,
     startedAt: null,
+    pendingCount: 0,
+    ...buildEmptyTablePendingAggregateFields(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })

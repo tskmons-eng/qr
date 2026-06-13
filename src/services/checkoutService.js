@@ -10,6 +10,7 @@ import {
   where,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
 
 export async function loadCheckoutData({ orderId, storeId }) {
   const [itemsSnap, configSnap] = await Promise.all([
@@ -77,6 +78,8 @@ export async function completeCashCheckout({
     guestCount: 0,
     currentOrderId: null,
     startedAt: null,
+    pendingCount: 0,
+    ...buildEmptyTablePendingAggregateFields(),
     updatedAt: now,
   })
 

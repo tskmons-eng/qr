@@ -5,7 +5,9 @@ import StaffTableCard from '../../components/staff/StaffTableCard'
 import StaffTableListEmpty from '../../components/staff/StaffTableListEmpty'
 import { useStore } from '../../contexts/StoreContext'
 import useNow from '../../hooks/useNow'
+import { getStaffTablePending } from '../../lib/staffTableList'
 import { buildTableGroupTabs, filterTablesByGroup } from '../../lib/tableGroups'
+import { tablesNeedPendingFallback } from '../../lib/tablePending'
 import { subscribeStaffPendingCounts, subscribeStaffTables } from '../../services/staffTableListService'
 import { subscribeTableGroups } from '../../services/tableGroupService'
 
@@ -17,6 +19,7 @@ export default function TableListPage() {
   const [pendingMap, setPendingMap] = useState({})
   const navigate = useNavigate()
   const now = useNow()
+  const usePendingFallback = tablesNeedPendingFallback(tables)
 
   useEffect(() => {
     if (!storeId) return
@@ -24,9 +27,12 @@ export default function TableListPage() {
   }, [storeId])
 
   useEffect(() => {
-    if (!storeId) return
+    if (!storeId || !usePendingFallback) {
+      setPendingMap({})
+      return undefined
+    }
     return subscribeStaffPendingCounts(storeId, setPendingMap)
-  }, [storeId])
+  }, [storeId, usePendingFallback])
 
   useEffect(() => {
     if (!storeId) return
@@ -59,7 +65,7 @@ export default function TableListPage() {
           <StaffTableCard
             key={table.id}
             table={table}
-            pending={pendingMap[table.id] ?? { total: 0, drink: 0, food: 0 }}
+            pending={getStaffTablePending(table, pendingMap)}
             now={now}
             onClick={() => navigate(`table/${table.id}`)}
           />

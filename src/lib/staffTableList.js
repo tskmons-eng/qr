@@ -1,3 +1,10 @@
+import {
+  countPendingItemsByTable,
+  readLegacyTablePending,
+  readTablePendingAggregate,
+  tableNeedsPendingFallback,
+} from './tablePending.js'
+
 export const STAFF_TABLE_STATUS = {
   vacant: { label: '空席', tone: 'vacant' },
   occupied: { label: '使用中', tone: 'occupied' },
@@ -15,16 +22,14 @@ export function formatElapsed(startedAtSeconds, nowMs) {
 }
 
 export function countPendingOrderItems(items) {
-  return items.reduce((map, item) => {
-    if (!item.tableId) return map
-    const previous = map[item.tableId] ?? { total: 0, drink: 0, food: 0 }
-    map[item.tableId] = {
-      total: previous.total + 1,
-      drink: previous.drink + (item.categoryGroup === 'drink' ? 1 : 0),
-      food: previous.food + (item.categoryGroup === 'food' ? 1 : 0),
-    }
-    return map
-  }, {})
+  return countPendingItemsByTable(items)
+}
+
+export function getStaffTablePending(table, fallbackPendingMap = {}) {
+  if (tableNeedsPendingFallback(table)) {
+    return fallbackPendingMap[table.id] ?? readLegacyTablePending(table)
+  }
+  return readTablePendingAggregate(table)
 }
 
 export function getStaffTableStatusKey(table, pending) {

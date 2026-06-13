@@ -1,9 +1,83 @@
-const { onDocumentCreated } = require('firebase-functions/v2/firestore')
+const { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } = require('firebase-functions/v2/firestore')
 const { initializeApp } = require('firebase-admin/app')
 const { getMessaging } = require('firebase-admin/messaging')
-const { getFirestore } = require('firebase-admin/firestore')
+const { FieldValue, getFirestore } = require('firebase-admin/firestore')
 
 initializeApp()
+
+const TABLE_PENDING_AGGREGATE_VERSION = 1
+
+function getPendingAggregateCounts(item) {
+  if (!item || item.itemStatus !== 'ordered' || !item.tableId) return null
+  return {
+    tableId: item.tableId,
+    total: 1,
+    drink: item.categoryGroup === 'drink' ? 1 : 0,
+    food: item.categoryGroup === 'food' ? 1 : 0,
+  }
+}
+
+function addPendingDelta(deltaMap, entry, direction) {
+  if (!entry) return
+  const previous = deltaMap.get(entry.tableId) ?? { total: 0, drink: 0, food: 0 }
+  deltaMap.set(entry.tableId, {
+    total: previous.total + (entry.total * direction),
+    drink: previous.drink + (entry.drink * direction),
+    food: previous.food + (entry.food * direction),
+  })
+}
+
+async function applyPendingAggregateDeltas(entries) {
+  const deltaMap = new Map()
+  entries.forEach(({ entry, direction }) => addPendingDelta(deltaMap, entry, direction))
+  if (deltaMap.size === 0) return
+
+  const db = getFirestore()
+  const batch = db.batch()
+  let hasWrites = false
+  for (const [tableId, delta] of deltaMap) {
+    if (delta.total === 0 && delta.drink === 0 && delta.food === 0) continue
+    batch.set(db.collection('tables').doc(tableId), {
+      pendingAggregateVersion: TABLE_PENDING_AGGREGATE_VERSION,
+      pendingAggregateCount: FieldValue.increment(delta.total),
+      pendingAggregateDrinkCount: FieldValue.increment(delta.drink),
+      pendingAggregateFoodCount: FieldValue.increment(delta.food),
+      pendingAggregateUpdatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true })
+    hasWrites = true
+  }
+  if (!hasWrites) return
+  await batch.commit()
+}
+
+exports.syncTablePendingAggregateOnCreate = onDocumentCreated('orderItems/{itemId}', async (event) => {
+  await applyPendingAggregateDeltas([
+    { entry: getPendingAggregateCounts(event.data.data()), direction: 1 },
+  ])
+})
+
+exports.syncTablePendingAggregateOnUpdate = onDocumentUpdated('orderItems/{itemId}', async (event) => {
+  const before = getPendingAggregateCounts(event.data.before.data())
+  const after = getPendingAggregateCounts(event.data.after.data())
+  if (
+    before?.tableId === after?.tableId &&
+    before?.drink === after?.drink &&
+    before?.food === after?.food
+  ) {
+    return
+  }
+
+  await applyPendingAggregateDeltas([
+    { entry: before, direction: -1 },
+    { entry: after, direction: 1 },
+  ])
+})
+
+exports.syncTablePendingAggregateOnDelete = onDocumentDeleted('orderItems/{itemId}', async (event) => {
+  await applyPendingAggregateDeltas([
+    { entry: getPendingAggregateCounts(event.data.data()), direction: -1 },
+  ])
+})
 
 exports.notifyStaff = onDocumentCreated('calls/{callId}', async (event) => {
   const call = event.data.data()

@@ -15,12 +15,32 @@
 - Do not remove an existing live subscription until a staged comparison confirms the replacement data path is accurate.
 - Keep kitchen/order/detail screens functionally unchanged; optimize only the data-fetching layer unless a visible change is explicitly approved.
 - If aggregate fields such as table pending counts are expanded, provide a repair or verification path before relying on them as the only source of truth.
+- During live store use, avoid disruptive swaps: deploy additive fields/functions/indexes first, keep old reads as fallback for already-open sessions, and let new sessions move to the faster path.
 
 ### Verification Plan
 
 - Confirm the staff table list, kitchen, table detail, customer menu, cart, and checkout flows still render the same visible states.
 - Run the relevant source checks and production build before deploy.
 - Commit and push every file change.
+
+### Implementation Notes
+
+- Add `pendingAggregateCount`, `pendingAggregateDrinkCount`, and `pendingAggregateFoodCount` beside legacy `pendingCount`; do not repurpose `pendingCount`.
+- Use a Cloud Function to maintain aggregate fields from `orderItems`, so unauthenticated QR orders do not depend on table update permissions.
+- Staff table list uses aggregate fields only when `pendingAggregateVersion` is present; already-open legacy sessions keep the old `orderItems` fallback.
+- Add persistent Firestore web cache and query narrowing where the visible result is identical.
+
+### Verification Results
+
+- `npm run check` passed.
+- `npm run build` passed.
+- `node --check functions/index.js` passed.
+- Local `/staff` rendered in the in-app browser with no console errors.
+- `npx --yes firebase-tools deploy --only firestore:indexes --project qrproduct-3340b --non-interactive` completed.
+- Added aggregate Cloud Functions were created in `asia-northeast1`; existing `notifyStaff` remained deployed.
+- Artifact cleanup policy for `asia-northeast1` was set after the Functions deploy warning.
+- `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed.
+- Live `/staff` returned the deployed asset `assets/index-D6kOGVZG.js` and rendered with no console errors.
 
 ## 2026-06-13 Staff store-management menu consolidation
 

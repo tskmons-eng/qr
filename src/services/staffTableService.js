@@ -1,7 +1,8 @@
-import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import { hasStaffPermission } from '../lib/staffPermissions'
 import { filterVisibleOrderItems, sortOrderItemsByOrderedAt } from '../lib/staffTableDetail'
+import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnapshot => ({ id: docSnapshot.id, ...docSnapshot.data() }))
@@ -85,6 +86,7 @@ export async function seatGuestsAtTable({ table, tableId, seatCount, activeStaff
     currentOrderId: orderRef.id,
     startedAt: now,
     pendingCount: 0,
+    ...buildEmptyTablePendingAggregateFields(),
     updatedAt: now,
   })
   await addDoc(collection(db, 'staffActions'), {
@@ -125,6 +127,23 @@ export async function loadVacantTables({ storeId, currentTableId }) {
 
 export async function moveTableOrder({ sourceTable, sourceTableId, targetTable, activeStaff }) {
   const now = serverTimestamp()
+  if (sourceTable.currentOrderId) {
+    const itemSnap = await getDocs(query(
+      collection(db, 'orderItems'),
+      where('orderId', '==', sourceTable.currentOrderId)
+    ))
+    if (!itemSnap.empty) {
+      const batch = writeBatch(db)
+      itemSnap.docs.forEach(itemDoc => {
+        batch.update(itemDoc.ref, {
+          tableId: targetTable.id,
+          updatedAt: now,
+        })
+      })
+      await batch.commit()
+    }
+  }
+
   await updateDoc(doc(db, 'tables', sourceTableId), {
     status: 'vacant',
     currentOrderId: null,

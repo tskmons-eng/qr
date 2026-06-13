@@ -2,11 +2,14 @@ import { collection, doc, onSnapshot, query, runTransaction, serverTimestamp, wh
 import { db } from '../lib/firebase'
 
 export function subscribePendingCalls(storeId, onChange) {
-  const q = query(collection(db, 'calls'), where('storeId', '==', storeId))
+  const q = query(
+    collection(db, 'calls'),
+    where('storeId', '==', storeId),
+    where('status', '==', 'pending')
+  )
   return onSnapshot(q, snap => {
     const calls = snap.docs
       .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
-      .filter(call => call.status === 'pending')
       .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0))
 
     onChange(calls)

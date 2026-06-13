@@ -2,6 +2,7 @@ import { addDoc, collection, doc, getDoc, onSnapshot, query, serverTimestamp, up
 import { buildCustomerOrderItemPayload } from '../lib/customerCart'
 import { normalizeCustomerStoreConfig } from '../lib/customerEntry'
 import { db } from '../lib/firebase'
+import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
 
 export function subscribeCustomerTableByQrToken(qrToken, onNext, onError) {
   const tableQuery = query(collection(db, 'tables'), where('qrToken', '==', qrToken))
@@ -53,6 +54,16 @@ export async function createCustomerOrderSession({ guestAutoAdd, guestCount, sto
   })
 
   const autoAddProduct = await loadAutoAddProduct(guestAutoAdd)
+  await updateDoc(doc(db, 'tables', tableId), {
+    status: 'occupied',
+    guestCount,
+    currentOrderId: orderRef.id,
+    startedAt: serverTimestamp(),
+    pendingCount: autoAddProduct ? 1 : 0,
+    ...buildEmptyTablePendingAggregateFields(),
+    updatedAt: serverTimestamp(),
+  })
+
   if (autoAddProduct) {
     await addDoc(collection(db, 'orderItems'), buildCustomerOrderItemPayload({
       cartItem: {
@@ -66,15 +77,6 @@ export async function createCustomerOrderSession({ guestAutoAdd, guestCount, sto
       timestamp: openedAt,
     }))
   }
-
-  await updateDoc(doc(db, 'tables', tableId), {
-    status: 'occupied',
-    guestCount,
-    currentOrderId: orderRef.id,
-    startedAt: serverTimestamp(),
-    pendingCount: autoAddProduct ? 1 : 0,
-    updatedAt: serverTimestamp(),
-  })
 
   return orderRef.id
 }
