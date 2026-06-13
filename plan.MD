@@ -1,5 +1,31 @@
 # QR System Plan
 
+## 2026-06-13 Admin settings device sound controls
+
+### Context
+
+- The settings menu already hosts store-level workflow controls.
+- Users expect call sound and notification sound choices to be reachable from that settings surface instead of only from per-screen popups.
+- Existing sound preferences are device-local so hall and kitchen terminals can keep different sound and volume choices.
+
+### Decision
+
+- Add a device sound section to `SettingsPage`.
+- Reuse `lib/sounds.js` sound IDs, preview playback, and localStorage persistence.
+- Keep the store-wide notification toggle in the existing workflow settings; only sound choice and volume are edited in the new section.
+
+### Verification Plan
+
+- Run `npm run check:settings`.
+- Run `npm run build`.
+- Commit and push the change.
+
+### Verification Results
+
+- `npm run check:settings` passed.
+- `npm run build` passed.
+- Local Vite served `/login` successfully with no new browser console errors; `/admin/settings` remains behind the existing logged-in protected route.
+
 ## 2026-06-13 Customer QR checkout reset guard
 
 ### Context

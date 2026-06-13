@@ -239,6 +239,85 @@
   color: #888;
 }
 
+.admin-settings__sound-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-settings__sound-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.admin-settings__sound-device {
+  display: grid;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.admin-settings__sound-title {
+  color: #222;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-settings__sound-field {
+  display: grid;
+  gap: 8px;
+  color: #555;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-settings__sound-control-row,
+.admin-settings__sound-range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-settings__sound-select {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  color: #222;
+  font-size: 14px;
+}
+
+.admin-settings__sound-preview {
+  padding: 10px 14px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-settings__sound-range {
+  flex: 1;
+  min-width: 96px;
+}
+
+.admin-settings__sound-range-label,
+.admin-settings__sound-volume {
+  color: #666;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-settings__sound-volume {
+  width: 44px;
+  text-align: right;
+}
+
 .admin-settings__save {
   padding: 11px 32px;
   border: none;
@@ -248,4 +327,15 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .admin-settings__sound-control-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-settings__sound-preview {
+    width: 100%;
+  }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AllowedEmailSettings from '../../components/admin/AllowedEmailSettings'
 import CustomerDisplaySettings from '../../components/admin/CustomerDisplaySettings'
+import DeviceSoundSettings from '../../components/admin/DeviceSoundSettings'
 import SettingsSaveButton from '../../components/admin/SettingsSaveButton'
 import StoreWorkflowSettings from '../../components/admin/StoreWorkflowSettings'
 import StoreCodeCard from '../../components/admin/StoreCodeCard'
@@ -158,6 +159,7 @@ export default function SettingsPage() {
         onToggle={handleToggle}
         onGuestAutoAddChange={handleGuestAutoAddChange}
       />
+      <DeviceSoundSettings />
       <TaxRateSettings
         taxRate={config.taxRate}
         taxInput={taxInput}

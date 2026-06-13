@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   calculateIncludedTax,
   GUEST_AUTO_ADD_DEFAULTS,
@@ -30,5 +31,13 @@ assert.equal(validateAllowedEmail('user@example.com', []), '')
 assert.equal(calculateIncludedTax(1000, 10), 91)
 assert.equal(calculateIncludedTax(1000, 8), 74)
 assert.equal(calculateIncludedTax(1000, 0), 0)
+
+const settingsPage = readFileSync(new URL('../src/pages/admin/SettingsPage.jsx', import.meta.url), 'utf8')
+const deviceSoundSettings = readFileSync(new URL('../src/components/admin/DeviceSoundSettings.jsx', import.meta.url), 'utf8')
+
+assert.match(settingsPage, /DeviceSoundSettings/)
+assert.match(deviceSoundSettings, /saveSoundPrefs/)
+assert.match(deviceSoundSettings, /saveKitchenSoundPrefs/)
+assert.match(deviceSoundSettings, /ホールとキッチンで使う通知音/)
 
 console.log('settings config checks passed')
