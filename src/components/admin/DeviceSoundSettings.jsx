@@ -8,7 +8,7 @@ import {
   saveSoundPrefs,
 } from '../../lib/sounds'
 
-export default function DeviceSoundSettings() {
+export default function DeviceSoundSettings({ notificationControls = null }) {
   const [staffPrefs, setStaffPrefs] = useState(loadSoundPrefs)
   const [kitchenPrefs, setKitchenPrefs] = useState(loadKitchenSoundPrefs)
 
@@ -38,6 +38,22 @@ export default function DeviceSoundSettings() {
     if (preview) playSound(nextPrefs.soundId, nextPrefs.volume)
   }
 
+  function getNotificationLabel() {
+    if (!notificationControls?.notificationsEnabled) return '店舗設定で通知OFF'
+    if (notificationControls.notifStatus === 'loading') return '設定中...'
+    if (notificationControls.notifStatus === 'ok') return '通知ON'
+    if (notificationControls.notifStatus === 'failed') return '通知OFF（再設定）'
+    return '通知OFF'
+  }
+
+  function handleNotificationClick() {
+    if (notificationControls.notifStatus === 'ok') {
+      notificationControls.onDisableNotif()
+      return
+    }
+    notificationControls.onEnableNotif()
+  }
+
   return (
     <>
       <h2 className="admin-settings__heading">呼び出し音設定</h2>
@@ -46,6 +62,27 @@ export default function DeviceSoundSettings() {
           ホールとキッチンで使う通知音を、この端末ごとに設定します。変更はすぐ保存されます。
         </div>
         <div className="admin-settings__sound-grid">
+          {notificationControls && (
+            <section className="admin-settings__sound-device">
+              <div>
+                <div className="admin-settings__sound-title">この端末の通知</div>
+                <div className="admin-settings__toggle-description">
+                  呼び出しをブラウザ通知でも受けるかを、この端末ごとに切り替えます。
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleNotificationClick}
+                disabled={!notificationControls.notificationsEnabled || notificationControls.notifStatus === 'loading'}
+                className={`admin-settings__device-notification${notificationControls.notifStatus === 'ok' ? ' is-on' : ''}`}
+              >
+                {getNotificationLabel()}
+              </button>
+              <div className="admin-settings__sound-hint">
+                店舗全体の通知ON/OFFは「店舗運用の設定」で管理します。ログアウト時はこの端末の通知登録を解除します。
+              </div>
+            </section>
+          )}
           {soundGroups.map(group => (
             <section key={group.key} className="admin-settings__sound-device">
               <div>

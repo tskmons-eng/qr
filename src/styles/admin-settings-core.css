@@ -271,6 +271,36 @@
   font-weight: 700;
 }
 
+.admin-settings__device-notification {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-settings__device-notification.is-on {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.admin-settings__device-notification:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: default;
+}
+
+.admin-settings__sound-hint {
+  color: #888;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .admin-settings__sound-control-row,
 .admin-settings__sound-range-row {
   display: flex;

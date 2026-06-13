@@ -1,5 +1,35 @@
 # QR System Plan
 
+## 2026-06-13 Staff store-management menu consolidation
+
+### Context
+
+- Staff header buttons had grown too wide as management actions were added individually.
+- User priority: keep the operational UI smart and compact by grouping history, seats, menu management, register closing, and related admin tools under a single `店舗管理` entry.
+- In app/PWA use, the bottom staff navigation should sit just slightly above the physical bottom edge for readability.
+
+### Decision
+
+- Keep daily operation buttons visible: `注文`, refresh, staff switch, kitchen, and logout.
+- Move elevated/admin actions into one permission-aware `店舗管理` popover in the staff shell header.
+- Move sound and device notification controls into the existing settings screen; remove the separate header gear button.
+- Preserve the existing `/staff/...` routes and permission gates so deep links and current page behavior continue to work.
+- Raise customer/staff fixed bottom navigation by a small offset while preserving safe-area padding.
+
+### Verification Plan
+
+- Update the staff permission source check to assert the grouped management menu remains wired.
+- Run `npm run check:staff-permissions`.
+- Run `npm run build`.
+- Commit and push the change.
+
+### Verification Results
+
+- `npm run check:staff-permissions` passed.
+- `npm run build` passed.
+- Local Vite served `/staff` successfully with only existing React Router future warnings.
+- SSR rendering of `StaffShellHeader` with full permissions confirmed `店舗管理` appears and direct `レジ締め` / `メニュー` header buttons are no longer emitted.
+
 ## 2026-06-13 Admin settings device sound controls
 
 ### Context
@@ -7,12 +37,15 @@
 - The settings menu already hosts store-level workflow controls.
 - Users expect call sound and notification sound choices to be reachable from that settings surface instead of only from per-screen popups.
 - Existing sound preferences are device-local so hall and kitchen terminals can keep different sound and volume choices.
+- The old header gear still owned only the device notification registration toggle, so keeping it would leave a duplicate settings path.
 
 ### Decision
 
 - Add a device sound section to `SettingsPage`.
 - Reuse `lib/sounds.js` sound IDs, preview playback, and localStorage persistence.
-- Keep the store-wide notification toggle in the existing workflow settings; only sound choice and volume are edited in the new section.
+- Keep the store-wide notification toggle in the existing workflow settings.
+- Show the device notification ON/OFF registration control inside settings when the page is opened from the staff shell.
+- Remove the old staff header gear popup and its dead CSS/component files.
 
 ### Verification Plan
 
@@ -23,6 +56,7 @@
 ### Verification Results
 
 - `npm run check:settings` passed.
+- `npm run check:staff-permissions` passed.
 - `npm run build` passed.
 - Local Vite served `/login` successfully with no new browser console errors; `/admin/settings` remains behind the existing logged-in protected route.
 

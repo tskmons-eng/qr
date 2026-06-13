@@ -26,7 +26,7 @@ import {
   saveStoreConfig,
 } from '../../services/settingsService'
 
-export default function SettingsPage() {
+export default function SettingsPage({ notificationControls = null, onConfigSaved }) {
   const { storeId } = useStore()
   const { user } = useAuth()
   const [storeCode, setStoreCode] = useState('')
@@ -133,6 +133,7 @@ export default function SettingsPage() {
   async function handleSave() {
     setSaving(true)
     await saveStoreConfig(storeId, config)
+    onConfigSaved?.(config)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -159,7 +160,7 @@ export default function SettingsPage() {
         onToggle={handleToggle}
         onGuestAutoAddChange={handleGuestAutoAddChange}
       />
-      <DeviceSoundSettings />
+      <DeviceSoundSettings notificationControls={notificationControls} />
       <TaxRateSettings
         taxRate={config.taxRate}
         taxInput={taxInput}

@@ -8,7 +8,6 @@ import { clearStaffAutoLoginPreference } from '../../lib/staffMember'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
-import SoundSettingsPanel from '../../components/staff/SoundSettingsPanel'
 import StaffEntryPage from './StaffEntryPage'
 import StaffLoginScreen from '../../components/staff/StaffLoginScreen'
 import { useAuth } from '../../contexts/AuthContext'
@@ -61,7 +60,6 @@ export default function StaffLayout() {
   }
 
   const [calls, setCalls] = useState([])
-  const [showSoundSettings, setShowSoundSettings] = useState(false)
   const [notifStatus, setNotifStatus] = useState(() => hasRegisteredNotificationToken() ? 'ok' : 'none')
   const [storeConfig, setStoreConfig] = useState(null)
   const prevCallIdsRef = useRef(null)
@@ -99,6 +97,7 @@ export default function StaffLayout() {
   }, [notificationsEnabled, storeId, activeStaff?.id])
 
   async function handleEnableNotif() {
+    if (!storeId || !activeStaff?.id) return
     await registerNotif(storeId, activeStaff.id)
   }
 
@@ -171,6 +170,12 @@ export default function StaffLayout() {
   const canViewHistory = hasStaffPermission(activeStaff, 'viewHistory', ELEVATED_PERMISSION_DEFAULTS)
   const canManageSettings = hasStaffPermission(activeStaff, 'manageSettings', ELEVATED_PERMISSION_DEFAULTS)
   const canManageStaff = hasStaffPermission(activeStaff, 'manageStaff', ELEVATED_PERMISSION_DEFAULTS)
+  const notificationControls = {
+    notificationsEnabled,
+    notifStatus,
+    onDisableNotif: handleDisableNotif,
+    onEnableNotif: handleEnableNotif,
+  }
 
   return (
     <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
@@ -188,7 +193,6 @@ export default function StaffLayout() {
           canManageSettings={canManageSettings}
           canManageStaff={canManageStaff}
           onOpenOrders={() => navigate('/staff')}
-          onToggleSoundSettings={() => setShowSoundSettings(v => !v)}
           onRefresh={() => window.location.reload()}
           onSwitchStaff={handleSwitchStaff}
           onOpenKitchen={() => navigate('/staff/kitchen')}
@@ -202,16 +206,6 @@ export default function StaffLayout() {
           onOpenAdmin={() => navigate('/admin')}
           onLogout={handleLogout}
         />
-
-        {showSoundSettings && (
-          <SoundSettingsPanel
-            notificationsEnabled={notificationsEnabled}
-            notifStatus={notifStatus}
-            onClose={() => setShowSoundSettings(false)}
-            onDisableNotif={handleDisableNotif}
-            onEnableNotif={handleEnableNotif}
-          />
-        )}
 
         <StaffCallBanner calls={calls} onRespond={handleRespond} />
 
@@ -249,7 +243,10 @@ export default function StaffLayout() {
           } />
           <Route path="settings" element={
             <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
-              <SettingsPage />
+              <SettingsPage
+                notificationControls={notificationControls}
+                onConfigSaved={setStoreConfig}
+              />
             </StaffPermissionGate>
           } />
           <Route path="staff-admin" element={

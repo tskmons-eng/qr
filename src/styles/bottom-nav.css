@@ -20,7 +20,7 @@
   max-width: 600px;
   gap: 4px;
   margin: 0 auto;
-  padding: 6px 8px max(7px, env(safe-area-inset-bottom));
+  padding: 6px 8px max(15px, calc(env(safe-area-inset-bottom) + 8px));
 }
 
 .customer-bottom-nav__item,

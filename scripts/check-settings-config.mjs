@@ -34,10 +34,17 @@ assert.equal(calculateIncludedTax(1000, 0), 0)
 
 const settingsPage = readFileSync(new URL('../src/pages/admin/SettingsPage.jsx', import.meta.url), 'utf8')
 const deviceSoundSettings = readFileSync(new URL('../src/components/admin/DeviceSoundSettings.jsx', import.meta.url), 'utf8')
+const staffLayout = readFileSync(new URL('../src/pages/staff/StaffLayout.jsx', import.meta.url), 'utf8')
+const staffAuthStyles = readFileSync(new URL('../src/styles/staff-auth.css', import.meta.url), 'utf8')
 
 assert.match(settingsPage, /DeviceSoundSettings/)
+assert.match(settingsPage, /notificationControls/)
+assert.match(staffLayout, /notificationControls=\{notificationControls\}/)
+assert.match(staffLayout, /onConfigSaved=\{setStoreConfig\}/)
 assert.match(deviceSoundSettings, /saveSoundPrefs/)
 assert.match(deviceSoundSettings, /saveKitchenSoundPrefs/)
 assert.match(deviceSoundSettings, /ホールとキッチンで使う通知音/)
+assert.match(deviceSoundSettings, /この端末の通知/)
+assert.doesNotMatch(staffAuthStyles, /sound-settings/)
 
 console.log('settings config checks passed')
