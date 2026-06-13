@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import StaffEmailLoginForm from '../../components/staff/StaffEmailLoginForm'
 import StaffGoogleLoginButton from '../../components/staff/StaffGoogleLoginButton'
-import { signInStaffWithEmail, signInStaffWithGoogle } from '../../services/staffLoginService'
+import { useAuth } from '../../contexts/AuthContext'
+import { consumeStaffGoogleRedirectResult, signInStaffWithEmail, signInStaffWithGoogle } from '../../services/staffLoginService'
+
+const GOOGLE_LOGIN_ERROR_MESSAGE = 'Googleログインに失敗しました'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -10,6 +13,22 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { user } = useAuth()
+
+  useEffect(() => {
+    let active = true
+    consumeStaffGoogleRedirectResult().catch(event => {
+      if (active) setError(GOOGLE_LOGIN_ERROR_MESSAGE)
+      console.error('Google redirect sign-in failed:', event)
+    })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (user && !user.isAnonymous) {
+      navigate('/staff', { replace: true })
+    }
+  }, [navigate, user])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -30,11 +49,9 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signInStaffWithGoogle()
-      navigate('/staff')
     } catch (event) {
-      if (event.code !== 'auth/popup-closed-by-user') {
-        setError('Googleログインに失敗しました')
-      }
+      console.error('Google sign-in failed:', event)
+      setError(GOOGLE_LOGIN_ERROR_MESSAGE)
     } finally {
       setLoading(false)
     }

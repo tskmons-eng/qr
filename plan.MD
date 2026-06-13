@@ -1,5 +1,36 @@
 # QR System Plan
 
+## 2026-06-14 Google login redirect hotfix
+
+### Context
+
+- Google login stopped working after the latest live update.
+- Live verification showed the login page renders without app errors and OAuth can start, but popup completion is unreliable.
+- User priority: fix login without disturbing people currently using the store screens.
+
+### Decision
+
+- Limit the change to Google login flow only.
+- Replace popup-based Google sign-in with redirect-based sign-in.
+- After redirect completion, send non-anonymous Google users back to `/staff`.
+- Do not touch seat, kitchen, menu, order, or checkout behavior in this hotfix.
+
+### Verification Plan
+
+- Run production build.
+- Confirm `/login` renders locally without new console errors beyond existing React Router future warnings.
+- Deploy hosting only after build succeeds.
+- Confirm live `/login` returns the new asset and renders.
+- Commit and push the hotfix.
+
+### Verification Results
+
+- `npm run build` passed.
+- `npm run check` passed.
+- Local `/login` rendered in the in-app browser; only existing React Router future warnings appeared.
+- `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed.
+- Live `/login` returned `assets/index-YM8taRxf.js` and rendered the Google login button.
+
 ## 2026-06-13 Seat and data loading performance guardrails
 
 ### Context
