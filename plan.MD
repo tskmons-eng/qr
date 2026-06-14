@@ -1,5 +1,37 @@
 # QR System Plan
 
+## 2026-06-14 Customer guest auto-add loading guard
+
+### Context
+
+- Customer QR order start can be shown before `storeConfig` finishes loading.
+- The guest auto-add setting lives in `storeConfig.guestAutoAdd`.
+- If a customer starts from the guest-count screen while the config is still at defaults, the order session is created with auto-add effectively OFF even though the store has configured it.
+
+### Decision
+
+- Treat table loading and store-config loading as separate required startup work.
+- Do not render the guest-count, menu, cart, or complete routes until the current table's store config has loaded.
+- Reset config state when a different QR token/store is loaded so stale config from another store cannot leak into the order start.
+- Keep the existing guest auto-add UI and order creation shape unchanged.
+
+### Verification Plan
+
+- Add a source check that asserts the order entry route waits on `configLoading`.
+- Run `npm run check:customer-entry`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit and push the fix.
+
+### Verification Results
+
+- `npm run check:customer-entry` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- Local Vite served `/order/__codex_missing_qr__/guests`; the route rendered the expected invalid-QR state with no browser console errors.
+- `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed.
+- Live hosting HTML references the deployed asset `assets/index-BmWfh4Tr.js`.
+
 ## 2026-06-14 Google login redirect hotfix
 
 ### Context

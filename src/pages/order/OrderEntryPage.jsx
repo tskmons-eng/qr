@@ -16,14 +16,26 @@ export default function OrderEntryPage() {
   const [orderId, setOrderId] = useState(null)
   const [storeConfig, setStoreConfig] = useState(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
   const [loading, setLoading] = useState(true)
+  const [configLoading, setConfigLoading] = useState(true)
   const [error, setError] = useState(null)
   const loadedConfigStoreIdRef = useRef(null)
+  const configRequestIdRef = useRef(0)
 
   useEffect(() => {
+    loadedConfigStoreIdRef.current = null
+    configRequestIdRef.current += 1
+    setTable(null)
+    setOrderId(null)
+    setStoreConfig(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
+    setLoading(true)
+    setConfigLoading(true)
+    setError(null)
+
     return subscribeCustomerTableByQrToken(qrToken, nextTable => {
       if (!nextTable) {
         setError('このQRコードは無効です')
         setLoading(false)
+        setConfigLoading(false)
         return
       }
 
@@ -35,16 +47,35 @@ export default function OrderEntryPage() {
 
       if (loadedConfigStoreIdRef.current !== nextTable.storeId) {
         loadedConfigStoreIdRef.current = nextTable.storeId
-        loadCustomerStoreConfig(nextTable.storeId).then(setStoreConfig)
+        setStoreConfig(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
+        setConfigLoading(true)
+        const requestId = configRequestIdRef.current + 1
+        configRequestIdRef.current = requestId
+        loadCustomerStoreConfig(nextTable.storeId)
+          .then(nextConfig => {
+            if (configRequestIdRef.current !== requestId) return
+            setStoreConfig(nextConfig)
+          })
+          .catch(() => {
+            if (configRequestIdRef.current !== requestId) return
+            setError('店舗設定の読み込みに失敗しました')
+          })
+          .finally(() => {
+            if (configRequestIdRef.current !== requestId) return
+            setConfigLoading(false)
+          })
       }
       setLoading(false)
     }, () => {
       setError('読み込みに失敗しました')
       setLoading(false)
+      setConfigLoading(false)
     })
   }, [qrToken])
 
-  if (loading || error) return <OrderEntryStatus loading={loading} error={error} />
+  if (loading || configLoading || error) {
+    return <OrderEntryStatus loading={loading || configLoading} error={error} />
+  }
 
   const entryBasePath = `/order/${qrToken}`
   const hasActiveOrder = Boolean(orderId)

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   applyCustomerOrderStartToTable,
   CUSTOMER_ENTRY_CONFIG_DEFAULTS,
@@ -29,5 +30,11 @@ assert.deepEqual(applyCustomerOrderStartToTable({ id: 'table-1', tableName: 'A' 
   guestCount: 3,
   currentOrderId: 'order-1',
 })
+
+const orderEntrySource = readFileSync(new URL('../src/pages/order/OrderEntryPage.jsx', import.meta.url), 'utf8')
+assert.match(orderEntrySource, /const \[configLoading, setConfigLoading\] = useState\(true\)/)
+assert.match(orderEntrySource, /setStoreConfig\(CUSTOMER_ENTRY_CONFIG_DEFAULTS\)/)
+assert.match(orderEntrySource, /if \(loading \|\| configLoading \|\| error\)/)
+assert.match(orderEntrySource, /<OrderEntryStatus loading=\{loading \|\| configLoading\} error=\{error\} \/>/)
 
 console.log('customer entry checks passed')
