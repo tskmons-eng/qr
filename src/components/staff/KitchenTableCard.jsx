@@ -1,7 +1,8 @@
 import { formatKitchenElapsed, getKitchenWaitLevel } from '../../lib/kitchenDisplay'
 import KitchenItemRow from './KitchenItemRow'
+import { TableReservationBadge } from './TodayReservationNoticeList'
 
-export default function KitchenTableCard({ group, nowMs, servedWorkflowEnabled, onCancelItem, onMarkAllServed, onMarkServed }) {
+export default function KitchenTableCard({ group, reservation, nowMs, servedWorkflowEnabled, onCancelItem, onMarkAllServed, onMarkServed }) {
   const { table, items, oldest } = group
   const waitLevel = servedWorkflowEnabled ? getKitchenWaitLevel(oldest, nowMs) : 'idle'
 
@@ -11,6 +12,7 @@ export default function KitchenTableCard({ group, nowMs, servedWorkflowEnabled, 
         <div>
           <span className="staff-kitchen-table__name">{table.tableName}</span>
           <span className="staff-kitchen-table__guests">{table.guestCount}名</span>
+          <TableReservationBadge reservation={reservation} />
         </div>
         <div className="staff-kitchen-table__actions">
           {servedWorkflowEnabled && (

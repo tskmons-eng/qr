@@ -1,6 +1,7 @@
 import { formatElapsed, getStaffTableStatusKey, STAFF_TABLE_STATUS } from '../../lib/staffTableList'
+import { TableReservationBadge } from './TodayReservationNoticeList'
 
-export default function StaffTableCard({ table, pending, now, onClick }) {
+export default function StaffTableCard({ table, pending, reservation, now, onClick }) {
   const statusKey = getStaffTableStatusKey(table, pending)
   const status = STAFF_TABLE_STATUS[statusKey] ?? STAFF_TABLE_STATUS.vacant
   const otherPending = pending.total - pending.drink - pending.food
@@ -30,6 +31,7 @@ export default function StaffTableCard({ table, pending, now, onClick }) {
           {formatElapsed(table.startedAt.seconds, now)}
         </div>
       )}
+      <TableReservationBadge reservation={reservation} />
     </button>
   )
 }

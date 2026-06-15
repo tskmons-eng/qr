@@ -5,8 +5,10 @@ import KitchenEmptyState from '../../components/staff/KitchenEmptyState'
 import KitchenHeader from '../../components/staff/KitchenHeader'
 import KitchenSoundPanel from '../../components/staff/KitchenSoundPanel'
 import KitchenTableGrid from '../../components/staff/KitchenTableGrid'
+import TodayReservationNoticeList from '../../components/staff/TodayReservationNoticeList'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { useStore } from '../../contexts/StoreContext'
+import { getTokyoDateString } from '../../lib/reservationDisplay'
 import { loadKitchenSoundPrefs, playSound } from '../../lib/sounds'
 import {
   buildKitchenTableGroups,
@@ -21,6 +23,7 @@ import {
   subscribeKitchenTables,
   subscribePendingKitchenItems,
 } from '../../services/kitchenService'
+import { subscribeTodayReservations } from '../../services/reservationService'
 import { loadStoreConfig } from '../../services/settingsService'
 
 export default function KitchenPage() {
@@ -33,8 +36,10 @@ export default function KitchenPage() {
   const [showSoundSettings, setShowSoundSettings] = useState(false)
   const [filterGroup, setFilterGroup] = useState('all')
   const [storeConfig, setStoreConfig] = useState(null)
+  const [todayReservations, setTodayReservations] = useState([])
   const prevItemIdsRef = useRef(null)
   const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
+  const today = getTokyoDateString()
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 30000)
@@ -45,6 +50,11 @@ export default function KitchenPage() {
     if (!storeId) return undefined
     return subscribeKitchenTables(storeId, setTables)
   }, [storeId])
+
+  useEffect(() => {
+    if (!storeId) return undefined
+    return subscribeTodayReservations(storeId, today, setTodayReservations)
+  }, [storeId, today])
 
   useEffect(() => {
     if (!storeId) return
@@ -97,12 +107,18 @@ export default function KitchenPage() {
           提供済み管理がOFFのため、提供済み操作と何分待ち表示は出ません。
         </div>
       )}
+      <TodayReservationNoticeList
+        reservations={todayReservations}
+        tables={tables}
+        tone="kitchen"
+      />
 
       {tableGroups.length === 0 ? (
         <KitchenEmptyState />
       ) : (
         <KitchenTableGrid
           groups={tableGroups}
+          reservations={todayReservations}
           nowMs={nowMs}
           servedWorkflowEnabled={servedWorkflowEnabled}
           onCancelItem={cancelItem}

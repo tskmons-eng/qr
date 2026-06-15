@@ -1,11 +1,13 @@
 const { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } = require('firebase-functions/v2/firestore')
+const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { initializeApp } = require('firebase-admin/app')
 const { getMessaging } = require('firebase-admin/messaging')
-const { FieldValue, getFirestore } = require('firebase-admin/firestore')
+const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore')
 
 initializeApp()
 
 const TABLE_PENDING_AGGREGATE_VERSION = 1
+const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 
 function getPendingAggregateCounts(item) {
   if (!item || item.itemStatus !== 'ordered' || !item.tableId) return null
@@ -50,6 +52,81 @@ async function applyPendingAggregateDeltas(entries) {
   await batch.commit()
 }
 
+function normalizeGuestCount(value) {
+  const count = Number(value)
+  if (!Number.isFinite(count)) return 1
+  return Math.max(1, Math.round(count))
+}
+
+function formatReservationGuest(reservation) {
+  return `${reservation.time ?? ''} ${reservation.name ?? '予約'}様 ${normalizeGuestCount(reservation.guestCount)}名`
+}
+
+function getReservationTableLabel(reservation, table) {
+  return table?.tableName ?? reservation.tableNameSnapshot ?? '席未指定'
+}
+
+async function sendStaffNotification({ storeId, title, body, link = '/staff', tag = 'staff-notice' }) {
+  if (!storeId) return { sent: false, reason: 'missing-store' }
+
+  const db = getFirestore()
+  const configSnap = await db.collection('storeConfig').doc(storeId).get()
+  if (configSnap.exists && configSnap.data()?.notificationsEnabled === false) {
+    return { sent: false, reason: 'disabled' }
+  }
+
+  const tokensSnap = await db.collection('staffTokens')
+    .where('storeId', '==', storeId)
+    .get()
+
+  if (tokensSnap.empty) return { sent: false, reason: 'no-tokens' }
+
+  const tokens = tokensSnap.docs
+    .map(d => d.data())
+    .filter(data => data.enabled !== false)
+    .map(data => data.token)
+    .filter(Boolean)
+  if (tokens.length === 0) return { sent: false, reason: 'no-enabled-tokens' }
+
+  const message = {
+    notification: { title, body },
+    data: { tag, link },
+    webpush: {
+      notification: {
+        title,
+        body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [200, 100, 200],
+        tag,
+        renotify: true,
+        requireInteraction: true,
+      },
+      fcmOptions: { link },
+    },
+    apns: {
+      payload: { aps: { sound: 'default', badge: 1 } },
+    },
+    tokens,
+  }
+
+  const response = await getMessaging().sendEachForMulticast(message)
+
+  const deletes = []
+  response.responses.forEach((resp, i) => {
+    if (!resp.success) {
+      const code = resp.error?.code
+      if (code === 'messaging/registration-token-not-registered' ||
+          code === 'messaging/invalid-registration-token') {
+        deletes.push(db.collection('staffTokens').doc(tokens[i]).delete())
+      }
+    }
+  })
+  await Promise.all(deletes)
+
+  return { sent: response.successCount > 0, successCount: response.successCount }
+}
+
 exports.syncTablePendingAggregateOnCreate = onDocumentCreated('orderItems/{itemId}', async (event) => {
   await applyPendingAggregateDeltas([
     { entry: getPendingAggregateCounts(event.data.data()), direction: 1 },
@@ -86,59 +163,150 @@ exports.notifyStaff = onDocumentCreated('calls/{callId}', async (event) => {
   const { storeId, tableName, type } = call
   const isCheckout = type === 'checkout'
 
-  const db = getFirestore()
-  const configSnap = await db.collection('storeConfig').doc(storeId).get()
-  if (configSnap.exists && configSnap.data()?.notificationsEnabled === false) return
-
-  const tokensSnap = await db.collection('staffTokens')
-    .where('storeId', '==', storeId)
-    .get()
-
-  if (tokensSnap.empty) return
-
-  const tokens = tokensSnap.docs
-    .map(d => d.data())
-    .filter(data => data.enabled !== false)
-    .map(data => data.token)
-    .filter(Boolean)
-  if (tokens.length === 0) return
-
   const title = isCheckout ? `💳 会計希望 — ${tableName}` : `🔔 呼び出し — ${tableName}`
   const body = isCheckout ? 'お会計をお願いします' : 'スタッフを呼んでいます'
 
-  const message = {
-    notification: { title, body },
-    webpush: {
-      notification: {
-        title,
-        body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'staff-call',
-        renotify: true,
-        requireInteraction: true,
-      },
-      fcmOptions: { link: '/staff' },
-    },
-    apns: {
-      payload: { aps: { sound: 'default', badge: 1 } },
-    },
-    tokens,
-  }
+  await sendStaffNotification({
+    storeId,
+    title,
+    body,
+    link: '/staff',
+    tag: 'staff-call',
+  })
+})
 
-  const response = await getMessaging().sendEachForMulticast(message)
+exports.notifyReservationCreated = onDocumentCreated('reservations/{reservationId}', async (event) => {
+  const reservation = event.data.data()
+  if (!reservation || reservation.status !== 'confirmed') return
 
-  // 無効なトークンを削除
-  const deletes = []
-  response.responses.forEach((resp, i) => {
-    if (!resp.success) {
-      const code = resp.error?.code
-      if (code === 'messaging/registration-token-not-registered' ||
-          code === 'messaging/invalid-registration-token') {
-        deletes.push(db.collection('staffTokens').doc(tokens[i]).delete())
+  await sendStaffNotification({
+    storeId: reservation.storeId,
+    title: '予約が入りました',
+    body: formatReservationGuest(reservation),
+    link: '/staff/reservations',
+    tag: 'reservation-created',
+  })
+
+  await event.data.ref.set({
+    createdNoticeSentAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true })
+})
+
+async function processReservationArrival(reservationDoc) {
+  const db = getFirestore()
+  let notification = null
+
+  await db.runTransaction(async transaction => {
+    const reservationRef = reservationDoc.ref
+    const latestReservationSnap = await transaction.get(reservationRef)
+    if (!latestReservationSnap.exists) return
+
+    const reservation = latestReservationSnap.data()
+    if (reservation.status !== 'confirmed' || reservation.arrivalNoticeStatus !== 'pending') return
+
+    const now = FieldValue.serverTimestamp()
+    const guestCount = normalizeGuestCount(reservation.guestCount)
+    let tableSnap = null
+    let table = null
+    let waitingReason = 'table_unassigned'
+
+    if (reservation.tableId) {
+      const tableRef = db.collection('tables').doc(reservation.tableId)
+      tableSnap = await transaction.get(tableRef)
+      table = tableSnap.exists ? tableSnap.data() : null
+      if (!table || table.storeId !== reservation.storeId) {
+        waitingReason = 'table_missing'
+      } else if (table.status !== 'vacant' || table.currentOrderId) {
+        waitingReason = 'table_occupied'
+      } else {
+        const orderRef = db.collection('orders').doc()
+        transaction.set(orderRef, {
+          storeId: reservation.storeId,
+          tableId: reservation.tableId,
+          guestCount,
+          status: 'open',
+          openedAt: now,
+          checkedOutAt: null,
+          createdBy: 'reservation',
+          reservationId: reservationDoc.id,
+          updatedAt: now,
+        })
+        transaction.update(tableRef, {
+          status: 'occupied',
+          guestCount,
+          currentOrderId: orderRef.id,
+          startedAt: now,
+          pendingCount: 0,
+          pendingAggregateVersion: TABLE_PENDING_AGGREGATE_VERSION,
+          pendingAggregateCount: 0,
+          pendingAggregateDrinkCount: 0,
+          pendingAggregateFoodCount: 0,
+          updatedAt: now,
+        })
+        transaction.update(reservationRef, {
+          status: 'seated',
+          arrivalNoticeStatus: 'sent',
+          arrivalNoticeSentAt: now,
+          waitingStatus: 'handled',
+          waitingReason: null,
+          seatedTableId: reservation.tableId,
+          seatedOrderId: orderRef.id,
+          handledByStaffId: null,
+          handledByStaffName: '自動案内',
+          updatedAt: now,
+        })
+        transaction.set(db.collection('staffActions').doc(), {
+          storeId: reservation.storeId,
+          actionType: 'auto_seat_reservation',
+          targetType: 'reservation',
+          targetId: reservationDoc.id,
+          actorType: 'system',
+          note: `${reservation.name ?? '予約'} ${guestCount}名を${table.tableName ?? ''}へ自動案内`,
+          createdAt: now,
+        })
+        notification = {
+          storeId: reservation.storeId,
+          title: '予約のお客様を席へ案内しました',
+          body: `${formatReservationGuest(reservation)} / ${getReservationTableLabel(reservation, table)}`,
+          link: `/staff/table/${reservation.tableId}`,
+          tag: 'reservation-arrival',
+        }
+        return
       }
     }
+
+    transaction.update(reservationRef, {
+      arrivalNoticeStatus: 'sent',
+      arrivalNoticeSentAt: now,
+      waitingStatus: 'pending',
+      waitingReason,
+      updatedAt: now,
+    })
+    notification = {
+      storeId: reservation.storeId,
+      title: '予約のお客様が待っています',
+      body: `${formatReservationGuest(reservation)} / ${getReservationTableLabel(reservation, table)}`,
+      link: '/staff',
+      tag: 'reservation-arrival',
+    }
   })
-  await Promise.all(deletes)
+
+  if (notification) await sendStaffNotification(notification)
+}
+
+exports.processReservationArrivals = onSchedule({
+  schedule: 'every 1 minutes',
+  timeZone: 'Asia/Tokyo',
+}, async () => {
+  const db = getFirestore()
+  const snap = await db.collection('reservations')
+    .where('status', '==', 'confirmed')
+    .where('arrivalNoticeStatus', '==', 'pending')
+    .where('arrivalNoticeAt', '<=', Timestamp.now())
+    .orderBy('arrivalNoticeAt', 'asc')
+    .limit(RESERVATION_ARRIVAL_BATCH_SIZE)
+    .get()
+
+  await Promise.all(snap.docs.map(processReservationArrival))
 })

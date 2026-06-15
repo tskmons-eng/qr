@@ -73,7 +73,7 @@ export default function ReservationPage() {
     if (!form.name.trim() || !form.date || !form.time) return
     setSaving(true)
     try {
-      await createReservationRecord({ storeId, form })
+      await createReservationRecord({ storeId, form, tables })
       setShowForm(false)
       setForm(emptyReservationForm(selectedDate))
       await load()

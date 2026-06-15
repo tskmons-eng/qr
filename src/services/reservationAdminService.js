@@ -1,5 +1,6 @@
 import { addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { buildReservationScheduleFields } from '../lib/reservationDisplay'
 
 export async function loadReservationAdminData(storeId) {
   const [reservationSnap, tableSnap] = await Promise.all([
@@ -15,19 +16,31 @@ export async function loadReservationAdminData(storeId) {
   }
 }
 
-export async function createReservationRecord({ storeId, form }) {
+export async function createReservationRecord({ storeId, form, tables = [] }) {
+  const selectedTable = tables.find(table => table.id === form.tableId)
   await addDoc(collection(db, 'reservations'), {
     storeId,
     ...form,
     guestCount: Number(form.guestCount),
+    tableId: form.tableId || '',
+    tableNameSnapshot: selectedTable?.tableName ?? '',
+    ...buildReservationScheduleFields(form),
     status: 'confirmed',
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   })
 }
 
 export async function updateReservationStatus(id, status) {
+  const extra = status === 'cancelled'
+    ? { waitingStatus: 'dismissed', dismissedAt: serverTimestamp() }
+    : status === 'seated'
+      ? { waitingStatus: 'handled', waitingReason: null }
+      : {}
+
   await updateDoc(doc(db, 'reservations', id), {
     status,
+    ...extra,
     updatedAt: serverTimestamp(),
   })
 }

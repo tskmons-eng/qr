@@ -37,6 +37,14 @@
   font-size: 12px;
 }
 
+.staff-kitchen-table .table-reservation-badge {
+  display: flex;
+  width: fit-content;
+  margin-top: 6px;
+  background: #45320d;
+  color: #fde68a;
+}
+
 .staff-kitchen-table__actions {
   display: flex;
   align-items: center;

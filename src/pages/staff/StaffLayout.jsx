@@ -7,6 +7,7 @@ import { hasRegisteredNotificationToken, removeRegisteredNotificationToken, requ
 import { clearStaffAutoLoginPreference } from '../../lib/staffMember'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
+import StaffReservationWaitController from '../../components/staff/StaffReservationWaitController'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
 import StaffPullRefreshIndicator from '../../components/staff/StaffPullRefreshIndicator'
 import StaffEntryPage from './StaffEntryPage'
@@ -217,6 +218,12 @@ export default function StaffLayout() {
           />
 
           <StaffCallBanner calls={calls} onRespond={handleRespond} />
+          <StaffReservationWaitController
+            activeStaff={activeStaff}
+            notificationsEnabled={notificationsEnabled}
+            storeId={storeId}
+            onOpenTable={tableId => navigate(`/staff/table/${tableId}`)}
+          />
 
           <Routes>
             <Route index element={<TableListPage />} />

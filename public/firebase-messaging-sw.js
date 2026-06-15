@@ -15,17 +15,19 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title ?? '呼び出し';
   const body = payload.notification?.body ?? '';
+  const tag = payload.data?.tag ?? 'staff-notice';
   self.registration.showNotification(title, {
     body,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     vibrate: [200, 100, 200],
-    tag: 'staff-call',
+    tag,
+    data: { link: payload.data?.link ?? '/staff' },
     renotify: true,
   });
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/staff'));
+  event.waitUntil(clients.openWindow(event.notification.data?.link ?? '/staff'));
 });

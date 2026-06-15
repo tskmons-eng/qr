@@ -259,3 +259,30 @@
 - `npm run build` passed.
 - `npx --yes firebase-tools deploy --only hosting --project qrproduct-3340b --non-interactive` completed.
 - Live hosting HTML references the deployed build assets `assets/index-CzkQ-u9w.js` and `assets/index-D6g3bT6Z.css`.
+
+## 2026-06-15 Reservation arrival notices and waiting guidance
+
+### Context
+
+- Reservations need two staff-wide notices: one when a reservation is registered, and one 10 minutes before the reservation time.
+- Users want the staff floor to see unresolved reservation arrivals until someone intentionally handles them.
+- Seat assignment must stay optional because seats may be created later, but a specified vacant seat can be used automatically.
+- If the specified seat is occupied or the reservation has no seat, the system should not force a seat. It should leave a visible waiting notice with actions to open the seat, choose another seat, or dismiss the notice.
+
+### Decision
+
+- Store `reservationAt`, `arrivalNoticeAt`, `arrivalNoticeStatus`, and `waitingStatus` fields on new reservations.
+- Use Cloud Functions to notify on creation and run the 10-minute-before arrival workflow every minute.
+- Auto-seat only when a reservation has a specified table and that table is vacant.
+- For seat conflicts or unassigned reservations, set `waitingStatus: pending` and show a staff-shell banner across staff pages.
+- Staff can guide a waiting reservation to any table. Vacant tables create a new order session; occupied tables require confirmation and overwrite the table/current order guest count to the reservation count.
+- Staff table list and kitchen show today's confirmed reservations as `予約あり`, including time and party size.
+- Keep reservation edit permissions under `manageReservations`; only the narrow waiting-notice handling fields can be updated by logged-in store staff.
+
+### Verification Plan
+
+- Run `npm run check:reservation-display`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Browser-check `/staff/reservations`, `/staff`, and `/staff/kitchen`.
+- Deploy Firestore rules/indexes, Functions, and Hosting, then commit and push `codex/reservation-arrival-notices`.
