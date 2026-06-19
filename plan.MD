@@ -1,5 +1,42 @@
 # QR System Plan
 
+## 2026-06-19 Order safety Round 3: real restaurant scenarios
+
+### Purpose
+
+- ユーザー様は、QRから注文したお客様に「注文できませんでした」と出ることを売上直撃の重大問題として扱っている。
+- いたちごっこの修正ではなく、飲食店で起きる同時操作・通信断・会計タイミング・古いQR画面・監視復旧をシナリオ別に潰す。
+
+### Current Confirmation
+
+- Production build は Functions command を注文本線として使う構造になっている。
+- 顧客の注文開始と注文送信は Functions 側で Firestore transaction / `clientRequestId` 冪等処理へ寄っている。
+- 既存の `npm run check:order-functions-emulator` は、同時着席、重複 submit、会計後の遅延 submit、store scope mismatch などを一部検証している。
+- ただし、実店舗の複数端末、通信断、リロード復旧、保存済み注文の顧客表示、監視/復旧を別担当でさらに検証する必要がある。
+
+### Parallel MDs
+
+- `docs/order-safety-round3/README.md`
+- `docs/order-safety-round3/01-customer-session-race.md`
+- `docs/order-safety-round3/02-submit-idempotency-and-retry.md`
+- `docs/order-safety-round3/03-checkout-and-stale-qr-races.md`
+- `docs/order-safety-round3/04-client-recovery-and-offline-ux.md`
+- `docs/order-safety-round3/05-live-failure-monitoring-and-repair.md`
+- `docs/order-safety-round3/06-load-release-gate.md`
+
+### Change Policy
+
+- データ履歴、会計履歴、メニュー、カテゴリ、オプション、QR URL は消さない。
+- 担当MD単独では本番 deploy しない。
+- 各担当は対象ファイル、禁止事項、合格条件、検証コマンドを守り、完了時に担当MDへ結果を追記する。
+- 最終 deploy は `06-load-release-gate.md` で全チェックと監視手順をそろえてから行う。
+
+### Verification
+
+- `git diff --check`
+- `npm run check`
+- Commit and push the planning docs.
+
 ## 2026-06-19 Production deployment
 
 ### Scope
