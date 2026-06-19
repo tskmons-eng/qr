@@ -27,6 +27,7 @@ const staffLoginScreen = readFileSync(new URL('../src/components/staff/StaffLogi
 const staffLayout = readFileSync(new URL('../src/pages/staff/StaffLayout.jsx', import.meta.url), 'utf8')
 const loginPage = readFileSync(new URL('../src/pages/staff/LoginPage.jsx', import.meta.url), 'utf8')
 const privateRoute = readFileSync(new URL('../src/components/PrivateRoute.jsx', import.meta.url), 'utf8')
+const staffLoginService = readFileSync(new URL('../src/services/staffLoginService.js', import.meta.url), 'utf8')
 
 assert.match(staffEntryService, /forceAnonymous = false/)
 assert.match(staffEntryService, /signOut\(auth\)/)
@@ -46,5 +47,7 @@ assert.match(loginPage, /navigate\(loginRedirect, \{ replace: true \}\)/)
 assert.match(privateRoute, /useLocation/)
 assert.match(privateRoute, /loginPath = `\/login\?next=\$\{encodeURIComponent\(next\)\}`/)
 assert.match(privateRoute, /!user \|\| user\.isAnonymous/)
+assert.match(staffLoginService, /auth\.currentUser\?\.isAnonymous/)
+assert.match(staffLoginService, /await signOut\(auth\)/)
 
 console.log('staff entry checks passed')
