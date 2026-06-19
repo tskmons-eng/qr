@@ -1,5 +1,29 @@
 # QR System Plan
 
+## 2026-06-19 Production deployment
+
+### Scope
+
+- Deployed the current `codex/staff-entry-session-recovery` build to Firebase project `qrproduct-3340b`.
+- Deployed order callable Functions explicitly: `startCustomerOrderSessionCommand`, `submitCustomerOrderItemsCommand`, `submitStaffOrderItemsCommand`, `seatStaffOrderSessionCommand`, `completeCheckoutCommand`, `markOrderItemServedCommand`, `markOrderItemsServedCommand`, `markOrderItemOrderedCommand`, `cancelOrderItemCommand`, `moveTableOrderCommand`, and `guideReservationToTableCommand`.
+- Deployed Hosting and Firestore rules/indexes. Storage was not deployed.
+- This release supersedes earlier per-slice notes that said Firebase deploy had not yet been run.
+
+### Verification Results
+
+- `npm run check:staff-entry`, `npm run check:staff-permissions`, `npm run check:owner-access`, `npm run check`, and `npm run build` passed before deploy.
+- Order reliability gates passed before deploy: `npm run check:order-functions-mainline`, `npm run check:order-rules-lockdown`, `npm run check:data-consistency-repair`, and `npm run check:order-functions-emulator`.
+- Production `/staff` returned HTTP 200 and served the latest Hosting asset `assets/index-Co-14orm.js` with the staff store-code entry screen visible.
+- In-app browser verification of Production `/staff` showed no console warning/error logs.
+- `firebase functions:list` confirmed the deployed order callable Functions in `us-central1` on Node.js 20.
+- `firebase functions:log --only startCustomerOrderSessionCommand --lines 10` showed deployment/startup/callable verification entries and no error entries in the fetched output.
+- `npm run audit:pending-counts -- --json` and `npm run audit:command-failures -- --limit 10` could not run locally because Firestore read credentials were not available. No production data repair/write was run.
+
+### Follow-up Notes
+
+- Firebase reported that Cloud Functions Node.js 20 is deprecated and scheduled for decommission on 2026-10-30, so the Functions runtime should be upgraded in a separate planned change.
+- Firebase also warned that the `firebase-functions` package is outdated; update it separately with a focused Functions dependency check.
+
 ## 2026-06-19 Order reliability Round 2: Functions mainline
 
 ### User Priority
