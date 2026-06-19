@@ -40,8 +40,19 @@
 - `orderItems` から `tables.pendingCount` / `pendingAggregate*` を監査する読み取り専用スクリプトを追加する。
 - 監査結果だけを出し、修復 write は別指示があるまで実行しない。
 
+## 実装済み
+
+- `scripts/audit-pending-counts.mjs` を追加。
+- `npm run audit:pending-counts` で `.firebaserc` の既定プロジェクトを対象に、読み取り専用で監査する。
+- `npm run audit:pending-counts -- --store <storeId>` で店舗を絞り込める。
+- `npm run audit:pending-counts -- --json` で機械確認用の JSON を出力できる。
+- 監査は `orderItems` の `itemStatus == 'ordered'` を席ごとに再集計し、`pendingCount` と `pendingAggregate*` との差分、欠けた席参照、店舗不一致、空席に残った未提供明細を報告する。
+- 本番 Firestore を読む場合は `GOOGLE_APPLICATION_CREDENTIALS` または gcloud の Application Default Credentials が必要。Emulator は `FIRESTORE_EMULATOR_HOST` を使う。
+- 修復 write は含めない。データ修正が必要な場合は、監査結果を確認してから別タスクで扱う。
+
 ## 検証
 
 - `git diff` に削除・migration・deploy が含まれていないこと。
 - `rg -n "deleteDoc|batch.delete|deploy|migration" src scripts functions` を確認する。
 - `npm run check`
+- `npm run build`

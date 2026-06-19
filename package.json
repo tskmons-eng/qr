@@ -33,7 +33,8 @@
     "check:staff-table-detail": "node scripts/check-staff-table-detail.mjs",
     "check:order-command-boundary": "node scripts/check-order-command-boundary.mjs",
     "check:order-concurrency": "node scripts/check-order-concurrency.mjs",
-    "audit:structure": "node scripts/audit-structure.mjs"
+    "audit:structure": "node scripts/audit-structure.mjs",
+    "audit:pending-counts": "node scripts/audit-pending-counts.mjs"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",

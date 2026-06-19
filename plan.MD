@@ -91,6 +91,28 @@
 - Firebase emulator concurrency tests for order commands before production deploy.
 - Production deploy only after the command path can be verified without changing visible ordering flow.
 
+### 2026-06-19 Data preservation audit script
+
+#### Current State
+
+- Order command writes have been centralized without deleting or moving existing `orders`, `orderItems`, `checks`, `staffActions`, menu, reservation, or table data.
+- `tables.pendingCount` is legacy display state, and `pendingAggregate*` is maintained from `orderItems`; either can drift from the durable `orderItems` rows.
+- The data-preservation slice should add visibility only. It must not run Firestore writes, data cleanup, broad updates, rules changes, Functions changes, or production deploys.
+
+#### Audit Plan
+
+- Add a read-only script that loads `tables` and currently ordered `orderItems`.
+- Rebuild per-table pending totals from `orderItems` using the same count semantics as the current aggregate function: one pending `orderItems` document counts as one pending entry.
+- Compare rebuilt totals with `tables.pendingCount`, `pendingAggregateCount`, `pendingAggregateDrinkCount`, and `pendingAggregateFoodCount`.
+- Report missing table references, table/store mismatches, and vacant tables that still have pending items.
+- Leave any repair write or data correction as a separate explicit task.
+
+#### Verification
+
+- Confirm the diff contains only docs, package script wiring, and a read-only audit script.
+- Run the source scan from `02-data-preservation.md`.
+- Run `npm run check`.
+- Run `npm run build`.
 ### 2026-06-19 Command layer continuation from handoff
 
 #### Current State
