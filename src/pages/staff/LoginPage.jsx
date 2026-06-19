@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { consumeStaffGoogleRedirectResult, signInStaffWithEmail, signInStaffWithGoogle } from '../../services/staffLoginService'
 
 const GOOGLE_LOGIN_ERROR_MESSAGE = 'Googleログインに失敗しました'
-const DEFAULT_LOGIN_REDIRECT = '/staff'
+const DEFAULT_LOGIN_REDIRECT = '/admin'
 const LOGIN_REDIRECT_STORAGE_KEY = 'staffLoginRedirect'
 
 function isSafeLoginRedirect(next) {
@@ -16,7 +16,7 @@ function isSafeLoginRedirect(next) {
   return true
 }
 
-function getLoginRedirectStorage() {
+function getSessionLoginRedirectStorage() {
   try {
     return globalThis.sessionStorage ?? null
   } catch {
@@ -24,22 +24,32 @@ function getLoginRedirectStorage() {
   }
 }
 
+function getPersistentLoginRedirectStorage() {
+  try {
+    return globalThis.localStorage ?? null
+  } catch {
+    return null
+  }
+}
+
 function getSavedLoginRedirect() {
-  const storage = getLoginRedirectStorage()
-  if (!storage) return null
-  return storage.getItem(LOGIN_REDIRECT_STORAGE_KEY)
+  const sessionStorage = getSessionLoginRedirectStorage()
+  const savedSessionRedirect = sessionStorage?.getItem(LOGIN_REDIRECT_STORAGE_KEY)
+  if (isSafeLoginRedirect(savedSessionRedirect)) return savedSessionRedirect
+
+  const persistentStorage = getPersistentLoginRedirectStorage()
+  return persistentStorage?.getItem(LOGIN_REDIRECT_STORAGE_KEY) ?? null
 }
 
 function rememberLoginRedirect(next) {
-  const storage = getLoginRedirectStorage()
-  if (!storage || !isSafeLoginRedirect(next)) return
-  storage.setItem(LOGIN_REDIRECT_STORAGE_KEY, next)
+  if (!isSafeLoginRedirect(next)) return
+  getSessionLoginRedirectStorage()?.setItem(LOGIN_REDIRECT_STORAGE_KEY, next)
+  getPersistentLoginRedirectStorage()?.setItem(LOGIN_REDIRECT_STORAGE_KEY, next)
 }
 
 function clearLoginRedirect() {
-  const storage = getLoginRedirectStorage()
-  if (!storage) return
-  storage.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
+  getSessionLoginRedirectStorage()?.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
+  getPersistentLoginRedirectStorage()?.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
 }
 
 function getSafeLoginRedirect(search) {
@@ -64,12 +74,19 @@ export default function LoginPage() {
 
   useEffect(() => {
     let active = true
-    consumeStaffGoogleRedirectResult().catch(event => {
-      if (active) setError(GOOGLE_LOGIN_ERROR_MESSAGE)
-      console.error('Google redirect sign-in failed:', event)
-    })
+    consumeStaffGoogleRedirectResult()
+      .then(result => {
+        if (!active || !result?.user || result.user.isAnonymous) return
+        const redirect = getSafeLoginRedirect(location.search)
+        clearLoginRedirect()
+        navigate(redirect, { replace: true })
+      })
+      .catch(event => {
+        if (active) setError(GOOGLE_LOGIN_ERROR_MESSAGE)
+        console.error('Google redirect sign-in failed:', event)
+      })
     return () => { active = false }
-  }, [])
+  }, [location.search, navigate])
 
   useEffect(() => {
     if (user && !user.isAnonymous) {

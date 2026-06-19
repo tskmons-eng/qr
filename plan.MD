@@ -49,9 +49,10 @@
 
 - 管理画面でログインが必要な場合は `/login?next=/admin...` に遷移する。
 - Google/メールログイン後は、安全な同一アプリ内 `next` のみへ戻す。
-- Google OAuth リダイレクトでURLクエリが失われても戻れるように、リダイレクト開始前の安全な戻り先を `sessionStorage` に一時保存する。
+- Google OAuth リダイレクトでURLクエリが失われても戻れるように、リダイレクト開始前の安全な戻り先を `sessionStorage` と `localStorage` に一時保存する。
+- `/login` 単体に戻った場合でも、Googleログインは管理者ログインとして扱い、既定の戻り先を `/admin` にする。
 - 匿名スタッフセッションからGoogle管理者ログインへ切り替える時は、Googleリダイレクト前に匿名Authを明示的にsign outする。
-- `next` がない、不正、または `/login` 自身の場合は既存通り `/staff` に戻す。
+- `next` がない、不正、または `/login` 自身の場合は `/admin` に戻し、承認されていないメールは既存の承認ゲートで止める。
 - 注文、メニュー、履歴、店舗データには触れない。
 
 ### Verification
