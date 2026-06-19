@@ -34,6 +34,7 @@
 ## Required Checks
 
 - `git diff --check`
+- `npm run check:restaurant-ux-release-gate`
 - `npm run check:kitchen-display`
 - `npm run check:staff-menu`
 - `npm run check:staff-table-detail`
@@ -48,6 +49,12 @@
 - `npm run check:order-functions-emulator`
 - `npm run check`
 - `npm run build`
+
+## Final Gate Command
+
+- 通常配線確認: `npm run check:restaurant-ux-release-gate`
+- 本番deploy判断直前: `npm run check:restaurant-ux-release-gate -- --final`
+- 01〜06 の `Completion Notes` が未記入、またはローカルコミット未pushの場合、`--final` は失敗させる。
 
 ## Deploy Policy
 
@@ -66,9 +73,8 @@
 
 ## Completion Notes
 
-- Integrated commits:
-- Checks:
-- Deploy target:
-- Production result:
-- Remaining risk:
-
+- Integrated commits: 7d406e0 admin category iOS zoom, 90d8099 guest auto-add visibility, e7a0566 staff order/checkout scroll layout, 7ead6a1 customer cart/checkout history navigation, plus current 01 kitchen undo/density, 06 menu row tap setting, and 07 release gate changes.
+- Checks: `git diff --check`, `npm run check:restaurant-ux-release-gate`, `npm run check`, `npm run build`, and `npm run check:order-functions-emulator` passed after 07 fixed `complete_checkout` transaction contention error normalization. `npm run check:restaurant-ux-release-gate -- --final` is expected to pass only after this integration commit is pushed.
+- Deploy target: pending final gate. Planned target is Hosting plus `functions:completeCheckoutCommand`; rules / indexes / storage have no intended deploy target.
+- Production result: not deployed yet.
+- Remaining risk: iPhone実機のカテゴリー編集ズーム、顧客メニューの実機タップ感、キッチンUndoの現場操作感は自動チェックでは確認できない。deploy後は live HTML asset hash、主要ルートHTTP 200、Functions log、`audit:command-failures` を確認する。

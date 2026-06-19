@@ -2,6 +2,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import {
   cancelOrderItemCommand,
+  markOrderItemOrderedCommand,
   markOrderItemsServedCommand,
   markOrderItemServedCommand,
 } from './orderItemCommandService'
@@ -30,6 +31,17 @@ export async function markKitchenItemServed(item) {
 
 export async function markKitchenItemsServed(items) {
   return markOrderItemsServedCommand(items)
+}
+
+export async function markKitchenItemOrdered(item) {
+  return markOrderItemOrderedCommand({ tableId: item.tableId, itemId: item.id })
+}
+
+export async function markKitchenItemsOrdered(items) {
+  const results = await Promise.allSettled(items.map(item => markKitchenItemOrdered(item)))
+  const rejected = results.find(result => result.status === 'rejected')
+  if (rejected) throw rejected.reason
+  return results.map(result => result.value)
 }
 
 export async function cancelKitchenItem({ item, table, activeStaff }) {

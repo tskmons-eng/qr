@@ -71,14 +71,28 @@ const cleanedAfterSubscription = pruneOptimisticHiddenKitchenItemIds(hiddenAll, 
 assert.deepEqual([...cleanedAfterSubscription], ['drink-1'])
 assert.equal(pruneOptimisticHiddenKitchenItemIds(cleanedAfterSubscription, [{ id: 'drink-1' }]), cleanedAfterSubscription)
 
-const [kitchenItemRow, kitchenCss] = await Promise.all([
+const [kitchenItemRow, kitchenPage, kitchenService, kitchenUndoBar, kitchenLayoutCss, kitchenCss] = await Promise.all([
   readFile('src/components/staff/KitchenItemRow.jsx', 'utf8'),
+  readFile('src/pages/kitchen/KitchenPage.jsx', 'utf8'),
+  readFile('src/services/kitchenService.js', 'utf8'),
+  readFile('src/components/staff/KitchenServedUndoBar.jsx', 'utf8'),
+  readFile('src/styles/staff-kitchen-layout.css', 'utf8'),
   readFile('src/styles/staff-kitchen-table.css', 'utf8'),
 ])
 
 assert.ok(kitchenItemRow.includes('formatKitchenOrderOptions(item.optionSelections)'), 'Kitchen row should format order item options')
 assert.ok(kitchenItemRow.includes('staff-kitchen-item__options'), 'Kitchen row should render option text')
+assert.ok(kitchenPage.includes('KitchenServedUndoBar'), 'Kitchen page should render the served undo bar')
+assert.ok(kitchenPage.includes('markKitchenItemsOrdered(servedUndo.items)'), 'Kitchen undo should call the command-backed ordered revert service')
+assert.ok(kitchenPage.includes("operation: 'kitchen_undo_served'"), 'Kitchen undo failures should be logged')
+assert.ok(kitchenService.includes('markOrderItemOrderedCommand'), 'Kitchen service should use the existing ordered revert command')
+assert.ok(kitchenService.includes('markKitchenItemsOrdered'), 'Kitchen service should expose all-served undo through command calls')
+assert.ok(kitchenUndoBar.includes('role="status"'), 'Kitchen undo bar should announce the latest undo opportunity')
+assert.ok(kitchenUndoBar.includes("onClick={onUndo}"), 'Kitchen undo bar should provide an undo action')
+assert.ok(kitchenLayoutCss.includes('.staff-kitchen-undo'), 'Kitchen layout CSS should style the undo bar')
+assert.ok(kitchenLayoutCss.includes('grid-template-columns: repeat(auto-fill, minmax(260px, 1fr))'), 'Kitchen grid should use denser card columns without shrinking text')
 assert.ok(kitchenCss.includes('.staff-kitchen-item__options'), 'Kitchen CSS should style option text')
 assert.ok(kitchenCss.includes('overflow-wrap: anywhere'), 'Kitchen option labels should wrap instead of widening the row')
+assert.ok(kitchenCss.includes('padding: 8px 12px'), 'Kitchen item rows should reduce padding for better density')
 
 console.log('kitchen display checks passed')

@@ -50,7 +50,7 @@
 
 - `git diff --check`
 - 担当MDに書かれた個別チェック
+- 07担当は `npm run check:restaurant-ux-release-gate`
 - 影響がUIだけでも、関連する既存チェックを最低1つ実行する
 - 実装結果、未解決リスク、deploy未実施であることを担当MDへ追記する
 - コミットしてpushする
-

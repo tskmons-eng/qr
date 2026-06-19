@@ -59,7 +59,13 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
+- Result: `customerMenuTapToAddEnabled` を店舗設定に追加し、既定ONで顧客メニューの商品名/価格/画像エリアをタップ追加できるようにした。設定OFF時は従来どおりプラス/選択ボタンのみ。売り切れ商品はタップ追加不可。
 - Checks:
-- Remaining risk:
-
+  - `npm run check:customer-cart` passed.
+  - `npm run check:customer-entry` passed.
+  - `npm run check:settings` passed.
+  - `npm run check:option-modal` passed.
+  - `git diff --check` passed with CRLF warnings only.
+  - `npm run check` passed.
+  - `npm run build` passed.
+- Remaining risk: 実機でのタップ感と誤タップの出方は未確認。最終deploy判断と本番反映は `07-integration-release-gate.md` で扱う。

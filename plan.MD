@@ -42,14 +42,6 @@
 - Impact scope: `src/pages/kitchen/KitchenPage.jsx`, `src/services/kitchenService.js`, small kitchen undo component, `src/styles/staff-kitchen-layout.css`, `src/styles/staff-kitchen-table.css`, `scripts/check-kitchen-display.mjs`, `scripts/check-order-command-ui.mjs`, and `docs/restaurant-ux-round4/01-kitchen-served-undo-density.md`.
 - Verification: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
 
-### 04 Admin Category iOS Zoom Responsibility
-
-- Purpose: カテゴリー編集でiOS Safariが入力フォーカス時に自動ズームしにくい状態へ整え、管理画面の既存データ処理は変えない。
-- Current confirmation: `CategoryRow` の編集行は `autoFocus` 付きのカテゴリ名input、分類select、任意のタグinputを持ち、対象CSSは `admin-product-category.css` で13pxから15pxの入力が混在している。
-- Change policy: viewportのズーム禁止には逃げず、カテゴリー管理内のinput/selectと編集行の操作ボタンだけを16px基準にする。行の高さはpaddingを増やさず、既存の追加/編集/削除/並び替えロジックには触れない。
-- Impact scope: `src/styles/admin-product-category.css`, `scripts/check-admin-category.mjs`, and `docs/restaurant-ux-round4/04-admin-category-ios-zoom.md`.
-- Verification: `npm run check:admin-category`, `npm run check:product-form`, `npm run check`, `npm run build`, and `git diff --check`.
-
 ### 05 Guest Auto Add Entry Visibility Responsibility
 
 - Purpose: 人数分メニュー自動追加の「人数設定画面に追加内容のボタン表示を出す」設定が、管理画面と顧客人数画面で一貫して効くことを固定する。
@@ -58,10 +50,44 @@
 - Impact scope: `scripts/check-customer-entry.mjs`, `scripts/check-settings-config.mjs`, `docs/restaurant-ux-round4/05-guest-auto-add-entry-visibility.md`, and this plan.
 - Verification: `npm run check:customer-entry`, `npm run check:settings`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
 
+### 03 Customer Cart Checkout History Navigation Responsibility
+
+- Purpose: 顧客QRの「カート」「注文履歴/注文状況」「会計確認」の意味を分け、注文前のカート周辺で金額を強く出さない。
+- Current confirmation: `CustomerBottomNav` と `CartFloatingButton` はカート導線で金額を出し、`OrderCompletePage` の会計ボタンは注文履歴/合計確認を経由せず会計依頼確認へ進む。
+- Change policy: 下部ナビ/カート表示を点数中心にし、`OrderCompletePage` 上で会計確認モードを経由して注文済み履歴と合計を見せてから `checkout` call を送る。
+- Impact scope: `CustomerBottomNav`, customer cart components/styles, `OrderCompletePage`, order status header/total panel, customer cart/status checks, and `docs/restaurant-ux-round4/03-customer-cart-checkout-history-navigation.md`.
+- Verification: `npm run check:customer-cart`, `npm run check:customer-order-status`, `npm run check:customer-entry`, `npm run check:order-command-ui`, `npm run check`, and `npm run build`.
+- Verification results: `git diff --check`, all listed individual checks, `npm run check`, and `npm run build` passed. No Firebase deploy was run.
+
+### 04 Admin Category iOS Zoom Responsibility
+
+- Purpose: カテゴリー編集でiOS Safariが入力フォーカス時に自動ズームしにくい状態へ整え、管理画面の既存データ処理は変えない。
+- Current confirmation: `CategoryRow` の編集行は `autoFocus` 付きのカテゴリ名input、分類select、任意のタグinputを持ち、対象CSSは `admin-product-category.css` で13pxから15pxの入力が混在している。
+- Change policy: viewportのズーム禁止には逃げず、カテゴリー管理内のinput/selectと編集行の操作ボタンだけを16px基準にする。行の高さはpaddingを増やさず、既存の追加/編集/削除/並び替えロジックには触れない。
+- Impact scope: `src/styles/admin-product-category.css`, `scripts/check-admin-category.mjs`, and `docs/restaurant-ux-round4/04-admin-category-ios-zoom.md`.
+- Verification: `npm run check:admin-category`, `npm run check:product-form`, `npm run check`, `npm run build`, and `git diff --check`.
+
+### 06 Customer Menu Row Tap Add Setting Responsibility
+
+- Purpose: 顧客メニューでプラス/選択ボタンに加えて商品行の広い領域をタップ追加にし、店舗設定でプラスボタンのみへ戻せるようにする。
+- Current confirmation: `OrderEntryPage` は `storeConfig` を `OrderProvider` に渡しており、`MenuPage` から参照できる。顧客商品行は `CustomerMenuProductList`、店舗設定UIは `CustomerDisplaySettings` に既存トグル構造がある。
+- Change policy: 既定は `customerMenuTapToAddEnabled: true` とし、売り切れ行はタップ追加不可。オプションありは既存 `onAddProduct()`、オプションなしは既存数量更新を使い、カートIDや注文送信処理は触らない。
+- Impact scope: `src/lib/settingsConfig.js`, `src/lib/customerEntry.js`, `src/pages/order/MenuPage.jsx`, `src/components/order/CustomerMenuProductList.jsx`, `src/styles/customer-menu.css`, related check scripts, and `docs/restaurant-ux-round4/06-customer-menu-row-tap-add-setting.md`.
+- Verification: `npm run check:customer-cart`, `npm run check:customer-entry`, `npm run check:settings`, `npm run check:option-modal`, `npm run check`, and `npm run build`.
+
+### 07 Integration Release Gate Responsibility
+
+- Purpose: 01〜06の完了結果、衝突、UI崩れ、注文/会計安全性をまとめて確認し、本番deploy可否を判断できるゲートを固定する。
+- Current confirmation: 01〜06の担当MDは `Completion Notes` を持ち、通常ゲートは完了メモ、必須チェック、Firebase project/configを確認できる。`check:order-functions-emulator` は会計競合時に内部数値コードが漏れたため、07で `complete_checkout` のtransaction contentionを `checkout-items-stale` に正規化した。
+- Change policy: `npm run check` に通常モードの配線チェックを組み込み、`--final` の時だけ各担当完了メモ、clean git、push済みを強制する。最終deploy対象はHostingと `functions:completeCheckoutCommand` に絞り、rules / indexes / storage は差分がない限りdeployしない。
+- Impact scope: `scripts/check-restaurant-ux-release-gate.mjs`, `functions/orderCommandApi.js`, `package.json`, `.gitignore`, `docs/restaurant-ux-round4/README.md`, `docs/restaurant-ux-round4/07-integration-release-gate.md`, and this plan.
+- Verification: `npm run check:restaurant-ux-release-gate`, `git diff --check`, `npm run check`, `npm run check:order-functions-emulator`, and `npm run build`. Commit/push後に `npm run check:restaurant-ux-release-gate -- --final` を実行する。
+
 ### Verification
 
 - `git diff --check`
 - 各担当MDの個別チェック
+- `npm run check:restaurant-ux-release-gate`
 - `npm run check`
 - `npm run build`
 

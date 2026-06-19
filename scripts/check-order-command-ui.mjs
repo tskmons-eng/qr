@@ -51,8 +51,22 @@ const sourceAssertions = [
       'removeOptimisticHiddenKitchenItemIds',
       'pruneOptimisticHiddenKitchenItemIds',
       'filterOptimisticHiddenKitchenItems(pendingItems, optimisticHiddenItemIds)',
+      'KitchenServedUndoBar',
+      'handleUndoServed',
+      'markKitchenItemsOrdered(servedUndo.items)',
+      'operation: \'kitchen_undo_served\'',
     ],
     forbidden: [],
+  },
+  {
+    file: 'src/services/kitchenService.js',
+    required: [
+      'markOrderItemOrderedCommand',
+      'markKitchenItemsOrdered',
+    ],
+    forbidden: [
+      'updateDoc',
+    ],
   },
 ]
 

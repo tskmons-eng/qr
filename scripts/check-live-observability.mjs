@@ -28,7 +28,7 @@ const [
 for (const token of [
   'recordOrderCommandFailure',
   'buildOrderCommandFailureContext',
-  'throw toHttpsError(error)',
+  'throw toHttpsError(error',
 ]) {
   assert.ok(api.includes(token), `functions/orderCommandApi.js should include ${token}`)
 }

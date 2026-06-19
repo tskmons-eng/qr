@@ -59,9 +59,9 @@
   - `git diff --check`: passed.
   - `npm run check:customer-entry`: passed.
   - `npm run check:settings`: passed.
-  - `npm run check:order-functions-emulator`: failed in existing `runCheckoutSubmitRace` assertion (`actual 3`, expected `checkout-items-stale`). This task did not change Functions or checkout race code.
+  - `npm run check:order-functions-emulator`: initially failed in the existing `runCheckoutSubmitRace` assertion (`actual 3`, expected `checkout-items-stale`); 07統合で `complete_checkout` のtransaction contentionを `checkout-items-stale` に正規化し、再実行でpassed。
   - `npm run check`: passed.
   - `npm run build`: passed.
 - Remaining risk:
   - 実データ上で `guestAutoAdd.enabled: true` かつ存在しない `productId` が保存されている場合、既存どおり管理画面に警告を出し、顧客人数画面では自動追加文言を出さない。データ修復や商品履歴の変更はこの担当では行わない。
-  - `check:order-functions-emulator` の会計競合失敗は5番の表示確認とは別件として残る。
+  - 会計競合のエラー正規化は07統合側で修正済み。5番自体は既存UI/commandの接続確認に留め、実データ修復は行っていない。

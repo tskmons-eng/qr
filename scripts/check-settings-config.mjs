@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   calculateIncludedTax,
+  CUSTOMER_SETTING_TOGGLES,
   GUEST_AUTO_ADD_DEFAULTS,
   normalizeAllowedEmail,
   normalizeGuestAutoAdd,
@@ -16,6 +17,11 @@ assert.deepEqual(normalizeStoreConfig({ showItemPrice: false, taxRate: 8 }), {
   taxRate: 8,
   guestAutoAdd: GUEST_AUTO_ADD_DEFAULTS,
 })
+assert.equal(STORE_CONFIG_DEFAULTS.customerMenuTapToAddEnabled, true)
+assert.equal(
+  CUSTOMER_SETTING_TOGGLES.some(setting => setting.key === 'customerMenuTapToAddEnabled'),
+  true,
+)
 
 assert.deepEqual(normalizeGuestAutoAdd({ enabled: true, productId: 'p1' }), {
   ...GUEST_AUTO_ADD_DEFAULTS,
@@ -44,6 +50,7 @@ const staffAuthStyles = readFileSync(new URL('../src/styles/staff-auth.css', imp
 
 assert.match(settingsPage, /DeviceSoundSettings/)
 assert.match(settingsPage, /notificationControls/)
+assert.match(settingsPage, /CUSTOMER_SETTING_TOGGLES/)
 assert.match(storeWorkflowSettings, /人数設定画面に追加内容のボタン表示を出す/)
 assert.match(storeWorkflowSettings, /checked=\{guestAutoAdd\.showGuestCountButton !== false\}/)
 assert.match(storeWorkflowSettings, /onGuestAutoAddChange\(\{ showGuestCountButton: event\.target\.checked \}\)/)
@@ -53,6 +60,7 @@ assert.match(deviceSoundSettings, /saveSoundPrefs/)
 assert.match(deviceSoundSettings, /saveKitchenSoundPrefs/)
 assert.match(deviceSoundSettings, /ホールとキッチンで使う通知音/)
 assert.match(deviceSoundSettings, /この端末の通知/)
+assert.match(readFileSync(new URL('../src/lib/settingsConfig.js', import.meta.url), 'utf8'), /商品行タップで追加/)
 assert.doesNotMatch(staffAuthStyles, /sound-settings/)
 
 console.log('settings config checks passed')
