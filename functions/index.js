@@ -3,11 +3,24 @@ const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { initializeApp } = require('firebase-admin/app')
 const { getMessaging } = require('firebase-admin/messaging')
 const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore')
+const { createOrderCommandCallable } = require('./orderCommandApi')
+const orderCommandHandlers = require('./orderCommandHandlers')
 
 initializeApp()
 
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
+
+exports.startCustomerOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.startCustomerOrderSession)
+exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems)
+exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems)
+exports.seatStaffOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.seatStaffOrderSession)
+exports.completeCheckoutCommand = createOrderCommandCallable(orderCommandHandlers.completeCheckoutCommand)
+exports.markOrderItemServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemServedCommand)
+exports.markOrderItemsServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemsServedCommand)
+exports.markOrderItemOrderedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemOrderedCommand)
+exports.cancelOrderItemCommand = createOrderCommandCallable(orderCommandHandlers.cancelOrderItemCommand)
+exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.moveTableOrderCommand)
 
 function getPendingAggregateCounts(item) {
   if (!item || item.itemStatus !== 'ordered' || !item.tableId) return null

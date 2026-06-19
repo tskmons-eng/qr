@@ -33,3 +33,44 @@
 - `npm run check`
 - `npx vite build`
 - 明示許可後の staging / production deploy 確認
+
+## 2026-06-19 実装メモ
+
+追加済み:
+
+- `functions/orderCommandHandlers.js`
+  - 既存 client-side command と同じ単位の callable handler を追加。
+  - `startCustomerOrderSessionCommand`
+  - `submitCustomerOrderItemsCommand`
+  - `submitStaffOrderItemsCommand`
+  - `seatStaffOrderSessionCommand`
+  - `completeCheckoutCommand`
+  - `markOrderItemServedCommand`
+  - `markOrderItemsServedCommand`
+  - `markOrderItemOrderedCommand`
+  - `cancelOrderItemCommand`
+  - `moveTableOrderCommand`
+- `functions/orderCommandAuth.js`
+  - Admin SDK が rules を迂回するため、スタッフ系 command の `canAccess(storeId)` 相当を Functions 内に追加。
+- `functions/orderCommandApi.js`
+  - command error code を callable error details に載せる。
+- `src/services/orderFunctionCommandService.js`
+  - `VITE_ORDER_COMMAND_RUNTIME=functions` のときだけ callable を使う opt-in 切替。
+  - 未設定または `client` では従来の client transaction command を使う。
+- `functions/package.json` / `functions/package-lock.json`
+  - `firebase.json` の `nodejs20` と一致するよう Node engine を `20` に変更。
+- `scripts/check-functions-rules-migration.mjs`
+  - callable export、opt-in runtime、rules 互換、Functions runtime 整合を静的確認。
+
+未実施:
+
+- Functions deploy。
+- Firestore rules 締め込み。
+- 既存 Firestore データの migration / delete / repair write。
+
+次にやること:
+
+1. Emulator で callable command の同時操作テストを追加する。
+2. staging で `VITE_ORDER_COMMAND_RUNTIME=functions` を明示して UI wrapper 経由の動作を確認する。
+3. 新旧クライアント混在期間を置く。
+4. `orders` / `orderItems` の公開 create rule を段階的に締める。

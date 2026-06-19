@@ -91,6 +91,53 @@
 - Firebase emulator concurrency tests for order commands before production deploy.
 - Production deploy only after the command path can be verified without changing visible ordering flow.
 
+### 2026-06-19 Functions command migration step
+
+#### Purpose
+
+- Take ownership of `docs/order-reliability/04-functions-rules-migration.md`.
+- Prepare the next order-reliability stage by adding Cloud Functions callable command APIs that mirror the existing client-side command input/output shape.
+- Keep existing customer/staff UI wrappers stable, so the runtime can switch from client transactions to Functions without changing route or button behavior.
+
+#### Current Confirmation
+
+- Client-side command/transaction wrappers are already in place for order start, submit, seating, checkout, served/unserved, cancel, and table move.
+- The 04 migration doc explicitly forbids production deploy, premature rules tightening, and data migration in this step.
+- `.firebaserc` default project is `qrproduct-3340b`; this step will not deploy to Firebase.
+- `firebase.json` declares Functions runtime `nodejs20`, while `functions/package.json` still declares Node `22`.
+
+#### Change Policy
+
+- Add callable Functions for the order commands behind a server command module.
+- Add an opt-in client runtime switch, defaulting to the existing client transaction implementation.
+- Add server-side authorization for staff commands because Admin SDK bypasses Firestore rules.
+- Keep public customer command compatibility while validating table/order/store consistency on the server.
+- Align the Functions package engine with the configured Firebase runtime.
+
+#### Impact Scope
+
+- Functions source and package metadata.
+- Client order command services only at the wrapper boundary.
+- Static check scripts and documentation.
+- No Firestore rules tightening, no data migration, no hosting/functions deploy.
+
+#### Verification
+
+- `node --check` for Functions files.
+- `npm run check`
+- `npm run build`
+- Confirm `git diff` does not include Firebase deploy output or Firestore rules tightening.
+
+#### Verification Results
+
+- `node --check functions/index.js functions/orderCommandApi.js functions/orderCommandAuth.js functions/orderCommandHandlers.js functions/orderCommandShared.js` passed.
+- `npm run check:functions-rules-migration` passed.
+- `npm run check` passed.
+- Initial `npm run build` failed because `node_modules/firebase/functions/dist/esm/index.esm.js` was OneDrive online-only and unreadable.
+- Reinstalled the local `node_modules/firebase` package from the existing lockfile; no package dependency change was introduced.
+- `npm run build` passed after dependency hydration.
+- No Firebase deploy was run.
+
 ### 2026-06-19 Order command UI compatibility
 
 #### Purpose
@@ -137,6 +184,7 @@
 - `npm run build` passed.
 - Local Vite dev server is running at `http://127.0.0.1:5174/`; `/`, `/staff`, and `/staff/kitchen` returned HTTP 200.
 - No Firebase deploy was run.
+
 ### 2026-06-19 Data preservation audit script
 
 #### Current State
@@ -159,6 +207,7 @@
 - Run the source scan from `02-data-preservation.md`.
 - Run `npm run check`.
 - Run `npm run build`.
+
 ### 2026-06-19 Command layer continuation from handoff
 
 #### Current State
@@ -190,6 +239,28 @@
 - Remaining direct order writes are staff/kitchen served toggles, item cancellation, and table moves.
 
 #### Command Plan
+
+- Add transaction-backed commands for:
+  - `markOrderItemServedCommand`
+  - `markOrderItemOrderedCommand`
+  - `cancelOrderItemCommand`
+  - `moveTableOrderCommand`
+- Adjust `tables.pendingCount` only from the current item status read inside the transaction:
+  - `ordered -> served` decrements once.
+  - `served -> ordered` increments once.
+  - `ordered -> cancelled` decrements once.
+  - Already `served` or `cancelled` states do not double-decrement.
+- Keep passcode validation in the staff-table wrapper, then put the item update, table counter update, and `staffActions` write into the command transaction.
+- Move table state, `orders.tableId`, and known `orderItems.tableId` together when a table is moved.
+- Do not delete Firestore data, run migrations, change rules, change Functions, or deploy hosting/functions in this phase.
+
+#### Verification
+
+- Run `npm run check`.
+- Run `npm run build`.
+- Confirm no direct order mutation path remains outside the command wrapper except non-order table guest-count/admin flows.
+- Commit and push after verification.
+
 ### 2026-06-19 Command failure logging for order boundary
 
 #### Current State
@@ -211,27 +282,6 @@
 - Run `npm run check:order-command-boundary`.
 - Run `npm run check`.
 - Run `npm run build`.
-- Commit and push after verification.
-
-- Add transaction-backed commands for:
-  - `markOrderItemServedCommand`
-  - `markOrderItemOrderedCommand`
-  - `cancelOrderItemCommand`
-  - `moveTableOrderCommand`
-- Adjust `tables.pendingCount` only from the current item status read inside the transaction:
-  - `ordered -> served` decrements once.
-  - `served -> ordered` increments once.
-  - `ordered -> cancelled` decrements once.
-  - Already `served` or `cancelled` states do not double-decrement.
-- Keep passcode validation in the staff-table wrapper, then put the item update, table counter update, and `staffActions` write into the command transaction.
-- Move table state, `orders.tableId`, and known `orderItems.tableId` together when a table is moved.
-- Do not delete Firestore data, run migrations, change rules, change Functions, or deploy hosting/functions in this phase.
-
-#### Verification
-
-- Run `npm run check`.
-- Run `npm run build`.
-- Confirm no direct order mutation path remains outside the command wrapper except non-order table guest-count/admin flows.
 - Commit and push after verification.
 
 ### 2026-06-19 Concurrency test responsibility
