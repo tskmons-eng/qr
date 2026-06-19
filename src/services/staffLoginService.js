@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, getRedirectResult, signInWithEmailAndPassword, signInWithRedirect } from 'firebase/auth'
+import { GoogleAuthProvider, getRedirectResult, signInWithEmailAndPassword, signInWithRedirect, signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 
 const googleProvider = new GoogleAuthProvider()
@@ -7,7 +7,10 @@ export function signInStaffWithEmail(email, password) {
   return signInWithEmailAndPassword(auth, email, password)
 }
 
-export function signInStaffWithGoogle() {
+export async function signInStaffWithGoogle() {
+  if (auth.currentUser?.isAnonymous) {
+    await signOut(auth)
+  }
   return signInWithRedirect(auth, googleProvider)
 }
 
