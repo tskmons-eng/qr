@@ -67,8 +67,19 @@ for (const token of [
 assert.ok(api.includes("new HttpsError("), 'Functions command API should map command errors to callable errors')
 assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME") && clientRuntime.includes("=== 'functions'"), 'client command runtime should be opt-in')
 
-assert.ok(rules.includes('match /orders/{orderId}') && rules.includes('allow create: if true;'), 'orders create rule must remain compatible during migration')
-assert.ok(rules.includes('match /orderItems/{itemId}') && rules.includes('allow create: if true;'), 'orderItems create rule must remain compatible during migration')
+assert.match(
+  rules,
+  /function legacyPublicOrderWritesAllowed\(\) \{[\s\S]*?return true;/,
+  'legacy public order writes must remain compatible during migration'
+)
+assert.ok(
+  rules.includes('match /orders/{orderId}') && rules.includes('allow create: if legacyPublicOrderWritesAllowed();'),
+  'orders create rule must route through the compatibility helper during migration'
+)
+assert.ok(
+  rules.includes('match /orderItems/{itemId}') && rules.includes('allow create: if legacyPublicOrderWritesAllowed();'),
+  'orderItems create rule must route through the compatibility helper during migration'
+)
 
 const firebase = JSON.parse(firebaseJson)
 const functionsPkg = JSON.parse(functionsPackage)

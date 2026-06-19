@@ -104,11 +104,29 @@ service cloud.firestore {
         || staffIsManager(storeId);
     }
 
+    function legacyPublicOrderWritesAllowed() {
+      // Compatibility stage. Flip to false only after Functions mainline, emulator checks,
+      // live monitoring, and 11-integration-release gates confirm old clients are gone.
+      return true;
+    }
+
+    function legacyPublicTableOccupyAllowed() {
+      // Compatibility stage for old QR clients that directly occupy a vacant table.
+      return true;
+    }
+
     function keepsTableManagementFields() {
       return request.resource.data.storeId == resource.data.storeId
         && request.resource.data.tableName == resource.data.tableName
         && request.resource.data.qrToken == resource.data.qrToken
         && request.resource.data.get('groupId', null) == resource.data.get('groupId', null);
+    }
+
+    function legacyPublicTableOccupyRequest() {
+      return legacyPublicTableOccupyAllowed()
+        && resource.data.status == 'vacant'
+        && request.resource.data.status == 'occupied'
+        && keepsTableManagementFields();
     }
 
     function canHandleReservationWait() {
@@ -226,11 +244,7 @@ service cloud.firestore {
       allow create: if canManageTables(request.resource.data.storeId);
       allow update: if canManageTables(resource.data.storeId)
                     || (canAccess(resource.data.storeId) && keepsTableManagementFields())
-                    || (
-                      resource.data.status == 'vacant'
-                      && request.resource.data.status == 'occupied'
-                      && keepsTableManagementFields()
-                    );
+                    || legacyPublicTableOccupyRequest();
       allow delete: if canManageTables(resource.data.storeId);
     }
 
@@ -272,7 +286,7 @@ service cloud.firestore {
     // 注文（お客さんも作成できる）
     match /orders/{orderId} {
       allow read: if true;
-      allow create: if true;
+      allow create: if legacyPublicOrderWritesAllowed();
       allow update: if canAccess(resource.data.storeId);
       allow delete: if canAccess(resource.data.storeId);
     }
@@ -280,7 +294,7 @@ service cloud.firestore {
     // 注文アイテム（お客さんも作成できる）
     match /orderItems/{itemId} {
       allow read: if true;
-      allow create: if true;
+      allow create: if legacyPublicOrderWritesAllowed();
       allow update: if canAccess(resource.data.storeId);
       allow delete: if canAccess(resource.data.storeId);
     }

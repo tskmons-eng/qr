@@ -73,3 +73,4 @@ Round 2 の完了条件:
 - Functions callable command は opt-in runtime として追加済み。
 - 本番 deploy、Firestore データ削除、Firestore migration、rules 締め込みは未実施。
 - ここからは「Functions を用意した」ではなく「Functions を本番注文経路にする」ことを完了条件にする。
+- 08では rules lockdown 用の stage helper を追加済み。現行rulesは Compatibility stage のままで、公開注文writeはまだ閉じていない。

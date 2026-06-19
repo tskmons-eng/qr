@@ -32,6 +32,49 @@
 - rules 締め込みが deploy 順と新旧クライアント混在を考慮していること。
 - データ削除やメニュー移行なしで、監査/修復手順が dry-run first であること。
 
+## 2026-06-19 Rules lockdown staging
+
+### Purpose
+
+- Take ownership of `docs/order-reliability/08-rules-lockdown.md`.
+- Prepare the Firestore rules lockdown path without breaking old client builds before 06/07/11 finish their gates.
+
+### Current State
+
+- `firestore.rules` still permits public QR order start/submit compatibility:
+  - `tables` vacant-to-occupied update.
+  - `orders` create.
+  - `orderItems` create.
+- Functions command APIs exist, but this slice must not assume the live Hosting/Functions deploy order is complete.
+- `orderCommandFailures` rules already exist and should remain readable to super/history-capable staff and writable only as validated failure documents.
+
+### Change Policy
+
+- Keep current compatibility behavior active in `firestore.rules`.
+- Wrap legacy public order writes in explicit stage helper functions so lockdown is a small audited flip, not an ad-hoc rules edit.
+- Add `scripts/check-order-rules-lockdown.mjs` to verify:
+  - compatibility stage remains open in the deploy-target rules file,
+  - the lockdown flip points are present,
+  - customer/staff/admin read paths are not accidentally removed,
+  - integration release docs include deploy/rollback cautions.
+- Update 08/11 docs with staged deploy conditions. No production deploy in this slice.
+
+### Verification
+
+- `npm run check:order-rules-lockdown`
+- `npm run check:functions-rules-migration`
+- `npm run check`
+- `npm run build`
+
+### Verification Results
+
+- `npm run check:order-rules-lockdown` passed.
+- `npm run check:functions-rules-migration` passed.
+- `npm run check:order-functions-mainline` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- Current `firestore.rules` remains in Compatibility stage; no public order write lockdown was deployed.
+- No Firebase deploy was run.
 ## 2026-06-19 Order reliability architecture review
 
 ### Context

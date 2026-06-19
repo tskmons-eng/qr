@@ -40,9 +40,16 @@
 5. Rules compatibility deploy
    - まず互換 rules を deploy する。
    - 新旧クライアント混在が落ち着くまで、公開 write の完全遮断は急がない。
+   - `legacyPublicOrderWritesAllowed()` は `true` のままにする。
+   - `legacyPublicTableOccupyAllowed()` は `true` のままにする。
+   - この段階では `orders` / `orderItems` create と旧QRの table occupy update をまだ閉じない。
 
 6. Rules lockdown deploy
    - 旧 client write が残っていないことを確認してから公開 `orders` / `orderItems` write を段階的に閉じる。
+   - `legacyPublicOrderWritesAllowed()` を `false` にする。
+   - `legacyPublicTableOccupyAllowed()` を `false` にする。
+   - deploy 前に `npm run check:order-rules-lockdown` を実行する。
+   - deploy 後に顧客QR、スタッフ注文、キッチン、会計の主要導線と `orderCommandFailures` を確認する。
 
 ## rollback
 
@@ -56,7 +63,9 @@
 
 - rules lockdown 後に旧 client 影響が出た場合:
   - rules を compatibility stage に戻す。
+  - `legacyPublicOrderWritesAllowed()` と `legacyPublicTableOccupyAllowed()` を `true` に戻す。
   - Hosting runtime と failure logs を確認する。
+  - 必要なら `VITE_ORDER_COMMAND_RUNTIME=client` の rollback build をHostingへ戻す。
 
 ## 完了条件
 
