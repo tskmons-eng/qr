@@ -42,7 +42,16 @@ const sourceAssertions = [
   },
   {
     file: 'src/pages/kitchen/KitchenPage.jsx',
-    required: ['handleMarkServed', 'handleMarkAllServed', 'OrderCommandErrorNotice message={commandError}'],
+    required: [
+      'handleMarkServed',
+      'handleMarkAllServed',
+      'OrderCommandErrorNotice message={commandError}',
+      'optimisticHiddenItemIds',
+      'addOptimisticHiddenKitchenItemIds',
+      'removeOptimisticHiddenKitchenItemIds',
+      'pruneOptimisticHiddenKitchenItemIds',
+      'filterOptimisticHiddenKitchenItems(pendingItems, optimisticHiddenItemIds)',
+    ],
     forbidden: [],
   },
 ]

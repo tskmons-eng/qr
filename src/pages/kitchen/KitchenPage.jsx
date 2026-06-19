@@ -13,10 +13,14 @@ import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCo
 import { getTokyoDateString } from '../../lib/reservationDisplay'
 import { loadKitchenSoundPrefs, playSound } from '../../lib/sounds'
 import {
+  addOptimisticHiddenKitchenItemIds,
   buildKitchenTableGroups,
+  filterOptimisticHiddenKitchenItems,
   filterKitchenItemsByGroup,
   findNewKitchenItems,
   KITCHEN_FILTERS,
+  pruneOptimisticHiddenKitchenItemIds,
+  removeOptimisticHiddenKitchenItemIds,
 } from '../../lib/kitchenDisplay'
 import {
   cancelKitchenItem,
@@ -40,6 +44,7 @@ export default function KitchenPage() {
   const [storeConfig, setStoreConfig] = useState(null)
   const [todayReservations, setTodayReservations] = useState([])
   const [commandError, setCommandError] = useState('')
+  const [optimisticHiddenItemIds, setOptimisticHiddenItemIds] = useState(() => new Set())
   const prevItemIdsRef = useRef(null)
   const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
   const today = getTokyoDateString()
@@ -77,6 +82,10 @@ export default function KitchenPage() {
     })
   }, [filterGroup, storeId])
 
+  useEffect(() => {
+    setOptimisticHiddenItemIds(currentIds => pruneOptimisticHiddenKitchenItemIds(currentIds, pendingItems))
+  }, [pendingItems])
+
   async function cancelItem(item, table) {
     if (!confirm(`「${item.productNameSnapshot} x${item.quantity}」を削除しますか？\n注文ミス用のキャンセルとして履歴に残します。`)) return
     setCommandError('')
@@ -94,10 +103,13 @@ export default function KitchenPage() {
   }
 
   async function handleMarkServed(item) {
+    const itemIds = [item.id]
     setCommandError('')
+    setOptimisticHiddenItemIds(currentIds => addOptimisticHiddenKitchenItemIds(currentIds, itemIds))
     try {
       await markKitchenItemServed(item)
     } catch (error) {
+      setOptimisticHiddenItemIds(currentIds => removeOptimisticHiddenKitchenItemIds(currentIds, itemIds))
       const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
       setCommandError(formatted.message)
       logOrderCommandError({
@@ -109,10 +121,13 @@ export default function KitchenPage() {
   }
 
   async function handleMarkAllServed(items) {
+    const itemIds = items.map(item => item.id).filter(Boolean)
     setCommandError('')
+    setOptimisticHiddenItemIds(currentIds => addOptimisticHiddenKitchenItemIds(currentIds, itemIds))
     try {
       await markKitchenItemsServed(items)
     } catch (error) {
+      setOptimisticHiddenItemIds(currentIds => removeOptimisticHiddenKitchenItemIds(currentIds, itemIds))
       const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
       setCommandError(formatted.message)
       logOrderCommandError({
@@ -123,13 +138,17 @@ export default function KitchenPage() {
     }
   }
 
+  const visiblePendingItems = useMemo(
+    () => filterOptimisticHiddenKitchenItems(pendingItems, optimisticHiddenItemIds),
+    [optimisticHiddenItemIds, pendingItems]
+  )
   const filteredPendingItems = useMemo(
-    () => filterKitchenItemsByGroup(pendingItems, filterGroup),
-    [filterGroup, pendingItems]
+    () => filterKitchenItemsByGroup(visiblePendingItems, filterGroup),
+    [filterGroup, visiblePendingItems]
   )
   const tableGroups = useMemo(
-    () => buildKitchenTableGroups({ tables, pendingItems, filterGroup }),
-    [filterGroup, pendingItems, tables]
+    () => buildKitchenTableGroups({ tables, pendingItems: visiblePendingItems, filterGroup }),
+    [filterGroup, tables, visiblePendingItems]
   )
 
   if (storeLoading) return <div className="staff-kitchen-loading">読み込み中...</div>

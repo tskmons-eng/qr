@@ -79,10 +79,16 @@ npm run build
 
 ## 完了時の報告
 
-- item単位の optimistic hide:
-- 全提供の optimistic hide:
-- 失敗時 rollback:
-- Firestore購読反映後の state cleanup:
-- pendingCount / Functions 冪等性への影響:
-- 未解決リスク:
-
+- item単位の optimistic hide: `KitchenPage` の `handleMarkServed()` で押下直後に対象 `item.id` を `optimisticHiddenItemIds` へ追加し、表示用 `visiblePendingItems` から除外する。
+- 全提供の optimistic hide: `handleMarkAllServed()` で対象行の `item.id` 一覧をまとめて optimistic hidden に入れ、テーブルカード単位で即時に消えるようにする。
+- 失敗時 rollback: `markKitchenItemServed()` / `markKitchenItemsServed()` の `catch` で対象IDを hidden から外し、既存の `OrderCommandErrorNotice` と `logOrderCommandError()` を維持する。
+- Firestore購読反映後の state cleanup: `pendingItems` 更新時に `pruneOptimisticHiddenKitchenItemIds()` で、購読結果から消えたIDを optimistic state から掃除する。
+- pendingCount / Functions 冪等性への影響: Functions command、`pendingCount` 更新、Firestore rules は変更せず、購読結果から作る表示データだけを filtered view にした。成功時は購読反映を source of truth とし、二重減算の経路は増やしていない。
+- 検証結果:
+  - `npm run check:kitchen-display`: passed
+  - `npm run check:order-command-ui`: passed
+  - `npm run check`: passed
+  - `npm run build`: passed
+  - `git diff --check`: passed
+  - `npm run check:order-functions-emulator`: failed outside 07 scope. Existing uncommitted 01 race scenario now fires 50 concurrent `startCustomerOrderSessionCommand` calls, Firestore Emulator exited with code `4294967295`, and all 50 calls returned `internal`.
+- 未解決リスク: ブラウザ実機操作での視覚確認と Firebase deploy は未実施。Round 3 共通方針どおり、本番 deploy は `06-load-release-gate.md` の最終ゲート後に判断する。

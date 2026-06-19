@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import {
+  addOptimisticHiddenKitchenItemIds,
   buildKitchenTableGroups,
+  filterOptimisticHiddenKitchenItems,
   filterKitchenItemsByGroup,
   findNewKitchenItems,
   formatKitchenElapsed,
   formatKitchenOrderOptions,
   getKitchenWaitLevel,
+  pruneOptimisticHiddenKitchenItemIds,
+  removeOptimisticHiddenKitchenItemIds,
   sortKitchenItemsByOrderedAt,
 } from '../src/lib/kitchenDisplay.js'
 
@@ -44,6 +48,28 @@ assert.deepEqual(buildKitchenTableGroups({ tables, pendingItems: items, filterGr
 assert.deepEqual(buildKitchenTableGroups({ tables, pendingItems: items, filterGroup: 'drink' }).map(group => group.table.id), ['table-1'])
 assert.deepEqual(findNewKitchenItems(items, new Set(['food-2']), 'food').map(item => item.id), ['food-1'])
 assert.deepEqual(findNewKitchenItems(items, null, 'all'), [])
+
+const hiddenSingle = addOptimisticHiddenKitchenItemIds(new Set(), ['food-2'])
+assert.deepEqual([...hiddenSingle], ['food-2'])
+assert.deepEqual(filterOptimisticHiddenKitchenItems(items, hiddenSingle).map(item => item.id), ['drink-1', 'food-1'])
+
+const hiddenAll = addOptimisticHiddenKitchenItemIds(hiddenSingle, ['drink-1', 'food-1'])
+assert.deepEqual(
+  buildKitchenTableGroups({
+    tables,
+    pendingItems: filterOptimisticHiddenKitchenItems(items, hiddenAll),
+    filterGroup: 'all',
+  }),
+  []
+)
+
+const rollbackOne = removeOptimisticHiddenKitchenItemIds(hiddenAll, ['food-1'])
+assert.deepEqual([...rollbackOne], ['food-2', 'drink-1'])
+assert.deepEqual(filterOptimisticHiddenKitchenItems(items, rollbackOne).map(item => item.id), ['food-1'])
+
+const cleanedAfterSubscription = pruneOptimisticHiddenKitchenItemIds(hiddenAll, [{ id: 'drink-1' }])
+assert.deepEqual([...cleanedAfterSubscription], ['drink-1'])
+assert.equal(pruneOptimisticHiddenKitchenItemIds(cleanedAfterSubscription, [{ id: 'drink-1' }]), cleanedAfterSubscription)
 
 const [kitchenItemRow, kitchenCss] = await Promise.all([
   readFile('src/components/staff/KitchenItemRow.jsx', 'utf8'),

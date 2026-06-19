@@ -34,6 +34,14 @@
 - 各担当は対象ファイル、禁止事項、合格条件、検証コマンドを守り、完了時に担当MDへ結果を追記する。
 - 最終 deploy は `06-load-release-gate.md` で全チェックと監視手順をそろえてから行う。
 
+### 07 Kitchen Served Optimistic UI Responsibility
+
+- Purpose: make kitchen served actions feel immediate by hiding pressed items locally while keeping the existing Functions command as the source of truth.
+- Current confirmation: `KitchenPage` currently renders the Firestore `itemStatus == ordered` subscription directly, so served rows remain visible until the subscription reflects the command write.
+- Change policy: add scoped optimistic hidden item ids in the kitchen page, filter only display data, rollback hidden ids on command failure, and prune hidden ids after the subscription confirms they disappeared.
+- Impact scope: `src/pages/kitchen/KitchenPage.jsx`, `src/lib/kitchenDisplay.js`, `scripts/check-kitchen-display.mjs`, `scripts/check-order-command-ui.mjs`, `docs/order-safety-round3/07-kitchen-served-optimistic-ui.md`, and this plan.
+- Verification: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
+
 ### Verification
 
 - `git diff --check`

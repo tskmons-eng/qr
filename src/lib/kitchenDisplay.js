@@ -40,6 +40,55 @@ export function filterKitchenItemsByGroup(items, filterGroup) {
   return items.filter(item => item.categoryGroup === filterGroup)
 }
 
+export function addOptimisticHiddenKitchenItemIds(currentIds, itemIds) {
+  const nextIds = new Set(currentIds)
+  let changed = false
+
+  for (const itemId of itemIds) {
+    if (!itemId || nextIds.has(itemId)) continue
+    nextIds.add(itemId)
+    changed = true
+  }
+
+  return changed ? nextIds : currentIds
+}
+
+export function removeOptimisticHiddenKitchenItemIds(currentIds, itemIds) {
+  const nextIds = new Set(currentIds)
+  let changed = false
+
+  for (const itemId of itemIds) {
+    if (!nextIds.has(itemId)) continue
+    nextIds.delete(itemId)
+    changed = true
+  }
+
+  return changed ? nextIds : currentIds
+}
+
+export function filterOptimisticHiddenKitchenItems(items, hiddenItemIds) {
+  if (hiddenItemIds.size === 0) return items
+  return items.filter(item => !hiddenItemIds.has(item.id))
+}
+
+export function pruneOptimisticHiddenKitchenItemIds(currentIds, pendingItems) {
+  if (currentIds.size === 0) return currentIds
+
+  const pendingItemIds = new Set(pendingItems.map(item => item.id))
+  const nextIds = new Set()
+  let changed = false
+
+  for (const itemId of currentIds) {
+    if (pendingItemIds.has(itemId)) {
+      nextIds.add(itemId)
+    } else {
+      changed = true
+    }
+  }
+
+  return changed ? nextIds : currentIds
+}
+
 export function sortKitchenItemsByOrderedAt(items) {
   return [...items].sort((a, b) => (a.orderedAt?.seconds ?? 0) - (b.orderedAt?.seconds ?? 0))
 }
