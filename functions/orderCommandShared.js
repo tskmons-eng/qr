@@ -3,9 +3,12 @@ const { randomUUID } = require('node:crypto')
 const ORDER_COMMAND_VERSION = 1
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 
-function commandError(code, message) {
+function commandError(code, message, context = {}) {
   const error = new Error(message)
   error.code = code
+  if (context && Object.keys(context).length > 0) {
+    error.orderCommandContext = context
+  }
   return error
 }
 

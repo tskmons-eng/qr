@@ -32,6 +32,35 @@
 - rules 締め込みが deploy 順と新旧クライアント混在を考慮していること。
 - データ削除やメニュー移行なしで、監査/修復手順が dry-run first であること。
 
+## 2026-06-19 Live order observability
+
+### Purpose
+
+- Take ownership of `docs/order-reliability/09-live-observability.md`.
+- Make Functions command failures visible after the fact, so "orders did not enter" can be investigated from command logs and pending-count drift checks.
+
+### Current State
+
+- UI command errors already show short retryable messages through existing screens.
+- Client-side best-effort logging exists, but Functions callable commands currently convert errors to `HttpsError` without writing a server-side `orderCommandFailures` record.
+- `npm run audit:pending-counts` can verify derived pending-count drift, but there is no paired command-failure audit script.
+
+### Change Plan
+
+- Add a Functions-side command failure payload builder and best-effort recorder.
+- Wrap each callable order command with command type / actor type metadata and sanitized request ids only.
+- Keep logged fields limited to command type/version, actor type, store/table/order/item/request ids, error code/name/message, and timestamp.
+- Add a read-only `audit:command-failures` script for recent failure inspection.
+- Add a static `check:live-observability` script so the logging path and docs stay wired.
+
+### Verification
+
+- `node --check` for new/changed Functions and script files.
+- `npm run check:live-observability`
+- `npm run check:order-command-ui`
+- `npm run check:functions-rules-migration`
+- `npm run check`
+- `npm run build`
 ## 2026-06-19 Rules lockdown staging
 
 ### Purpose

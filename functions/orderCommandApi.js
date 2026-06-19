@@ -1,4 +1,8 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const {
+  buildOrderCommandFailureContext,
+  recordOrderCommandFailure,
+} = require('./orderCommandFailures')
 
 const COMMAND_HTTP_ERROR_CODES = new Map([
   ['invalid-argument', 'invalid-argument'],
@@ -37,11 +41,19 @@ function toHttpsError(error) {
   )
 }
 
-function createOrderCommandCallable(handler) {
+function createOrderCommandCallable(handler, commandContext = {}) {
   return onCall({ cors: true }, async request => {
     try {
       return await handler(request.data ?? {}, request)
     } catch (error) {
+      await recordOrderCommandFailure(
+        buildOrderCommandFailureContext({
+          commandContext,
+          data: request.data ?? {},
+          error,
+        }),
+        error
+      )
       throw toHttpsError(error)
     }
   })

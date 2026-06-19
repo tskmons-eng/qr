@@ -11,16 +11,46 @@ initializeApp()
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 
-exports.startCustomerOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.startCustomerOrderSession)
-exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems)
-exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems)
-exports.seatStaffOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.seatStaffOrderSession)
-exports.completeCheckoutCommand = createOrderCommandCallable(orderCommandHandlers.completeCheckoutCommand)
-exports.markOrderItemServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemServedCommand)
-exports.markOrderItemsServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemsServedCommand)
-exports.markOrderItemOrderedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemOrderedCommand)
-exports.cancelOrderItemCommand = createOrderCommandCallable(orderCommandHandlers.cancelOrderItemCommand)
-exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.moveTableOrderCommand)
+exports.startCustomerOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.startCustomerOrderSession, {
+  commandType: 'start_customer_order_session',
+  actorType: 'customer',
+})
+exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
+  commandType: 'customer_submit_items',
+  actorType: 'customer',
+})
+exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems, {
+  commandType: 'staff_submit_items',
+  actorType: 'staff',
+})
+exports.seatStaffOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.seatStaffOrderSession, {
+  commandType: 'seat_staff_order_session',
+  actorType: 'staff',
+})
+exports.completeCheckoutCommand = createOrderCommandCallable(orderCommandHandlers.completeCheckoutCommand, {
+  commandType: 'complete_checkout',
+  actorType: 'staff',
+})
+exports.markOrderItemServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemServedCommand, {
+  commandType: 'mark_order_item_served',
+  actorType: 'staff',
+})
+exports.markOrderItemsServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemsServedCommand, {
+  commandType: 'mark_order_items_served',
+  actorType: 'staff',
+})
+exports.markOrderItemOrderedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemOrderedCommand, {
+  commandType: 'mark_order_item_ordered',
+  actorType: 'staff',
+})
+exports.cancelOrderItemCommand = createOrderCommandCallable(orderCommandHandlers.cancelOrderItemCommand, {
+  commandType: 'cancel_order_item',
+  actorType: 'staff',
+})
+exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.moveTableOrderCommand, {
+  commandType: 'move_table_order',
+  actorType: 'staff',
+})
 
 function getPendingAggregateCounts(item) {
   if (!item || item.itemStatus !== 'ordered' || !item.tableId) return null
