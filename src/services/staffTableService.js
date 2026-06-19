@@ -2,7 +2,7 @@ import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query,
 import { auth, db } from '../lib/firebase'
 import { hasStaffPermission } from '../lib/staffPermissions'
 import { filterVisibleOrderItems, sortOrderItemsByOrderedAt } from '../lib/staffTableDetail'
-import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
+import { seatStaffOrderSession } from './orderCommandService'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnapshot => ({ id: docSnapshot.id, ...docSnapshot.data() }))
@@ -68,38 +68,8 @@ export async function cancelOrderItem({ table, tableId, item, passcode, activeSt
   return { ok: true }
 }
 
-export async function seatGuestsAtTable({ table, tableId, seatCount, activeStaff }) {
-  const now = serverTimestamp()
-  const orderRef = await addDoc(collection(db, 'orders'), {
-    storeId: table.storeId,
-    tableId,
-    guestCount: seatCount,
-    status: 'open',
-    openedAt: now,
-    checkedOutAt: null,
-    createdBy: 'staff',
-    updatedAt: now,
-  })
-  await updateDoc(doc(db, 'tables', tableId), {
-    status: 'occupied',
-    guestCount: seatCount,
-    currentOrderId: orderRef.id,
-    startedAt: now,
-    pendingCount: 0,
-    ...buildEmptyTablePendingAggregateFields(),
-    updatedAt: now,
-  })
-  await addDoc(collection(db, 'staffActions'), {
-    storeId: table.storeId,
-    actionType: 'seat_guests',
-    targetType: 'table',
-    targetId: tableId,
-    actorType: 'staff',
-    actorStaffId: activeStaff?.id ?? null,
-    actorStaffName: activeStaff?.name ?? null,
-    note: `${seatCount}名着席`,
-    createdAt: now,
-  })
+export function seatGuestsAtTable({ table, tableId, seatCount, activeStaff }) {
+  return seatStaffOrderSession({ table, tableId, seatCount, activeStaff })
 }
 
 export async function updateTableGuestCount({ table, tableId, guestCount, activeStaff }) {

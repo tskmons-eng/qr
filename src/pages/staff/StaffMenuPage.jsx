@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import OptionModal from '../../components/OptionModal'
 import StaffBottomNav from '../../components/StaffBottomNav'
@@ -9,6 +9,7 @@ import StaffMenuProductList from '../../components/staff/StaffMenuProductList'
 import StaffMenuSubmitBar from '../../components/staff/StaffMenuSubmitBar'
 import StaffOrderCompleteScreen from '../../components/staff/StaffOrderCompleteScreen'
 import { getDiscountedProductPrice } from '../../lib/discounts'
+import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { productMatchesCategory } from '../../lib/productTags'
 import { loadCustomerMenuData } from '../../services/customerMenuService'
 import { submitStaffMenuOrder } from '../../services/staffMenuService'
@@ -27,6 +28,8 @@ export default function StaffMenuPage() {
   const [submitted, setSubmitted] = useState(false)
   const [optionTarget, setOptionTarget] = useState(null)
   const [suggestions, setSuggestions] = useState([])
+  const submittingRef = useRef(false)
+  const submitRequestIdRef = useRef(null)
 
   useEffect(() => {
     if (!storeId) return
@@ -104,15 +107,27 @@ export default function StaffMenuPage() {
   }
 
   async function handleSubmit() {
-    if (cart.length === 0 || !orderId) return
+    if (submittingRef.current || cart.length === 0 || !orderId) return
+    submittingRef.current = true
+    if (!submitRequestIdRef.current) {
+      submitRequestIdRef.current = createOrderCommandRequestId('staff-order')
+    }
     setSubmitting(true)
     try {
-      await submitStaffMenuOrder({ cart, orderId, storeId, tableId })
+      await submitStaffMenuOrder({
+        cart,
+        orderId,
+        storeId,
+        tableId,
+        clientRequestId: submitRequestIdRef.current,
+      })
       setCart([])
+      submitRequestIdRef.current = null
       setSubmitted(true)
     } catch {
       alert('送信に失敗しました')
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }

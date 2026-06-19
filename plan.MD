@@ -91,6 +91,29 @@
 - Firebase emulator concurrency tests for order commands before production deploy.
 - Production deploy only after the command path can be verified without changing visible ordering flow.
 
+### 2026-06-19 Command layer continuation from handoff
+
+#### Current State
+
+- `src/lib/orderCommands.js` and `src/services/orderCommandService.js` have been added as the first command boundary.
+- Customer order start, customer cart submit, staff order submit, and staff seating now delegate to the command layer.
+- No production deploy, Firestore data deletion, Firestore migration, rules change, or Functions change is part of this step.
+
+#### Checkout Command Plan
+
+- Move `completeCashCheckout` behind `completeCheckoutCommand`.
+- Keep existing `checks`, `orders`, `tables`, and `staffActions` collections.
+- Use a Firestore transaction to create the check, mark the order checked out, clear only the related table, and record the staff action together.
+- Use a deterministic check document id per order so repeated checkout attempts do not create multiple checks.
+- Reject mismatched table/order/store state instead of trying to repair live data in this client-side step.
+
+#### Verification
+
+- Review `git diff` for import drift and command-service size.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit and push only after checks pass.
+
 ## 2026-06-14 Customer guest auto-add loading guard
 
 ### Context

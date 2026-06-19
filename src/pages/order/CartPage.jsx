@@ -6,6 +6,7 @@ import CartItemList from '../../components/order/CartItemList'
 import CartSubmitBar from '../../components/order/CartSubmitBar'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
+import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { submitCustomerCartOrder } from '../../services/customerCartService'
 import { createCustomerCall } from '../../services/customerMenuService'
 
@@ -16,6 +17,8 @@ export default function CartPage() {
   const [callSent, setCallSent] = useState(false)
   const [checkoutSent, setCheckoutSent] = useState(false)
   const cooldownRef = useRef(null)
+  const submittingRef = useRef(false)
+  const submitRequestIdRef = useRef(null)
   const navigate = useNavigate()
 
   useEffect(() => () => clearTimeout(cooldownRef.current), [])
@@ -44,15 +47,27 @@ export default function CartPage() {
   }
 
   async function handleSubmit() {
-    if (items.length === 0 || !orderId) return
+    if (submittingRef.current || items.length === 0 || !orderId) return
+    submittingRef.current = true
+    if (!submitRequestIdRef.current) {
+      submitRequestIdRef.current = createOrderCommandRequestId('customer-order')
+    }
     setSubmitting(true)
     try {
-      await submitCustomerCartOrder({ items, orderId, storeId, tableId })
+      await submitCustomerCartOrder({
+        items,
+        orderId,
+        storeId,
+        tableId,
+        clientRequestId: submitRequestIdRef.current,
+      })
       clearCart()
+      submitRequestIdRef.current = null
       navigate('../complete', { replace: true, state: { justOrdered: true } })
     } catch {
       alert('送信に失敗しました。もう一度試してください。')
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }

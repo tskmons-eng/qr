@@ -1,8 +1,7 @@
-import { addDoc, collection, doc, getDoc, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
-import { buildCustomerOrderItemPayload } from '../lib/customerCart'
+import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
 import { normalizeCustomerStoreConfig } from '../lib/customerEntry'
 import { db } from '../lib/firebase'
-import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
+import { startCustomerOrderSession } from './orderCommandService'
 
 export function subscribeCustomerTableByQrToken(qrToken, onNext, onError) {
   const tableQuery = query(collection(db, 'tables'), where('qrToken', '==', qrToken))
@@ -21,62 +20,6 @@ export async function loadCustomerStoreConfig(storeId) {
   return normalizeCustomerStoreConfig(snap.exists() ? snap.data() : {})
 }
 
-async function loadAutoAddProduct(guestAutoAdd) {
-  if (!guestAutoAdd?.enabled || !guestAutoAdd.productId) return null
-  const productSnap = await getDoc(doc(db, 'products', guestAutoAdd.productId))
-  if (!productSnap.exists()) return null
-
-  const product = { id: productSnap.id, ...productSnap.data() }
-  let categoryGroup = product.categoryGroup ?? ''
-  if (!categoryGroup && product.categoryId) {
-    const categorySnap = await getDoc(doc(db, 'categories', product.categoryId))
-    categoryGroup = categorySnap.exists() ? (categorySnap.data().group ?? '') : ''
-  }
-
-  return {
-    ...product,
-    categoryGroup,
-    name: product.name ?? guestAutoAdd.productNameSnapshot ?? '',
-  }
-}
-
-export async function createCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
-  const openedAt = serverTimestamp()
-  const orderRef = await addDoc(collection(db, 'orders'), {
-    storeId,
-    tableId,
-    guestCount,
-    status: 'open',
-    openedAt,
-    checkedOutAt: null,
-    createdBy: 'customer',
-    updatedAt: openedAt,
-  })
-
-  const autoAddProduct = await loadAutoAddProduct(guestAutoAdd)
-  await updateDoc(doc(db, 'tables', tableId), {
-    status: 'occupied',
-    guestCount,
-    currentOrderId: orderRef.id,
-    startedAt: serverTimestamp(),
-    pendingCount: autoAddProduct ? 1 : 0,
-    ...buildEmptyTablePendingAggregateFields(),
-    updatedAt: serverTimestamp(),
-  })
-
-  if (autoAddProduct) {
-    await addDoc(collection(db, 'orderItems'), buildCustomerOrderItemPayload({
-      cartItem: {
-        product: autoAddProduct,
-        quantity: guestCount,
-        optionSelections: [],
-      },
-      orderId: orderRef.id,
-      storeId,
-      tableId,
-      timestamp: openedAt,
-    }))
-  }
-
-  return orderRef.id
+export function createCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
+  return startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId })
 }
