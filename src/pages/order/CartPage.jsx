@@ -57,16 +57,24 @@ export default function CartPage() {
     setSubmitting(true)
     setSubmitError('')
     try {
+      const completedRequestId = submitRequestIdRef.current
       await submitCustomerCartOrder({
         items,
         orderId,
         storeId,
         tableId,
-        clientRequestId: submitRequestIdRef.current,
+        clientRequestId: completedRequestId,
       })
       clearCart()
       submitRequestIdRef.current = null
-      navigate('../complete', { replace: true, state: { justOrdered: true } })
+      navigate('../complete', {
+        replace: true,
+        state: {
+          justOrdered: true,
+          clientRequestId: completedRequestId,
+          submittedItemCount: items.length,
+        },
+      })
     } catch (error) {
       const formatted = formatOrderCommandError(error, { context: 'customerSubmit' })
       setSubmitError(formatted.message)

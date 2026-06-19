@@ -67,6 +67,7 @@
 - Change policy: keep the existing `/complete` route, show order items grouped by customer-visible status, include cancelled rows as non-billable history, and mark the latest submitted request once Firestore reflects it.
 - Impact scope: `src/pages/order/OrderCompletePage.jsx`, `src/pages/order/CartPage.jsx`, `src/components/order/OrderStatusList.jsx`, `src/components/order/OrderStatusSummary.jsx`, `src/lib/customerOrderStatus.js`, `src/services/customerOrderStatusService.js`, `src/styles/customer-order-status.css`, `scripts/check-customer-order-status.mjs`, and the 02 work document.
 - Verification: `npm run check:customer-order-status`, `npm run check:customer-cart`, `npm run check:customer-entry`, `npm run check`, and `npm run build`.
+- Verification results: all listed commands passed; no Firebase deploy was run.
 
 ### 03 Kitchen Option Display Responsibility
 
