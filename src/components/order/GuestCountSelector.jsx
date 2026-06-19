@@ -1,4 +1,6 @@
-export default function GuestCountSelector({ autoAddLabel, count, loading, tableName, onChange, onStart }) {
+import OrderCommandErrorNotice from '../OrderCommandErrorNotice'
+
+export default function GuestCountSelector({ autoAddLabel, count, errorMessage, loading, tableName, onChange, onStart }) {
   return (
     <div className="guest-count-page">
       <h1 className="guest-count-page__title">いらっしゃいませ</h1>
@@ -14,6 +16,8 @@ export default function GuestCountSelector({ autoAddLabel, count, loading, table
           ＋
         </button>
       </div>
+
+      <OrderCommandErrorNotice message={errorMessage} />
 
       <button
         type="button"

@@ -1,4 +1,7 @@
+import OrderCommandErrorNotice from '../OrderCommandErrorNotice'
+
 export default function TableSeatingPanel({
+  errorMessage,
   seatCount,
   seating,
   onSeatCountChange,
@@ -14,6 +17,7 @@ export default function TableSeatingPanel({
           <span className="staff-table-seat-count">{seatCount}</span>
           <button type="button" onClick={() => onSeatCountChange(Math.min(20, seatCount + 1))} className="staff-table-seat-step">+</button>
         </div>
+        <OrderCommandErrorNotice message={errorMessage} />
         <button type="button" onClick={onSeat} disabled={seating} className="staff-table-seat-submit">
           {seating ? '処理中...' : `${seatCount}名で着席する`}
         </button>

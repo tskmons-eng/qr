@@ -6,6 +6,7 @@ import CartItemList from '../../components/order/CartItemList'
 import CartSubmitBar from '../../components/order/CartSubmitBar'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { submitCustomerCartOrder } from '../../services/customerCartService'
 import { createCustomerCall } from '../../services/customerMenuService'
@@ -16,6 +17,7 @@ export default function CartPage() {
   const [submitting, setSubmitting] = useState(false)
   const [callSent, setCallSent] = useState(false)
   const [checkoutSent, setCheckoutSent] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const cooldownRef = useRef(null)
   const submittingRef = useRef(false)
   const submitRequestIdRef = useRef(null)
@@ -53,6 +55,7 @@ export default function CartPage() {
       submitRequestIdRef.current = createOrderCommandRequestId('customer-order')
     }
     setSubmitting(true)
+    setSubmitError('')
     try {
       await submitCustomerCartOrder({
         items,
@@ -64,8 +67,14 @@ export default function CartPage() {
       clearCart()
       submitRequestIdRef.current = null
       navigate('../complete', { replace: true, state: { justOrdered: true } })
-    } catch {
-      alert('送信に失敗しました。もう一度試してください。')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'customerSubmit' })
+      setSubmitError(formatted.message)
+      logOrderCommandError({
+        operation: 'customer_submit_order',
+        error,
+        metadata: { storeId, tableId, orderId, itemCount: items.length },
+      })
     } finally {
       submittingRef.current = false
       setSubmitting(false)
@@ -85,6 +94,7 @@ export default function CartPage() {
         itemCount={count}
         total={total}
         disabled={submitting || items.length === 0}
+        errorMessage={submitError}
         onSubmit={handleSubmit}
       />
       <CustomerBottomNav

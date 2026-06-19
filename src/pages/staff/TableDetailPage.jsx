@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '../../contexts/StoreContext'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import StaffBottomNav from '../../components/StaffBottomNav'
+import OrderCommandErrorNotice from '../../components/OrderCommandErrorNotice'
 import TableActionBar from '../../components/staff/TableActionBar'
 import TableCancelModal from '../../components/staff/TableCancelModal'
 import TableDetailHeader from '../../components/staff/TableDetailHeader'
@@ -10,6 +11,7 @@ import TableMoveModal from '../../components/staff/TableMoveModal'
 import TableOrderSection from '../../components/staff/TableOrderSection'
 import TableOrderSummary from '../../components/staff/TableOrderSummary'
 import TableSeatingPanel from '../../components/staff/TableSeatingPanel'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import { calculateTableOrderTotal, splitTableOrderItems, stepGuestInputValue } from '../../lib/staffTableDetail'
 import {
@@ -35,6 +37,7 @@ export default function TableDetailPage() {
   const [storeConfig, setStoreConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(() => Date.now())
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000)
@@ -50,6 +53,7 @@ export default function TableDetailPage() {
   // 着席
   const [seatCount, setSeatCount] = useState(2)
   const [seating, setSeating] = useState(false)
+  const [seatError, setSeatError] = useState('')
 
   // 人数調整
   const [editingGuests, setEditingGuests] = useState(false)
@@ -59,6 +63,7 @@ export default function TableDetailPage() {
   const [showMoveModal, setShowMoveModal] = useState(false)
   const [vacantTables, setVacantTables] = useState([])
   const [moving, setMoving] = useState(false)
+  const [moveError, setMoveError] = useState('')
 
   useEffect(() => {
     const unsub = subscribeStaffTable(tableId, nextTable => {
@@ -79,11 +84,33 @@ export default function TableDetailPage() {
   }, [storeId])
 
   async function markServed(item) {
-    await markOrderItemServed({ tableId, itemId: item.id })
+    setActionError('')
+    try {
+      await markOrderItemServed({ tableId, itemId: item.id })
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'itemAction' })
+      setActionError(formatted.message)
+      logOrderCommandError({
+        operation: 'staff_table_mark_served',
+        error,
+        metadata: { tableId, itemId: item.id },
+      })
+    }
   }
 
   async function markOrdered(item) {
-    await markOrderItemOrdered({ tableId, itemId: item.id })
+    setActionError('')
+    try {
+      await markOrderItemOrdered({ tableId, itemId: item.id })
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'itemAction' })
+      setActionError(formatted.message)
+      logOrderCommandError({
+        operation: 'staff_table_mark_ordered',
+        error,
+        metadata: { tableId, itemId: item.id },
+      })
+    }
   }
 
   function openCancel(item) {
@@ -104,8 +131,14 @@ export default function TableDetailPage() {
         return
       }
       setCancelTarget(null)
-    } catch {
-      setPasscodeError('エラーが発生しました')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'itemAction' })
+      setPasscodeError(formatted.message)
+      logOrderCommandError({
+        operation: 'staff_table_cancel_item',
+        error,
+        metadata: { tableId, itemId: cancelTarget.id },
+      })
     } finally {
       setCancelling(false)
     }
@@ -115,10 +148,17 @@ export default function TableDetailPage() {
   async function handleSeat() {
     if (seating) return
     setSeating(true)
+    setSeatError('')
     try {
       await seatGuestsAtTable({ table, tableId, seatCount, activeStaff })
-    } catch {
-      alert('エラーが発生しました')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'staffSeat' })
+      setSeatError(formatted.message)
+      logOrderCommandError({
+        operation: 'staff_seat_guests',
+        error,
+        metadata: { storeId, tableId, seatCount },
+      })
     } finally {
       setSeating(false)
     }
@@ -144,17 +184,25 @@ export default function TableDetailPage() {
   // 席移動
   async function openMoveModal() {
     setVacantTables(await loadVacantTables({ storeId, currentTableId: tableId }))
+    setMoveError('')
     setShowMoveModal(true)
   }
 
   async function handleMove(targetTable) {
     if (moving) return
     setMoving(true)
+    setMoveError('')
     try {
       await moveTableOrder({ sourceTable: table, sourceTableId: tableId, targetTable, activeStaff })
       navigate(`/staff/table/${targetTable.id}`, { replace: true })
-    } catch {
-      alert('移動に失敗しました')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'tableMove' })
+      setMoveError(formatted.message)
+      logOrderCommandError({
+        operation: 'staff_move_table_order',
+        error,
+        metadata: { storeId, sourceTableId: tableId, targetTableId: targetTable.id },
+      })
       setMoving(false)
     }
   }
@@ -182,6 +230,7 @@ export default function TableDetailPage() {
         onClose={() => setCancelTarget(null)}
       />
       <TableMoveModal
+        errorMessage={moveError}
         open={showMoveModal}
         vacantTables={vacantTables}
         moving={moving}
@@ -203,9 +252,11 @@ export default function TableDetailPage() {
         onSaveGuests={saveGuests}
         onCancelEditGuests={() => setEditingGuests(false)}
       />
+      <OrderCommandErrorNotice message={actionError} className="staff-table-command-error" />
 
       {!hasOrder ? (
         <TableSeatingPanel
+          errorMessage={seatError}
           seatCount={seatCount}
           seating={seating}
           onSeatCountChange={setSeatCount}

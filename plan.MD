@@ -91,6 +91,52 @@
 - Firebase emulator concurrency tests for order commands before production deploy.
 - Production deploy only after the command path can be verified without changing visible ordering flow.
 
+### 2026-06-19 Order command UI compatibility
+
+#### Purpose
+
+- Take ownership of `docs/order-reliability/05-ui-compatibility.md`.
+- Keep the existing customer QR, staff table, kitchen, and checkout routes intact while command-layer errors become understandable and retryable from the current UI.
+
+#### Current State
+
+- Customer start/order submit, staff additional order, seating, table move, checkout, kitchen serve/cancel, and table-detail serve/cancel are already routed through the client command layer.
+- The command layer exposes structured `error.code` values such as `target-table-not-vacant`, `table-order-mismatch`, and `order-not-open`.
+- Several UI callers still show generic `alert` messages or leave command failures as unhandled promise errors.
+
+#### Change Policy
+
+- Add a small shared command-error presentation helper instead of duplicating message logic across pages.
+- Show short user-facing messages next to existing action areas, preserving routes and button placement.
+- Keep retry behavior on the same existing action button/request flow; do not add a new route or a duplicate order entry path.
+- Log operation name, error code, and narrow metadata through a shared helper for investigation without exposing secret values.
+
+#### Impact Scope
+
+- Customer guest-count start and cart submit.
+- Staff additional-order submit, table detail seat/serve/cancel/move actions, kitchen serve/cancel actions, and checkout submit.
+- Shared component/style and source checks only; no Firestore rules, Functions, data migration, or Firebase deploy in this phase.
+
+#### Verification
+
+- `npm run check:customer-entry`
+- `npm run check:customer-cart`
+- `npm run check:staff-table-detail`
+- `npm run check:kitchen-display`
+- `npm run check`
+- `npm run build`
+
+#### Verification Results
+
+- `npm run check:customer-entry` passed.
+- `npm run check:customer-cart` passed.
+- `npm run check:staff-table-detail` passed.
+- `npm run check:kitchen-display` passed.
+- `npm run check:order-command-ui` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- Local Vite dev server is running at `http://127.0.0.1:5174/`; `/`, `/staff`, and `/staff/kitchen` returned HTTP 200.
+- No Firebase deploy was run.
 ### 2026-06-19 Data preservation audit script
 
 #### Current State

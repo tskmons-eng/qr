@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import StaffBottomNav from '../../components/StaffBottomNav'
+import OrderCommandErrorNotice from '../../components/OrderCommandErrorNotice'
 import KitchenEmptyState from '../../components/staff/KitchenEmptyState'
 import KitchenHeader from '../../components/staff/KitchenHeader'
 import KitchenSoundPanel from '../../components/staff/KitchenSoundPanel'
@@ -8,6 +9,7 @@ import KitchenTableGrid from '../../components/staff/KitchenTableGrid'
 import TodayReservationNoticeList from '../../components/staff/TodayReservationNoticeList'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { useStore } from '../../contexts/StoreContext'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { getTokyoDateString } from '../../lib/reservationDisplay'
 import { loadKitchenSoundPrefs, playSound } from '../../lib/sounds'
 import {
@@ -37,6 +39,7 @@ export default function KitchenPage() {
   const [filterGroup, setFilterGroup] = useState('all')
   const [storeConfig, setStoreConfig] = useState(null)
   const [todayReservations, setTodayReservations] = useState([])
+  const [commandError, setCommandError] = useState('')
   const prevItemIdsRef = useRef(null)
   const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
   const today = getTokyoDateString()
@@ -76,7 +79,48 @@ export default function KitchenPage() {
 
   async function cancelItem(item, table) {
     if (!confirm(`「${item.productNameSnapshot} x${item.quantity}」を削除しますか？\n注文ミス用のキャンセルとして履歴に残します。`)) return
-    await cancelKitchenItem({ item, table, activeStaff })
+    setCommandError('')
+    try {
+      await cancelKitchenItem({ item, table, activeStaff })
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
+      setCommandError(formatted.message)
+      logOrderCommandError({
+        operation: 'kitchen_cancel_item',
+        error,
+        metadata: { storeId, tableId: item.tableId, itemId: item.id },
+      })
+    }
+  }
+
+  async function handleMarkServed(item) {
+    setCommandError('')
+    try {
+      await markKitchenItemServed(item)
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
+      setCommandError(formatted.message)
+      logOrderCommandError({
+        operation: 'kitchen_mark_served',
+        error,
+        metadata: { storeId, tableId: item.tableId, itemId: item.id },
+      })
+    }
+  }
+
+  async function handleMarkAllServed(items) {
+    setCommandError('')
+    try {
+      await markKitchenItemsServed(items)
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
+      setCommandError(formatted.message)
+      logOrderCommandError({
+        operation: 'kitchen_mark_all_served',
+        error,
+        metadata: { storeId, itemCount: items.length },
+      })
+    }
   }
 
   const filteredPendingItems = useMemo(
@@ -101,6 +145,7 @@ export default function KitchenPage() {
         onFilterChange={setFilterGroup}
         onToggleSound={() => setShowSoundSettings(value => !value)}
       />
+      <OrderCommandErrorNotice message={commandError} />
       {showSoundSettings && <KitchenSoundPanel onClose={() => setShowSoundSettings(false)} />}
       {!servedWorkflowEnabled && (
         <div className="staff-kitchen-notice">
@@ -122,8 +167,8 @@ export default function KitchenPage() {
           nowMs={nowMs}
           servedWorkflowEnabled={servedWorkflowEnabled}
           onCancelItem={cancelItem}
-          onMarkAllServed={markKitchenItemsServed}
-          onMarkServed={markKitchenItemServed}
+          onMarkAllServed={handleMarkAllServed}
+          onMarkServed={handleMarkServed}
         />
       )}
       <StaffBottomNav current="kitchen" />

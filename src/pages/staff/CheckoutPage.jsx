@@ -10,6 +10,7 @@ import CheckoutItemDiscountModal from '../../components/staff/CheckoutItemDiscou
 import CheckoutPaymentPanel from '../../components/staff/CheckoutPaymentPanel'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { calculateCheckoutTotals } from '../../lib/checkoutCalculations'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { stepGuestInputValue } from '../../lib/staffTableDetail'
 import { completeCashCheckout, loadCheckoutData } from '../../services/checkoutService'
 import { subscribeStaffTable, updateTableGuestCount } from '../../services/staffTableService'
@@ -34,6 +35,7 @@ export default function CheckoutPage() {
   const [selectedItemId, setSelectedItemId] = useState(null)
   const [editingGuests, setEditingGuests] = useState(false)
   const [guestInput, setGuestInput] = useState('')
+  const [checkoutError, setCheckoutError] = useState('')
 
   useEffect(() => {
     if (!orderId) return
@@ -100,6 +102,7 @@ export default function CheckoutPage() {
   async function handleConfirm() {
     if (totals.change === null || submitting) return
     setSubmitting(true)
+    setCheckoutError('')
     try {
       await completeCashCheckout({
         storeId,
@@ -119,8 +122,14 @@ export default function CheckoutPage() {
         activeStaff,
       })
       setCompletedChange(totals.change)
-    } catch {
-      alert('エラーが発生しました。もう一度試してください。')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'checkout' })
+      setCheckoutError(formatted.message)
+      logOrderCommandError({
+        operation: 'complete_checkout',
+        error,
+        metadata: { storeId, tableId, orderId, total: totals.total },
+      })
     } finally {
       setSubmitting(false)
     }
@@ -179,6 +188,7 @@ export default function CheckoutPage() {
       />
       <CheckoutConfirmBar
         disabled={totals.change === null}
+        errorMessage={checkoutError}
         submitting={submitting}
         onConfirm={handleConfirm}
       />

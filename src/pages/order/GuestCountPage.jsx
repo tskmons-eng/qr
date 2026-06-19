@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import GuestCountSelector from '../../components/order/GuestCountSelector'
 import { useOrder } from '../../contexts/OrderContext'
 import { applyCustomerOrderStartToTable, stepGuestCount } from '../../lib/customerEntry'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createCustomerOrderSession } from '../../services/customerEntryService'
 
 export default function GuestCountPage() {
   const { table, tableId, storeId, setOrderId, setTable, storeConfig } = useOrder()
   const [count, setCount] = useState(2)
+  const [commandError, setCommandError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const guestAutoAdd = storeConfig?.guestAutoAdd ?? {}
@@ -19,13 +21,20 @@ export default function GuestCountPage() {
 
   async function handleStart() {
     setLoading(true)
+    setCommandError('')
     try {
       const orderId = await createCustomerOrderSession({ storeId, tableId, guestCount: count, guestAutoAdd })
       setOrderId(orderId)
       setTable(currentTable => applyCustomerOrderStartToTable(currentTable, count, orderId))
       navigate('../menu', { replace: true })
-    } catch {
-      alert('エラーが発生しました。もう一度試してください。')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'customerStart' })
+      setCommandError(formatted.message)
+      logOrderCommandError({
+        operation: 'customer_start_order',
+        error,
+        metadata: { storeId, tableId, guestCount: count },
+      })
     } finally {
       setLoading(false)
     }
@@ -34,6 +43,7 @@ export default function GuestCountPage() {
   return (
     <GuestCountSelector
       count={count}
+      errorMessage={commandError}
       loading={loading}
       tableName={table.tableName}
       autoAddLabel={showAutoAddButton ? `${guestAutoAdd.productNameSnapshot || '設定メニュー'}を${count}名分追加して始める` : ''}

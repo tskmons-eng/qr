@@ -9,6 +9,7 @@ import StaffMenuProductList from '../../components/staff/StaffMenuProductList'
 import StaffMenuSubmitBar from '../../components/staff/StaffMenuSubmitBar'
 import StaffOrderCompleteScreen from '../../components/staff/StaffOrderCompleteScreen'
 import { getDiscountedProductPrice } from '../../lib/discounts'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { productMatchesCategory } from '../../lib/productTags'
 import { loadCustomerMenuData } from '../../services/customerMenuService'
@@ -25,6 +26,7 @@ export default function StaffMenuPage() {
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [optionTarget, setOptionTarget] = useState(null)
   const [suggestions, setSuggestions] = useState([])
@@ -113,6 +115,7 @@ export default function StaffMenuPage() {
       submitRequestIdRef.current = createOrderCommandRequestId('staff-order')
     }
     setSubmitting(true)
+    setSubmitError('')
     try {
       await submitStaffMenuOrder({
         cart,
@@ -124,8 +127,14 @@ export default function StaffMenuPage() {
       setCart([])
       submitRequestIdRef.current = null
       setSubmitted(true)
-    } catch {
-      alert('送信に失敗しました')
+    } catch (error) {
+      const formatted = formatOrderCommandError(error, { context: 'staffSubmit' })
+      setSubmitError(formatted.message)
+      logOrderCommandError({
+        operation: 'staff_submit_order',
+        error,
+        metadata: { storeId, tableId, orderId, itemCount: cart.length },
+      })
     } finally {
       submittingRef.current = false
       setSubmitting(false)
@@ -181,6 +190,7 @@ export default function StaffMenuPage() {
       <StaffMenuSubmitBar
         cartCount={cartCount}
         cartTotal={cartTotal}
+        errorMessage={submitError}
         submitting={submitting}
         onSubmit={handleSubmit}
       />

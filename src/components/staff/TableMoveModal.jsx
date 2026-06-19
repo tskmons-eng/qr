@@ -1,4 +1,7 @@
+import OrderCommandErrorNotice from '../OrderCommandErrorNotice'
+
 export default function TableMoveModal({
+  errorMessage,
   open,
   vacantTables,
   moving,
@@ -12,6 +15,7 @@ export default function TableMoveModal({
       <div className="staff-table-move-dialog">
         <h3 className="staff-table-modal-title staff-table-move-title">席移動</h3>
         <p className="staff-table-modal-subtitle">移動先の空席を選んでください</p>
+        <OrderCommandErrorNotice message={errorMessage} />
         {vacantTables.length === 0 ? (
           <p className="staff-table-empty-message">空席がありません</p>
         ) : (

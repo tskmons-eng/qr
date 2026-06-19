@@ -1,6 +1,9 @@
-export default function CartSubmitBar({ submitting, itemCount, total, disabled, onSubmit }) {
+import OrderCommandErrorNotice from '../OrderCommandErrorNotice'
+
+export default function CartSubmitBar({ submitting, itemCount, total, disabled, errorMessage, onSubmit }) {
   return (
     <div className="customer-cart__submit-bar">
+      <OrderCommandErrorNotice message={errorMessage} />
       <button
         type="button"
         onClick={onSubmit}
