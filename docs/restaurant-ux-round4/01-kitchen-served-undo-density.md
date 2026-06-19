@@ -59,5 +59,5 @@
 
 - Production deploy: not run in this task.
 - Result: Added a command-backed latest-served undo bar to the kitchen screen and reduced kitchen card/grid spacing without shrinking base text size. Single-item and all-served actions store only the latest action from the current screen, and undo calls the existing ordered command path.
-- Checks: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, and `npm run build` passed. `npm run check` was re-run in the mixed local worktree but stopped at `check:live-observability` because an unrelated working-tree change in `functions/orderCommandApi.js` no longer matches the current source assertion token.
-- Remaining risk: The final cross-task release gate, a clean `npm run check` after other task edits settle, and production deploy are intentionally left to `07-integration-release-gate.md`.
+- Checks: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build` passed.
+- Remaining risk: The final cross-task release gate and production deploy are intentionally left to `07-integration-release-gate.md`.
