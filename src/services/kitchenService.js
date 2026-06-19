@@ -1,5 +1,10 @@
-import { addDoc, collection, doc, increment, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import {
+  cancelOrderItemCommand,
+  markOrderItemsServedCommand,
+  markOrderItemServedCommand,
+} from './orderItemCommandService'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
@@ -20,59 +25,20 @@ export function subscribePendingKitchenItems(storeId, onNext) {
 }
 
 export async function markKitchenItemServed(item) {
-  await updateDoc(doc(db, 'orderItems', item.id), {
-    itemStatus: 'served',
-    updatedAt: serverTimestamp(),
-  })
-
-  if (item.tableId) {
-    await updateDoc(doc(db, 'tables', item.tableId), {
-      pendingCount: increment(-1),
-      updatedAt: serverTimestamp(),
-    })
-  }
+  return markOrderItemServedCommand({ tableId: item.tableId, itemId: item.id })
 }
 
 export async function markKitchenItemsServed(items) {
-  await Promise.all(items.map(item => updateDoc(doc(db, 'orderItems', item.id), {
-    itemStatus: 'served',
-    updatedAt: serverTimestamp(),
-  })))
-
-  const tableId = items[0]?.tableId
-  if (tableId) {
-    await updateDoc(doc(db, 'tables', tableId), {
-      pendingCount: increment(-items.length),
-      updatedAt: serverTimestamp(),
-    })
-  }
+  return markOrderItemsServedCommand(items)
 }
 
 export async function cancelKitchenItem({ item, table, activeStaff }) {
-  const now = serverTimestamp()
-  await updateDoc(doc(db, 'orderItems', item.id), {
-    itemStatus: 'cancelled',
-    updatedAt: now,
-  })
-
-  if (item.tableId) {
-    await updateDoc(doc(db, 'tables', item.tableId), {
-      pendingCount: increment(-1),
-      updatedAt: now,
-    })
-  }
-
-  const actor = auth.currentUser
-  await addDoc(collection(db, 'staffActions'), {
-    storeId: item.storeId,
-    actionType: 'cancel_item',
-    targetType: 'orderItem',
-    targetId: item.id,
-    actorType: 'staff',
-    actorStaffId: activeStaff?.id ?? null,
-    actorStaffName: activeStaff?.name ?? null,
-    actorUid: actor?.uid ?? null,
-    note: `${table?.tableName ?? ''} ${item.productNameSnapshot} x${item.quantity} を削除`,
-    createdAt: now,
+  return cancelOrderItemCommand({
+    itemId: item.id,
+    tableId: item.tableId,
+    tableName: table?.tableName ?? '',
+    source: 'kitchen',
+    activeStaff,
+    actorUid: auth.currentUser?.uid ?? null,
   })
 }

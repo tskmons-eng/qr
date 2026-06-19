@@ -1,8 +1,14 @@
-import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import { hasStaffPermission } from '../lib/staffPermissions'
 import { filterVisibleOrderItems, sortOrderItemsByOrderedAt } from '../lib/staffTableDetail'
 import { seatStaffOrderSession } from './orderCommandService'
+import {
+  cancelOrderItemCommand,
+  markOrderItemOrderedCommand,
+  markOrderItemServedCommand,
+} from './orderItemCommandService'
+import { moveTableOrderCommand } from './tableMoveCommandService'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnapshot => ({ id: docSnapshot.id, ...docSnapshot.data() }))
@@ -22,17 +28,11 @@ export function subscribeStaffTableOrderItems(orderId, onNext) {
 }
 
 export function markOrderItemServed({ tableId, itemId }) {
-  return Promise.all([
-    updateDoc(doc(db, 'orderItems', itemId), { itemStatus: 'served', updatedAt: serverTimestamp() }),
-    updateDoc(doc(db, 'tables', tableId), { pendingCount: increment(-1), updatedAt: serverTimestamp() }),
-  ])
+  return markOrderItemServedCommand({ tableId, itemId })
 }
 
 export function markOrderItemOrdered({ tableId, itemId }) {
-  return Promise.all([
-    updateDoc(doc(db, 'orderItems', itemId), { itemStatus: 'ordered', updatedAt: serverTimestamp() }),
-    updateDoc(doc(db, 'tables', tableId), { pendingCount: increment(1), updatedAt: serverTimestamp() }),
-  ])
+  return markOrderItemOrderedCommand({ tableId, itemId })
 }
 
 export async function cancelOrderItem({ table, tableId, item, passcode, activeStaff }) {
@@ -44,25 +44,13 @@ export async function cancelOrderItem({ table, tableId, item, passcode, activeSt
     }
   }
 
-  const actor = auth.currentUser
-  await updateDoc(doc(db, 'orderItems', item.id), {
-    itemStatus: 'cancelled',
-    updatedAt: serverTimestamp(),
-  })
-  if (item.itemStatus === 'ordered') {
-    await updateDoc(doc(db, 'tables', tableId), { pendingCount: increment(-1), updatedAt: serverTimestamp() })
-  }
-  await addDoc(collection(db, 'staffActions'), {
-    storeId: table.storeId,
-    actionType: 'cancel_item',
-    targetType: 'orderItem',
-    targetId: item.id,
-    actorType: 'staff',
-    actorStaffId: activeStaff?.id ?? null,
-    actorStaffName: activeStaff?.name ?? null,
-    actorUid: actor?.uid ?? null,
-    note: `${item.productNameSnapshot} × ${item.quantity} をキャンセル`,
-    createdAt: serverTimestamp(),
+  await cancelOrderItemCommand({
+    itemId: item.id,
+    tableId,
+    tableName: table.tableName,
+    source: 'staff_table',
+    activeStaff,
+    actorUid: auth.currentUser?.uid ?? null,
   })
 
   return { ok: true }
@@ -96,49 +84,5 @@ export async function loadVacantTables({ storeId, currentTableId }) {
 }
 
 export async function moveTableOrder({ sourceTable, sourceTableId, targetTable, activeStaff }) {
-  const now = serverTimestamp()
-  if (sourceTable.currentOrderId) {
-    const itemSnap = await getDocs(query(
-      collection(db, 'orderItems'),
-      where('orderId', '==', sourceTable.currentOrderId)
-    ))
-    if (!itemSnap.empty) {
-      const batch = writeBatch(db)
-      itemSnap.docs.forEach(itemDoc => {
-        batch.update(itemDoc.ref, {
-          tableId: targetTable.id,
-          updatedAt: now,
-        })
-      })
-      await batch.commit()
-    }
-  }
-
-  await updateDoc(doc(db, 'tables', sourceTableId), {
-    status: 'vacant',
-    currentOrderId: null,
-    guestCount: 0,
-    startedAt: null,
-    pendingCount: 0,
-    updatedAt: now,
-  })
-  await updateDoc(doc(db, 'tables', targetTable.id), {
-    status: 'occupied',
-    currentOrderId: sourceTable.currentOrderId,
-    guestCount: sourceTable.guestCount,
-    startedAt: sourceTable.startedAt ?? null,
-    pendingCount: sourceTable.pendingCount ?? 0,
-    updatedAt: now,
-  })
-  await addDoc(collection(db, 'staffActions'), {
-    storeId: sourceTable.storeId,
-    actionType: 'move_table',
-    targetType: 'table',
-    targetId: targetTable.id,
-    actorType: 'staff',
-    actorStaffId: activeStaff?.id ?? null,
-    actorStaffName: activeStaff?.name ?? null,
-    note: `${sourceTable.tableName} → ${targetTable.tableName} に移動`,
-    createdAt: now,
-  })
+  return moveTableOrderCommand({ sourceTable, sourceTableId, targetTable, activeStaff })
 }

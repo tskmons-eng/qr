@@ -113,3 +113,53 @@ export function buildCheckoutStaffActionPayload({
     createdAt: timestamp,
   }
 }
+
+export function buildCancelItemStaffActionPayload({
+  storeId,
+  itemId,
+  item,
+  tableName,
+  source = 'staff_table',
+  activeStaff,
+  actorUid,
+  timestamp,
+}) {
+  const itemName = item?.productNameSnapshot ?? '商品'
+  const quantity = item?.quantity ?? 0
+  const note = source === 'kitchen'
+    ? `${tableName ?? ''} ${itemName} x${quantity} を削除`
+    : `${itemName} × ${quantity} をキャンセル`
+
+  return {
+    storeId,
+    actionType: 'cancel_item',
+    targetType: 'orderItem',
+    targetId: itemId,
+    actorType: 'staff',
+    actorStaffId: activeStaff?.id ?? null,
+    actorStaffName: activeStaff?.name ?? null,
+    actorUid: actorUid ?? null,
+    note,
+    createdAt: timestamp,
+  }
+}
+
+export function buildMoveTableStaffActionPayload({
+  storeId,
+  sourceTable,
+  targetTable,
+  activeStaff,
+  timestamp,
+}) {
+  return {
+    storeId,
+    actionType: 'move_table',
+    targetType: 'table',
+    targetId: targetTable.id,
+    actorType: 'staff',
+    actorStaffId: activeStaff?.id ?? null,
+    actorStaffName: activeStaff?.name ?? null,
+    note: `${sourceTable.tableName} → ${targetTable.tableName} に移動`,
+    createdAt: timestamp,
+  }
+}

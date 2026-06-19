@@ -114,6 +114,36 @@
 - Run `npm run build`.
 - Commit and push only after checks pass.
 
+### 2026-06-19 Finish client command boundary
+
+#### Current State
+
+- Checkout is now delegated to `completeCheckoutCommand`.
+- Remaining direct order writes are staff/kitchen served toggles, item cancellation, and table moves.
+
+#### Command Plan
+
+- Add transaction-backed commands for:
+  - `markOrderItemServedCommand`
+  - `markOrderItemOrderedCommand`
+  - `cancelOrderItemCommand`
+  - `moveTableOrderCommand`
+- Adjust `tables.pendingCount` only from the current item status read inside the transaction:
+  - `ordered -> served` decrements once.
+  - `served -> ordered` increments once.
+  - `ordered -> cancelled` decrements once.
+  - Already `served` or `cancelled` states do not double-decrement.
+- Keep passcode validation in the staff-table wrapper, then put the item update, table counter update, and `staffActions` write into the command transaction.
+- Move table state, `orders.tableId`, and known `orderItems.tableId` together when a table is moved.
+- Do not delete Firestore data, run migrations, change rules, change Functions, or deploy hosting/functions in this phase.
+
+#### Verification
+
+- Run `npm run check`.
+- Run `npm run build`.
+- Confirm no direct order mutation path remains outside the command wrapper except non-order table guest-count/admin flows.
+- Commit and push after verification.
+
 ## 2026-06-14 Customer guest auto-add loading guard
 
 ### Context
