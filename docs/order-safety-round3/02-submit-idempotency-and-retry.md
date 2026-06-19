@@ -92,11 +92,11 @@ npm run build
 - `npm run check:customer-cart` passed.
 - `npm run check:order-concurrency` passed.
 - `npm run check:customer-order-status` passed.
-- `npm run check` passed in the active worktree.
-- `npm run build` passed in the active worktree.
-- `npm run check:order-functions-emulator` は、追加した顧客submit冪等性assertionを通過した後、既存の `guideReservationToTableCommand` 付近で Functions emulator timeout になり、コマンド全体は未完了。
+- `npm run check` passed in a clean temporary worktree.
+- `npm run build` passed in a clean temporary worktree.
+- `npm run check:order-functions-emulator` passed in a clean temporary worktree.
 
 ### 未解決リスク
 
-- Functions emulator の全体コマンドは、注文submitではなく後続の予約案内テストでtimeoutすることがあるため、`06-load-release-gate` 側でemulator安定性を再確認する。
+- Functions emulator は1回目に後続の予約案内テスト付近でtimeoutしたが、同時再送回数を20回へ調整した最新コミットでは全体コマンドが通過した。`06-load-release-gate` 側でも最終確認する。
 - 本番deployはこの担当では実行しない。
