@@ -16,7 +16,7 @@ export default function OrderStatusList({
     return (
       <section className="order-status__list">
         <p className="order-status__empty">
-          {isReflectingLatestOrder ? '注文を反映しています' : '注文がありません'}
+          {isReflectingLatestOrder ? '注文を反映しています。保存済みの場合はまもなく表示されます。' : '注文がありません'}
         </p>
       </section>
     )

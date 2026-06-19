@@ -8,6 +8,13 @@ import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
+import {
+  clearCustomerSubmitRecovery,
+  createCustomerSubmitRecovery,
+  loadCustomerSubmitRecovery,
+  markCustomerSubmitRecoveryAccepted,
+  saveCustomerSubmitRecovery,
+} from '../../lib/customerSubmitRecovery'
 import { submitCustomerCartOrder } from '../../services/customerCartService'
 import { createCustomerCall } from '../../services/customerMenuService'
 
@@ -24,6 +31,21 @@ export default function CartPage() {
   const navigate = useNavigate()
 
   useEffect(() => () => clearTimeout(cooldownRef.current), [])
+
+  useEffect(() => {
+    if (!orderId || !storeId || !tableId || submittingRef.current) return
+    const pendingSubmit = loadCustomerSubmitRecovery({ orderId, storeId, tableId })
+    if (!pendingSubmit) return
+    submitRequestIdRef.current = pendingSubmit.clientRequestId
+    navigate('../complete', {
+      replace: true,
+      state: {
+        recoveringPendingSubmit: true,
+        clientRequestId: pendingSubmit.clientRequestId,
+        submittedItemCount: pendingSubmit.submittedItemCount,
+      },
+    })
+  }, [orderId, storeId, tableId, navigate])
 
   async function sendCall(type) {
     await createCustomerCall({
@@ -56,8 +78,15 @@ export default function CartPage() {
     }
     setSubmitting(true)
     setSubmitError('')
+    const completedRequestId = submitRequestIdRef.current
+    saveCustomerSubmitRecovery(createCustomerSubmitRecovery({
+      items,
+      orderId,
+      storeId,
+      tableId,
+      clientRequestId: completedRequestId,
+    }))
     try {
-      const completedRequestId = submitRequestIdRef.current
       await submitCustomerCartOrder({
         items,
         orderId,
@@ -65,6 +94,7 @@ export default function CartPage() {
         tableId,
         clientRequestId: completedRequestId,
       })
+      markCustomerSubmitRecoveryAccepted({ orderId, storeId, tableId, clientRequestId: completedRequestId })
       clearCart()
       submitRequestIdRef.current = null
       navigate('../complete', {
@@ -77,10 +107,20 @@ export default function CartPage() {
       })
     } catch (error) {
       const formatted = formatOrderCommandError(error, { context: 'customerSubmit' })
-      const retryHint = formatted.retryable && submitRequestIdRef.current
-        ? ' 同じ内容で再送すると、保存済みの場合は確認だけ行い二重登録しません。'
-        : ''
-      setSubmitError(`${formatted.message}${retryHint}`)
+      if (formatted.retryable) {
+        navigate('../complete', {
+          replace: true,
+          state: {
+            recoveringPendingSubmit: true,
+            clientRequestId: completedRequestId,
+            submittedItemCount: items.length,
+          },
+        })
+      } else {
+        clearCustomerSubmitRecovery({ orderId, storeId, tableId, clientRequestId: completedRequestId })
+        submitRequestIdRef.current = null
+        setSubmitError(formatted.message)
+      }
       logOrderCommandError({
         operation: 'customer_submit_order',
         error,
@@ -89,7 +129,7 @@ export default function CartPage() {
           tableId,
           orderId,
           itemCount: items.length,
-          clientRequestId: submitRequestIdRef.current,
+          clientRequestId: completedRequestId,
           retryable: formatted.retryable,
         },
       })

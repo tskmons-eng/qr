@@ -51,6 +51,15 @@
 - Verification: `npm run check:order-functions-emulator`, `npm run check:customer-entry`, `npm run check`, and `npm run build`.
 - Verification results: the strengthened 50-client emulator check first reproduced transaction contention, then passed after adding start-session contention recovery; `npm run check:customer-entry`, `npm run check`, and `npm run build` also passed. No Firebase deploy was run.
 
+### 04 Client Recovery And Offline UX Responsibility
+
+- Purpose: when customer submit loses the response, reloads, or returns from browser back, keep the last `clientRequestId` and cart snapshot so saved orders are treated as reflection-pending instead of failed.
+- Current confirmation: `CartPage` keeps the active request id only in memory, while `OrderCompletePage` can already identify reflected order items by `clientRequestId`.
+- Change policy: add a small sessionStorage-backed recovery record, route pending/retryable submits to the order status page, clear the record only after the matching request id is reflected, and expose retry/staff-call guidance only after a delay.
+- Impact scope: `src/lib/customerSubmitRecovery.js`, customer cart/status pages and components, customer cart/status checks, `docs/order-safety-round3/04-client-recovery-and-offline-ux.md`, and this plan.
+- Verification: `npm run check:customer-cart`, `npm run check:customer-order-status`, `npm run check:order-command-ui`, `npm run check`, and `npm run build`.
+- Verification results: `git diff --check`, `npm run check:customer-cart`, `npm run check:customer-order-status`, `npm run check:order-command-ui`, `npm run check`, and `npm run build` passed. No Firebase deploy was run.
+
 ### 07 Kitchen Served Optimistic UI Responsibility
 
 - Purpose: make kitchen served actions feel immediate by hiding pressed items locally while keeping the existing Functions command as the source of truth.

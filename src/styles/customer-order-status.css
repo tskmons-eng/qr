@@ -164,6 +164,45 @@
   line-height: 1.55;
 }
 
+.order-status__reflection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.order-status__reflection-button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.order-status__reflection-button--primary {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.order-status__reflection-button:disabled {
+  border-color: #d1d5db;
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.order-status__reflection-error {
+  margin-top: 8px;
+  color: #b45309;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .order-status__list {
   margin-top: 12px;
   background: #fff;

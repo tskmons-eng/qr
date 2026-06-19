@@ -82,6 +82,12 @@ const completePageSource = readFileSync(new URL('../src/pages/order/OrderComplet
 assert.match(completePageSource, /isCustomerOrderRequestReflected/)
 assert.match(completePageSource, /OrderReflectionNotice/)
 assert.match(completePageSource, /latestClientRequestId/)
+assert.match(completePageSource, /loadCustomerSubmitRecovery/)
+assert.match(completePageSource, /clearCustomerSubmitRecovery/)
+assert.match(completePageSource, /CUSTOMER_SUBMIT_RECOVERY_ACTION_DELAY_MS/)
+assert.match(completePageSource, /submitCustomerCartOrder/)
+assert.match(completePageSource, /同じ内容で再送/)
+assert.match(completePageSource, /保存済みの可能性/)
 
 const cartPageSource = readFileSync(new URL('../src/pages/order/CartPage.jsx', import.meta.url), 'utf8')
 assert.match(cartPageSource, /clientRequestId:\s*completedRequestId/)
@@ -91,5 +97,9 @@ const statusListSource = readFileSync(new URL('../src/components/order/OrderStat
 assert.match(statusListSource, /groupCustomerOrderItemsByStatus/)
 assert.match(statusListSource, /今回追加/)
 assert.match(statusListSource, /会計対象外/)
+assert.match(statusListSource, /保存済みの場合はまもなく表示されます/)
+
+const submitCompleteSource = readFileSync(new URL('../src/components/order/OrderSubmitCompleteScreen.jsx', import.meta.url), 'utf8')
+assert.match(submitCompleteSource, /注文確認にも反映しました/)
 
 console.log('customer order status checks passed')
