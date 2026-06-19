@@ -42,6 +42,14 @@
 - Impact scope: `src/styles/admin-product-category.css`, `scripts/check-admin-category.mjs`, and `docs/restaurant-ux-round4/04-admin-category-ios-zoom.md`.
 - Verification: `npm run check:admin-category`, `npm run check:product-form`, `npm run check`, `npm run build`, and `git diff --check`.
 
+### 05 Guest Auto Add Entry Visibility Responsibility
+
+- Purpose: 人数分メニュー自動追加の「人数設定画面に追加内容のボタン表示を出す」設定が、管理画面と顧客人数画面で一貫して効くことを固定する。
+- Current confirmation: `StoreWorkflowSettings` は `showGuestCountButton` を保存し、`GuestCountPage` は `guestAutoAdd.enabled` / `productId` / `showGuestCountButton !== false` を見て `autoAddLabel` を出している。
+- Change policy: 既存UIと注文開始commandは変えず、設定OFF・商品未選択・表示OFFで人数画面の自動追加文言が出ないことをソースチェックに追加する。
+- Impact scope: `scripts/check-customer-entry.mjs`, `scripts/check-settings-config.mjs`, `docs/restaurant-ux-round4/05-guest-auto-add-entry-visibility.md`, and this plan.
+- Verification: `npm run check:customer-entry`, `npm run check:settings`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
+
 ### Verification
 
 - `git diff --check`
