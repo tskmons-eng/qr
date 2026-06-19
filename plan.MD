@@ -93,6 +93,7 @@
 - Additional implementation: 再検証で検出した席移動と顧客追加注文の同時実行について、Firestoreの一時的なロック/期限切れだけを顧客追加注文と席移動transactionで再試行する。
 - Verification: `node --check functions/orderCommandHandlers.js` passed. `npm run check:order-functions-emulator` passed.
 - Deploy plan: `functions:startCustomerOrderSessionCommand`, `functions:submitCustomerOrderItemsCommand`, `functions:moveTableOrderCommand` のみdeployし、Hosting / rules / indexes / storage は追加deployしない。
+- Final result: commit `9d3561d` pushed. `npm run check:restaurant-ux-release-gate -- --final` passed. The three target Functions were deployed to `qrproduct-3340b` and verified in `functions:list`; major Hosting routes stayed HTTP 200. Runtime log error scan returned no new error line. Production command failure audit remains blocked by missing local ADC/service-account credentials.
 
 ### Verification
 
