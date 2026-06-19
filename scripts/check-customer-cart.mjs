@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   buildCustomerOrderItemPayload,
   calculateCartItemPricing,
@@ -52,5 +53,13 @@ assert.deepEqual(buildCustomerOrderItemPayload({
   orderedAt: 'now',
   updatedAt: 'now',
 })
+
+const cartPageSource = readFileSync(new URL('../src/pages/order/CartPage.jsx', import.meta.url), 'utf8')
+assert.match(cartPageSource, /submitRequestIdRef\.current = createOrderCommandRequestId\('customer-order'\)/)
+assert.match(cartPageSource, /const completedRequestId = submitRequestIdRef\.current/)
+assert.match(cartPageSource, /clientRequestId: completedRequestId/)
+assert.match(cartPageSource, /clearCart\(\)[\s\S]*submitRequestIdRef\.current = null/)
+assert.match(cartPageSource, /formatted\.retryable/)
+assert.match(cartPageSource, /retryable: formatted\.retryable/)
 
 console.log('customer cart checks passed')

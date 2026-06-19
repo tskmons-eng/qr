@@ -346,12 +346,47 @@ async function runCustomerSubmitDedup(db, publicFunctions, productId) {
     tableId,
     clientRequestId: requestId,
   }
-  await Promise.all(Array.from({ length: 12 }, () => (
+  const results = await Promise.all(Array.from({ length: 24 }, () => (
     call(publicFunctions, 'submitCustomerOrderItemsCommand', payload)
   )))
 
   const items = await queryBy(db, 'orderItems', 'clientRequestId', requestId)
+  assert.ok(results.every(result => result.ok === true), 'duplicate customer submit should return ok results')
+  assert.equal(new Set(results.map(result => result.clientRequestId)).size, 1, 'duplicate customer submit should keep one request id')
+  assert.ok(results.some(result => result.deduped === true), 'duplicate customer submit should report deduped retries')
   assert.equal(items.length, payload.items.length, 'duplicate customer submit should create one set of item docs')
+
+  const retryResult = await call(publicFunctions, 'submitCustomerOrderItemsCommand', payload)
+  const retryItems = await queryBy(db, 'orderItems', 'clientRequestId', requestId)
+  assert.equal(retryResult.deduped, true, 'timeout-style retry with same request id should dedupe')
+  assert.equal(retryItems.length, payload.items.length, 'timeout-style retry should not create extra item docs')
+}
+
+async function runCustomerDistinctSubmitRequests(db, publicFunctions, productId) {
+  const tableId = `${runId}_customer_distinct_submit_table`
+  await seedTable(db, tableId)
+  const orderId = await call(publicFunctions, 'startCustomerOrderSessionCommand', {
+    guestAutoAdd: { enabled: false },
+    guestCount: 5,
+    storeId,
+    tableId,
+  })
+  const requestIds = Array.from({ length: 5 }, (_, index) => `${runId}_distinct_customer_request_${index + 1}`)
+
+  await Promise.all(requestIds.map((clientRequestId, index) => (
+    call(publicFunctions, 'submitCustomerOrderItemsCommand', {
+      items: [cartItem(productId, index + 1)],
+      orderId,
+      storeId,
+      tableId,
+      clientRequestId,
+    })
+  )))
+
+  const items = await queryBy(db, 'orderItems', 'orderId', orderId)
+  const submittedItems = items.filter(item => requestIds.includes(item.clientRequestId))
+  assert.equal(submittedItems.length, requestIds.length, 'distinct customer requests should each create an item')
+  assert.equal(new Set(submittedItems.map(item => item.clientRequestId)).size, requestIds.length, 'distinct customer requests should not dedupe each other')
 }
 
 async function runUnauthorizedStaffReject(db, staffFunctions) {
@@ -617,6 +652,7 @@ const products = await seedBaseData(db)
 
 await runCustomerStartRace(db, publicClient.functions)
 await runCustomerSubmitDedup(db, publicClient.functions, products.productId)
+await runCustomerDistinctSubmitRequests(db, publicClient.functions, products.productId)
 await runUnauthorizedStaffReject(db, staffClient.functions)
 await createStaffSession(db, staffCredential.user.uid)
 await runStaffSubmitDedup(db, staffClient.functions, products.productId, products.drinkProductId)

@@ -77,11 +77,21 @@ export default function CartPage() {
       })
     } catch (error) {
       const formatted = formatOrderCommandError(error, { context: 'customerSubmit' })
-      setSubmitError(formatted.message)
+      const retryHint = formatted.retryable && submitRequestIdRef.current
+        ? ' 同じ内容で再送すると、保存済みの場合は確認だけ行い二重登録しません。'
+        : ''
+      setSubmitError(`${formatted.message}${retryHint}`)
       logOrderCommandError({
         operation: 'customer_submit_order',
         error,
-        metadata: { storeId, tableId, orderId, itemCount: items.length },
+        metadata: {
+          storeId,
+          tableId,
+          orderId,
+          itemCount: items.length,
+          clientRequestId: submitRequestIdRef.current,
+          retryable: formatted.retryable,
+        },
       })
     } finally {
       submittingRef.current = false

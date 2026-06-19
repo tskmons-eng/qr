@@ -232,12 +232,49 @@ function runCustomerRetryDedupCheck() {
   const items = [item('Coffee'), item('Toast')]
 
   const first = store.submitItems({ source: 'customer', orderId, storeId: 'store-1', tableId: 'table-1', clientRequestId: request, items })
-  const retryResults = Array.from({ length: 20 }, () => (
+  const retryResults = Array.from({ length: 24 }, () => (
     store.submitItems({ source: 'customer', orderId, storeId: 'store-1', tableId: 'table-1', clientRequestId: request, items })
   ))
 
   assert.equal(first.deduped, false)
   assert.ok(retryResults.every(result => result.deduped))
+  assert.ok(retryResults.length >= 20)
+  assert.equal(store.orderItems.size, items.length)
+}
+
+function runCustomerDistinctRequestsCheck() {
+  const store = new MockOrderStore()
+  store.addTable('table-1', { storeId: 'store-1' })
+  const orderId = store.startOrderSession({ storeId: 'store-1', tableId: 'table-1' })
+  const requestIds = Array.from({ length: 5 }, (_, index) => `customer-request-${index + 1}`)
+
+  requestIds.forEach((clientRequestId, index) => {
+    store.submitItems({
+      source: 'customer',
+      orderId,
+      storeId: 'store-1',
+      tableId: 'table-1',
+      clientRequestId,
+      items: [item(`Customer item ${index + 1}`)],
+    })
+  })
+
+  assert.equal(store.orderItems.size, requestIds.length)
+  assert.equal(new Set([...store.orderItems.values()].map(orderItem => orderItem.clientRequestId)).size, requestIds.length)
+}
+
+function runCustomerTimeoutRetryCheck() {
+  const store = new MockOrderStore()
+  store.addTable('table-1', { storeId: 'store-1' })
+  const orderId = store.startOrderSession({ storeId: 'store-1', tableId: 'table-1' })
+  const request = 'timeout-retry-request'
+  const items = [item('Saved before timeout')]
+
+  const first = store.submitItems({ source: 'customer', orderId, storeId: 'store-1', tableId: 'table-1', clientRequestId: request, items })
+  const retry = store.submitItems({ source: 'customer', orderId, storeId: 'store-1', tableId: 'table-1', clientRequestId: request, items })
+
+  assert.equal(first.deduped, false)
+  assert.equal(retry.deduped, true)
   assert.equal(store.orderItems.size, items.length)
 }
 
@@ -361,6 +398,8 @@ await Promise.all([
 
 runCustomerStartRaceCheck()
 runCustomerRetryDedupCheck()
+runCustomerDistinctRequestsCheck()
+runCustomerTimeoutRetryCheck()
 runStaffDoubleTapDedupCheck()
 runItemStatusCounterChecks()
 runCheckoutLateSubmitCheck()
