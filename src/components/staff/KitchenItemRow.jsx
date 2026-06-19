@@ -1,11 +1,18 @@
-import { formatKitchenElapsed } from '../../lib/kitchenDisplay'
+import { formatKitchenElapsed, formatKitchenOrderOptions } from '../../lib/kitchenDisplay'
 
 export default function KitchenItemRow({ item, nowMs, servedWorkflowEnabled, onCancel, onServed }) {
+  const optionsText = formatKitchenOrderOptions(item.optionSelections)
+
   return (
     <div className="staff-kitchen-item">
       <div className="staff-kitchen-item__main">
-        <span className="staff-kitchen-item__name">{item.productNameSnapshot}</span>
-        <span className="staff-kitchen-item__quantity">× {item.quantity}</span>
+        <div className="staff-kitchen-item__title">
+          <span className="staff-kitchen-item__name">{item.productNameSnapshot}</span>
+          <span className="staff-kitchen-item__quantity">× {item.quantity}</span>
+        </div>
+        {optionsText && (
+          <div className="staff-kitchen-item__options">{optionsText}</div>
+        )}
         <div className="staff-kitchen-item__meta">
           {servedWorkflowEnabled && `${formatKitchenElapsed(item.orderedAt, nowMs)}前 ・ `}
           {item.orderedBy === 'staff' ? 'スタッフ' : 'お客様'}

@@ -32,6 +32,51 @@
 - rules 締め込みが deploy 順と新旧クライアント混在を考慮していること。
 - データ削除やメニュー移行なしで、監査/修復手順が dry-run first であること。
 
+## 2026-06-19 Customer order UX split
+
+### User Preference
+
+- ユーザー様は、品切れの商品が通常注文の邪魔にならないよう、メニューの一番下にまとまることを重視している。
+- ユーザー様は、お客様の注文確認で「過去に頼んだ商品」「注文済み」「まだ注文できていないもの」が分かることを重視している。
+- ユーザー様は、タレ/塩などの味付け選択がキッチンパネルで見落とされないことを重視している。
+
+### Parallel Work Documents
+
+- `docs/customer-order-ux/01-sold-out-product-order.md`
+- `docs/customer-order-ux/02-customer-order-visibility.md`
+- `docs/customer-order-ux/03-kitchen-option-display.md`
+
+### Current Implementation
+
+- Add `sortSoldOutProductsLast` as a shared display-order helper.
+- Apply it to customer menu and staff order menu after category filtering.
+- Keep Firestore `sortOrder` and product data unchanged.
+
+### Verification
+
+- `npm run check:menu-product-order`
+- `npm run check:customer-entry`
+- `npm run check:staff-menu`
+- `npm run check`
+- `npm run build`
+
+### 02 Customer Order Visibility Responsibility
+
+- Purpose: make the customer order confirmation screen show previous ordered items, preparing items, served items, and cancelled items clearly.
+- Current confirmation: `OrderCompletePage` already subscribes to `orderItems`, but `customerOrderStatusService.js` hides `itemStatus: 'cancelled'`, and the list does not distinguish the latest submitted request from already reflected history.
+- Change policy: keep the existing `/complete` route, show order items grouped by customer-visible status, include cancelled rows as non-billable history, and mark the latest submitted request once Firestore reflects it.
+- Impact scope: `src/pages/order/OrderCompletePage.jsx`, `src/pages/order/CartPage.jsx`, `src/components/order/OrderStatusList.jsx`, `src/components/order/OrderStatusSummary.jsx`, `src/lib/customerOrderStatus.js`, `src/services/customerOrderStatusService.js`, `src/styles/customer-order-status.css`, `scripts/check-customer-order-status.mjs`, and the 02 work document.
+- Verification: `npm run check:customer-order-status`, `npm run check:customer-cart`, `npm run check:customer-entry`, `npm run check`, and `npm run build`.
+
+### 03 Kitchen Option Display Responsibility
+
+- Purpose: show customer/staff selected option choices such as sauce or salt on the kitchen panel so preparation does not miss them.
+- Current confirmation: `orderItems.optionSelections` already persists option selections, and staff table detail displays them, but `KitchenItemRow` only shows product name, quantity, source, and elapsed time.
+- Change policy: keep the existing kitchen table/card structure, add a compact option line under the product name, and keep long option labels wrapping inside the row instead of widening the action buttons.
+- Impact scope: `src/lib/kitchenDisplay.js`, `src/components/staff/KitchenItemRow.jsx`, `src/styles/staff-kitchen-table.css`, `scripts/check-kitchen-display.mjs`, and the 03 work document.
+- Verification: `npm run check:kitchen-display`, `npm run check:staff-table-detail`, `npm run check`, and `npm run build`.
+- Verification results: `npm run check:kitchen-display`, `npm run check:staff-table-detail`, `npm run check`, and `npm run build` passed. Firebase deploy was not run.
+
 ## 2026-06-19 Staff add-order option quantity fix
 
 ### Purpose

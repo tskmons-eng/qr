@@ -13,6 +13,20 @@ export function formatKitchenElapsed(timestamp, nowMs = Date.now()) {
   return `${Math.floor(minutes / 60)}時間${minutes % 60}分`
 }
 
+export function formatKitchenOrderOptions(optionSelections) {
+  if (!Array.isArray(optionSelections) || optionSelections.length === 0) return null
+  const labels = optionSelections
+    .map(option => {
+      const groupName = String(option?.groupName ?? '').trim()
+      const choice = String(option?.choice ?? '').trim()
+      if (!choice) return ''
+      return groupName ? `${groupName}: ${choice}` : choice
+    })
+    .filter(Boolean)
+
+  return labels.length > 0 ? labels.join(' · ') : null
+}
+
 export function getKitchenWaitLevel(timestamp, nowMs = Date.now()) {
   if (!timestamp) return 'idle'
   const minutes = Math.floor((nowMs - timestamp.toDate().getTime()) / 60000)
