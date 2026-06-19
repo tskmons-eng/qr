@@ -1,77 +1,73 @@
-<claude-mem-context>
-# Memory Context
+# AGENTS.md - QRシステム 作業規約
 
-# [QRシステム] recent context, 2026-05-24 1:51am GMT+9
+このファイルは `C:\Users\tskmo\OneDrive\Desktop\プログラム\QRシステム` で作業するすべてのエージェント向けの指示です。
 
-Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
-Format: ID TIME TYPE TITLE
-Fetch details: get_observations([IDs]) | Search: mem-search skill
+## ユーザー対応
 
-Stats: 50 obs (8,922t read) | 146,476t work | 94% savings
+- ユーザーのことは必ず「ユーザー様」と呼ぶ。
+- 推測で断定せず、実ファイル・実行結果・Git状態・Firebase設定・ログを確認してから答える。
+- ローカル変更、GitHubへpush済み、Firebaseへデプロイ済みの状態は必ず区別して報告する。
+- 既存の運用を守ることを最優先にし、必要な層だけを変える。
 
-### May 9, 2026
-S24 Debugging and resolving Google OAuth redirect_uri_mismatch error in Firebase authentication setup (May 9, 7:57 PM)
-S25 User asked for project URLs; Claude attempted auth domain fix causing regression, then reverted and redeployed (May 9, 7:58 PM)
-S26 User requested implementation of email allowlist management UI to resolve Google OAuth access control issues (May 9, 8:09 PM)
-S27 Implement in-app email allowlist management UI for Google OAuth authorization in QRシステム admin settings (May 9, 8:18 PM)
-S28 In-app email allowlist management UI for Google OAuth authorization — implemented and deployed to QRシステム (Firebase project qrproduct-3340b) (May 9, 8:18 PM)
-S29 Gate email allowlist management UI to super-admin only (tsk.mons@gmail.com) in SettingsPage, then deploy (May 9, 8:21 PM)
-S30 User unable to access kitchen page — advised to add kitchen staff email to allowedEmails via admin settings (May 9, 8:25 PM)
-S31 Improve ApprovalGate denied screen to show blocked email prominently, then deploy — to help debug kitchen access issue (May 9, 8:25 PM)
-S32 Debug kitchen access denial — added error handling to allowedEmails CRUD operations to surface Firestore errors visibly (May 9, 8:26 PM)
-S33 Fix Firestore permission-denied blocking allowedEmails write — relaxed rule from isSuper() to isGoogle() (May 9, 8:30 PM)
-### May 16, 2026
-279 1:16p 🔴 通知システムの担当機能をリバート - 「対応する」ボタン押下者のみページ遷移に変更
-280 1:18p 🟣 QRシステムに商品割引システムを実装（discountConfig）
-281 " 🟣 OptionModalに数量セレクター追加・非必須オプションのトグル対応
-282 " 🔵 CheckoutPage の割引計算チェーン構造を確認
-283 1:19p 🔴 CheckoutPage: discountAmount を商品別+全体の合算に修正
-284 " 🔵 QRシステム今回の変更スコープ確認（git status）
-285 " 🔵 CategoryPage.jsx は未使用のデッドコード - カテゴリ管理はProductPageに統合済み
-286 1:21p 🟣 ドラッグ＆ドロップによるメニュー並び替え機能の要件
-287 1:22p ✅ ProductPage.jsx に deleteDoc と writeBatch を追加インポート
-288 " 🟣 ドラッグ状態管理用のstateをProductPageに追加
-289 " 🟣 カテゴリ削除機能 (deleteCat) を実装
-290 " 🟣 カテゴリのドラッグ＆ドロップ並び替えロジックを実装
-291 1:23p ✅ ProductPage.jsx から未使用の deleteDoc インポートを削除
-292 " 🟣 カテゴリ一覧を order フィールドでソートして表示
-293 " 🟣 カテゴリ行に削除ボタンを追加
-294 " 🔵 apply_patch が文字化けによりコンテキスト行のマッチに失敗
-295 1:24p 🔵 カテゴリUIに既存の上下移動ボタン (moveCat) が存在することを確認
-296 " 🔵 削除ボタンとドラッグ&ドロップハンドラがカテゴリUIに未追加であることを確認
-297 " 🟣 削除ボタンをカテゴリUIに正常追加（write_file で再適用）
-298 " 🟣 カテゴリ行divにドラッグ&ドロップ属性とビジュアルフィードバックを追加
-299 " 🟣 カテゴリ編集モード中にも削除ボタンを追加
-300 1:26p 🔵 ProductPage.jsx のドラッグ・カテゴリ・商品表示の構造確認
-301 " 🟣 商品割引設定機能を ProductPage.jsx に実装
-302 11:00p 🟣 Customer Order Screen: Floating Cart Button + Cart Checkout Flow
-303 11:01p 🔵 MenuPage.jsx Structure: Existing Header Buttons + CustomerBottomNav
-304 " 🔵 CustomerBottomNav Already Has Cart Button Routing to ../cart
-305 " 🟣 CustomerBottomNav: Added hideCart Prop to Conditionally Hide Cart Tab
-306 " 🟣 MenuPage: Floating Cart FAB Added, Header Buttons Removed
-307 " ✅ QRシステム Production Build Succeeded After MenuPage/CustomerBottomNav Changes
-308 " ✅ QRシステム Deployed to Firebase Hosting with Floating Cart FAB Changes
-### May 17, 2026
-309 1:18a 🟣 席の名前変更と注文削除機能の追加リクエスト
-310 " 🔵 TablePage.jsx の現状確認 — 席管理ページの既存機能
-311 " 🔵 TableDetailPage.jsx に注文削除機能（キャンセル）が既に実装済み
-312 1:19a 🔵 KitchenPage.jsx の現状確認 — 注文削除機能なし
-313 " 🔵 pendingCount と orderItems 書き込み箇所のコードパス調査
-314 " 🔵 TableListPage.jsx — スタッフ向け席一覧画面の構造確認
-315 " 🟣 管理画面の席名変更機能を実装
-316 " 🟣 KitchenPage に注文削除機能と pendingCount 同期を追加
-317 1:20a 🟣 席名変更・注文削除機能のビルド成功
-318 " ✅ 席名変更・注文削除機能を Firebase Hosting にデプロイ完了
-319 1:23a 🔵 QRシステム StaffBottomNav Component Structure Confirmed
-320 " 🔵 StaffLayout Sound System: Volume Capped at Browser Level via Web Audio API Gain
-321 " 🔴 StaffBottomNav Kitchen Navigation Fixed: /kitchen → /staff/kitchen
-322 " 🟣 KitchenPage Embedded Inside StaffLayout at /staff/kitchen
-323 1:24a 🟣 StaffBottomNav Added to TableListPage
-324 " 🔵 Production Build Succeeds; Main Bundle 2.36MB (Warning)
-325 " ✅ QRシステム Deployed to Firebase Hosting (qrproduct-3340b)
-326 " 🔵 QRシステム Has Large Set of Uncommitted Changes and New Files
-327 " 🔵 Git LF→CRLF Warning on All Modified Files (Windows)
-328 1:25a ✅ Firestore Rules and Hosting Deployed Together to Production
+## 基本方針
 
-Access 146k tokens of past work via get_observations([IDs]) or mem-search skill.
-</claude-mem-context>
+- コードは最初から肥大化しない構造で設計する。
+- つぎはぎの実装は禁止。既存の責務分離、サービス層、ページ構成、CSS分割に沿って統合する。
+- 既存プロジェクトでは競合する別構造を作らず、現在の構成へ自然に組み込む。
+- 追加機能は、画面・データ・権限・検証方法のつながりを先に整理してから実装する。
+- 便利だからという理由だけで新しい入口や重複UIを増やさない。
+- `.env.local` など秘密情報を含むファイルは読んでも値を出力しない。コミットしない。
+
+## plan.MD 運用
+
+- UI、追加機能、レイアウト、データ構造、権限、注文処理などの変更を始める前に `plan.MD` を確認する。
+- 機能追加や構造変更では、実装前に `plan.MD` へ以下を追記する。
+  - 目的
+  - 現状確認
+  - 変更方針
+  - 影響範囲
+  - 検証方法
+- すでに進行中の方針が `plan.MD` にある場合は、それと競合しないように統合する。
+- ユーザー様のUIの好みや重視点が分かる発言があれば、`plan.MD` または関連するMDへ記録する。
+- 現在の明確なUI方針: あとから見た目を直す前提にせず、最初から構造的に整える。追加した機能をすべて表に出す必要はない。
+
+## UI / UX 方針
+
+- QR注文システムとして、顧客画面は迷わず注文できること、スタッフ画面は現場で素早く判断できることを優先する。
+- 既存の画面パターン、下部ナビ、スタッフ導線、管理画面の情報密度に合わせる。
+- ボタン、モーダル、トグル、入力欄などは、あとから大きく直さなくてよい見た目と配置で作る。
+- ブラウザ標準の `prompt` / `alert` に逃げず、既存UIの流れに沿ったコンポーネントを使う。
+- すべての機能を常時表示しない。頻度が低い機能や危険操作は、管理しやすい場所へ整理する。
+
+## QRシステム固有の注意点
+
+- Firebase既定プロジェクトは `.firebaserc` の `qrproduct-3340b`。デプロイ前に必ず現在の設定を確認する。
+- `firebase.json` は Hosting、Firestore rules/indexes、Functions、Storage rules を管理している。
+- 注文処理は競合が起きやすい領域。`tables`、`orders`、`orderItems`、`pendingCount`、`pendingAggregate*` を触る場合は `plan.MD` の注文信頼性方針を読む。
+- 高頻度の注文更新を `tables/{tableId}` に集中させる変更は避ける。注文処理はコマンド境界やトランザクションで一貫性を保つ。
+- スタッフ権限は `src/lib/staffPermissions.js`、ルート、Firestore rules、表示UIをセットで確認する。
+- 店舗コードログインでは、既存の管理者セッションをそのまま流用しない。必要に応じて匿名スタッフセッションへ切り替える設計を守る。
+- パスワード変更では現在パス確認を維持する。
+- オーナー限定の許可リスト管理など、既存の権限境界を広げる場合はコードとrulesの両方で検証する。
+
+## 検証
+
+- 変更前後で対象ファイルだけでなく、関連するサービス、ページ、rules、チェックスクリプトを確認する。
+- 可能な限り該当チェックを実行する。広範囲の変更では `npm run check` と `npm run build` を実行する。
+- 主要な個別チェック:
+  - `npm run check:staff-permissions`
+  - `npm run check:staff-entry`
+  - `npm run check:customer-entry`
+  - `npm run check:customer-cart`
+  - `npm run check:kitchen-display`
+  - `npm run check:staff-table-detail`
+- Firestore rules や Firebase Hosting に関わる変更では、ローカル検証、push、デプロイのどこまで完了したかを明記する。
+
+## Git / GitHub 必須手順
+
+- ファイル変更時は必ずGitコミットしてpushする。
+- 作業前に `git status --short --branch` を確認し、ユーザー様や他作業の未コミット変更を勝手に戻さない。
+- 既存リポジトリがない場合は、`tskmons-eng` 配下に新規GitHubリポジトリを作ってpushする。
+- このリポジトリの既定リモートは `https://github.com/tskmons-eng/qr.git`。変更前に `git remote -v` で確認する。
+- コミットメッセージは変更内容が分かる短い日本語または英語にする。
+- pushできなかった場合は、原因とローカルコミットの有無を明確に報告する。
