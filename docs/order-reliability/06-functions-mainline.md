@@ -53,6 +53,7 @@ Production の注文経路を Cloud Functions command 本線へ切り替える�
 
 ## 統合担当への注意
 
+- 2026-06-19 時点の live Functions は、既存予約/集計関数が `asia-northeast1` と `us-central1` に分かれている。ソース側でも既存関数の region を明示しているが、注文 command の初回反映では既存関数を巻き込む全Functions deployを避ける。
 - Hosting を新ビルドへ切り替える前に、以下の callable Functions を deploy 済みにする。
   - `startCustomerOrderSessionCommand`
   - `submitCustomerOrderItemsCommand`
@@ -64,6 +65,7 @@ Production の注文経路を Cloud Functions command 本線へ切り替える�
   - `markOrderItemOrderedCommand`
   - `cancelOrderItemCommand`
   - `moveTableOrderCommand`
+- 注文 callable は `us-central1` で定義する。client は region override がない場合 `getFunctions(app)` の既定 `us-central1` を呼ぶ。
 - rollback build は `VITE_ORDER_COMMAND_RUNTIME=client` を明示して作る。
 - この分担では Firebase deploy は実行しない。
 

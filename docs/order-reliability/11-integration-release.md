@@ -18,7 +18,17 @@
 ## deploy 順
 
 1. Functions deploy
-   - Callable command export がすべて作成/更新されることを確認する。
+   - 既存予約通知や集計 Functions を巻き込む全Functions deployをしない。
+   - `npx --yes firebase-tools functions:list --project qrproduct-3340b` で既存関数の region を確認する。
+   - 2026-06-19 確認時点では、`notifyReservationCreated` と `syncTablePendingAggregateOn*` は `asia-northeast1`、`notifyStaff` と `processReservationArrivals` は `us-central1`。
+   - 注文 callable は `us-central1` で出す。
+   - 初回 deploy は以下のように注文 command だけを明示する。
+
+```bash
+npx --yes firebase-tools deploy --project qrproduct-3340b --only functions:startCustomerOrderSessionCommand,functions:submitCustomerOrderItemsCommand,functions:submitStaffOrderItemsCommand,functions:seatStaffOrderSessionCommand,functions:completeCheckoutCommand,functions:markOrderItemServedCommand,functions:markOrderItemsServedCommand,functions:markOrderItemOrderedCommand,functions:cancelOrderItemCommand,functions:moveTableOrderCommand --non-interactive
+```
+
+   - deploy 後に callable command export がすべて作成/更新されることを確認する。
    - 既存予約通知や集計 Functions を消さない。
 
 2. Functions smoke check

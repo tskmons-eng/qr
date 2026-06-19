@@ -8,6 +8,8 @@ const orderCommandHandlers = require('./orderCommandHandlers')
 
 initializeApp()
 
+const ASIA_NORTHEAST_FUNCTION_REGION = 'asia-northeast1'
+const US_CENTRAL_FUNCTION_REGION = 'us-central1'
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 
@@ -170,13 +172,19 @@ async function sendStaffNotification({ storeId, title, body, link = '/staff', ta
   return { sent: response.successCount > 0, successCount: response.successCount }
 }
 
-exports.syncTablePendingAggregateOnCreate = onDocumentCreated('orderItems/{itemId}', async (event) => {
+exports.syncTablePendingAggregateOnCreate = onDocumentCreated({
+  document: 'orderItems/{itemId}',
+  region: ASIA_NORTHEAST_FUNCTION_REGION,
+}, async (event) => {
   await applyPendingAggregateDeltas([
     { entry: getPendingAggregateCounts(event.data.data()), direction: 1 },
   ])
 })
 
-exports.syncTablePendingAggregateOnUpdate = onDocumentUpdated('orderItems/{itemId}', async (event) => {
+exports.syncTablePendingAggregateOnUpdate = onDocumentUpdated({
+  document: 'orderItems/{itemId}',
+  region: ASIA_NORTHEAST_FUNCTION_REGION,
+}, async (event) => {
   const before = getPendingAggregateCounts(event.data.before.data())
   const after = getPendingAggregateCounts(event.data.after.data())
   if (
@@ -193,13 +201,19 @@ exports.syncTablePendingAggregateOnUpdate = onDocumentUpdated('orderItems/{itemI
   ])
 })
 
-exports.syncTablePendingAggregateOnDelete = onDocumentDeleted('orderItems/{itemId}', async (event) => {
+exports.syncTablePendingAggregateOnDelete = onDocumentDeleted({
+  document: 'orderItems/{itemId}',
+  region: ASIA_NORTHEAST_FUNCTION_REGION,
+}, async (event) => {
   await applyPendingAggregateDeltas([
     { entry: getPendingAggregateCounts(event.data.data()), direction: -1 },
   ])
 })
 
-exports.notifyStaff = onDocumentCreated('calls/{callId}', async (event) => {
+exports.notifyStaff = onDocumentCreated({
+  document: 'calls/{callId}',
+  region: US_CENTRAL_FUNCTION_REGION,
+}, async (event) => {
   const call = event.data.data()
   if (!call) return
 
@@ -218,7 +232,10 @@ exports.notifyStaff = onDocumentCreated('calls/{callId}', async (event) => {
   })
 })
 
-exports.notifyReservationCreated = onDocumentCreated('reservations/{reservationId}', async (event) => {
+exports.notifyReservationCreated = onDocumentCreated({
+  document: 'reservations/{reservationId}',
+  region: ASIA_NORTHEAST_FUNCTION_REGION,
+}, async (event) => {
   const reservation = event.data.data()
   if (!reservation || reservation.status !== 'confirmed') return
 
@@ -341,6 +358,7 @@ async function processReservationArrival(reservationDoc) {
 exports.processReservationArrivals = onSchedule({
   schedule: 'every 1 minutes',
   timeZone: 'Asia/Tokyo',
+  region: US_CENTRAL_FUNCTION_REGION,
 }, async () => {
   const db = getFirestore()
   const snap = await db.collection('reservations')

@@ -67,6 +67,7 @@ for (const token of [
 }
 
 assert.ok(api.includes("new HttpsError("), 'Functions command API should map command errors to callable errors')
+assert.ok(api.includes("ORDER_COMMAND_REGION = 'us-central1'"), 'Functions command API should pin order callables to us-central1')
 assert.ok(api.includes('category-scope-mismatch'), 'Functions command API should map category scope errors')
 assert.ok(handlers.includes('category-scope-mismatch') && handlers.includes('category.storeId'), 'Functions handlers should reject cross-store categories')
 assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME"), 'client command runtime should read VITE_ORDER_COMMAND_RUNTIME')
@@ -96,5 +97,9 @@ assert.equal(firebase.functions?.runtime, 'nodejs20', 'firebase.json Functions r
 assert.equal(functionsPkg.engines?.node, '20', 'functions/package.json engine should match nodejs20')
 assert.equal(functionsPkgLock.packages?.['']?.engines?.node, '20', 'functions/package-lock.json engine should match nodejs20')
 assert.ok(rootPkg.scripts?.['check:order-functions-emulator']?.includes('check-order-functions-emulator.mjs'), 'package.json should expose the Functions emulator concurrency check')
+assert.ok(functionsIndex.includes("ASIA_NORTHEAST_FUNCTION_REGION = 'asia-northeast1'"), 'Functions index should pin existing asia-northeast1 triggers')
+assert.ok(functionsIndex.includes("US_CENTRAL_FUNCTION_REGION = 'us-central1'"), 'Functions index should pin existing us-central1 triggers')
+assert.ok(functionsIndex.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), 'Functions index should use the asia-northeast1 trigger region')
+assert.ok(functionsIndex.includes('region: US_CENTRAL_FUNCTION_REGION'), 'Functions index should use the us-central1 trigger region')
 
 console.log('functions/rules migration checks passed')

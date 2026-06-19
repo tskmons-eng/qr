@@ -4,6 +4,8 @@ const {
   recordOrderCommandFailure,
 } = require('./orderCommandFailures')
 
+const ORDER_COMMAND_REGION = 'us-central1'
+
 const COMMAND_HTTP_ERROR_CODES = new Map([
   ['invalid-argument', 'invalid-argument'],
   ['invalid-quantity', 'invalid-argument'],
@@ -43,7 +45,7 @@ function toHttpsError(error) {
 }
 
 function createOrderCommandCallable(handler, commandContext = {}) {
-  return onCall({ cors: true }, async request => {
+  return onCall({ cors: true, region: ORDER_COMMAND_REGION }, async request => {
     try {
       return await handler(request.data ?? {}, request)
     } catch (error) {
@@ -62,4 +64,5 @@ function createOrderCommandCallable(handler, commandContext = {}) {
 
 module.exports = {
   createOrderCommandCallable,
+  ORDER_COMMAND_REGION,
 }

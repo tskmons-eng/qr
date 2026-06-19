@@ -20,6 +20,7 @@ const [
   orderItemCommandService,
   tableMoveCommandService,
   functionsIndex,
+  functionsApi,
   envExample,
   roundTwoDoc,
 ] = await Promise.all([
@@ -28,6 +29,7 @@ const [
   readFile('src/services/orderItemCommandService.js', 'utf8'),
   readFile('src/services/tableMoveCommandService.js', 'utf8'),
   readFile('functions/index.js', 'utf8'),
+  readFile('functions/orderCommandApi.js', 'utf8'),
   readFile('.env.local.example', 'utf8'),
   readFile('docs/order-reliability/06-functions-mainline.md', 'utf8'),
 ])
@@ -63,5 +65,7 @@ for (const callableName of callableNames) {
 assert.ok(envExample.includes('Production builds default to Functions commands.'), '.env.local.example should document Production default')
 assert.ok(envExample.includes('VITE_ORDER_COMMAND_RUNTIME=client'), '.env.local.example should keep local rollback override visible')
 assert.ok(roundTwoDoc.includes('Production build では Functions command を既定経路にする。'), '06 doc should define Functions as Production default')
+assert.ok(functionsApi.includes("ORDER_COMMAND_REGION = 'us-central1'"), 'order callable region should match the default client Functions region')
+assert.ok(roundTwoDoc.includes('注文 callable は `us-central1`'), '06 doc should mention the order callable region')
 
 console.log('order Functions mainline checks passed')
