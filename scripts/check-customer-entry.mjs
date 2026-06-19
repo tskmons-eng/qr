@@ -37,4 +37,10 @@ assert.match(orderEntrySource, /setStoreConfig\(CUSTOMER_ENTRY_CONFIG_DEFAULTS\)
 assert.match(orderEntrySource, /if \(loading \|\| configLoading \|\| error\)/)
 assert.match(orderEntrySource, /<OrderEntryStatus loading=\{loading \|\| configLoading\} error=\{error\} \/>/)
 
+const guestCountPageSource = readFileSync(new URL('../src/pages/order/GuestCountPage.jsx', import.meta.url), 'utf8')
+assert.match(guestCountPageSource, /const orderId = await createCustomerOrderSession/)
+assert.match(guestCountPageSource, /setOrderId\(orderId\)/)
+assert.match(guestCountPageSource, /applyCustomerOrderStartToTable\(currentTable, count, orderId\)/)
+assert.match(guestCountPageSource, /navigate\('\.\.\/menu', \{ replace: true \}\)/)
+
 console.log('customer entry checks passed')

@@ -171,6 +171,9 @@ async function expectCallableError(expectedCode, action, label) {
   assert.fail(`${label} should reject with ${expectedCode}`)
 }
 
+function callableErrorCode(error) {
+  return error?.details?.code ?? String(error?.code ?? '').replace(/^functions\//, '')
+}
 function cartItem(productId, quantity = 1) {
   return {
     product: { id: productId },
@@ -307,25 +310,50 @@ async function queryBy(db, collectionName, field, value) {
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 }
 
-async function runCustomerStartRace(db, publicFunctions) {
+async function runCustomerStartRace(db, publicFunctions, productId) {
   const tableId = `${runId}_race_table`
+  const guestCount = 4
   await seedTable(db, tableId)
 
-  const results = await Promise.all(Array.from({ length: 16 }, () => (
+  const settled = await Promise.allSettled(Array.from({ length: 50 }, () => (
     call(publicFunctions, 'startCustomerOrderSessionCommand', {
-      guestAutoAdd: { enabled: false },
-      guestCount: 2,
+      guestAutoAdd: {
+        enabled: true,
+        productId,
+        productNameSnapshot: 'Race Auto Add',
+      },
+      guestCount,
       storeId,
       tableId,
     })
   )))
+  const rejected = settled.filter(result => result.status === 'rejected')
+  assert.equal(
+    rejected.length,
+    0,
+    `same-table customer start race should not reject: ${rejected.map(result => callableErrorCode(result.reason)).join(', ')}`
+  )
 
+  const results = settled.map(result => result.value)
   const orderIds = new Set(results)
   assert.equal(orderIds.size, 1, 'same-table customer start race should return one order id')
   const [orderId] = orderIds
   const orders = await queryBy(db, 'orders', 'tableId', tableId)
   assert.equal(orders.length, 1, 'same-table customer start race should create one order')
-  assert.equal((await tableData(db, tableId)).currentOrderId, orderId)
+  assert.equal(orders[0].status, 'open', 'same-table customer start race should keep one open order')
+  assert.equal(orders[0].guestCount, guestCount, 'same-table customer start race should keep the winning guest count')
+
+  const table = await tableData(db, tableId)
+  assert.equal(table.currentOrderId, orderId)
+  assert.equal(table.status, 'occupied')
+  assert.equal(table.guestCount, guestCount)
+  assert.equal(table.pendingCount, 1, 'auto-add should count one order item line')
+
+  const autoAddItems = await queryBy(db, 'orderItems', 'orderId', orderId)
+  assert.equal(autoAddItems.length, 1, 'same-table customer start race should create one auto-add item')
+  assert.equal(autoAddItems[0].productId, productId)
+  assert.equal(autoAddItems[0].quantity, guestCount)
+  assert.equal(autoAddItems[0].clientRequestId, `auto-add-${orderId}`)
 }
 
 async function runCustomerSubmitDedup(db, publicFunctions, productId) {
@@ -650,7 +678,7 @@ const staffClient = createStaffClient(`staff-${runId}`)
 const staffCredential = await signInAnonymously(staffClient.auth)
 const products = await seedBaseData(db)
 
-await runCustomerStartRace(db, publicClient.functions)
+await runCustomerStartRace(db, publicClient.functions, products.productId)
 await runCustomerSubmitDedup(db, publicClient.functions, products.productId)
 await runCustomerDistinctSubmitRequests(db, publicClient.functions, products.productId)
 await runUnauthorizedStaffReject(db, staffClient.functions)

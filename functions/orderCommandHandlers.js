@@ -110,6 +110,45 @@ async function loadAutoAddProduct(db, guestAutoAdd, storeId) {
   })
 }
 
+function isStartSessionContentionError(error) {
+  const code = error?.code ?? error?.status ?? error?.details?.code
+  return code === 10 ||
+    code === 'ABORTED' ||
+    code === 'aborted' ||
+    /ABORTED|Too much contention/i.test(error?.message ?? '')
+}
+
+function waitForStartSessionRetry(attempt) {
+  const delayMs = 20 * attempt + Math.floor(Math.random() * 20)
+  return new Promise(resolve => {
+    setTimeout(resolve, delayMs)
+  })
+}
+
+async function readExistingCustomerOrderId(tableRef, storeId) {
+  const tableSnap = await tableRef.get()
+  if (!tableSnap.exists) throw commandError('table-not-found', 'Table was not found.')
+  const table = tableSnap.data()
+  if (table.storeId !== storeId) throw commandError('table-scope-mismatch', 'Table does not match this store.')
+  return table.currentOrderId ?? null
+}
+
+async function runCustomerStartTransaction(db, tableRef, storeId, transactionHandler) {
+  const maxAttempts = 8
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await db.runTransaction(transactionHandler)
+    } catch (error) {
+      if (!isStartSessionContentionError(error)) throw error
+      const existingOrderId = await readExistingCustomerOrderId(tableRef, storeId)
+      if (existingOrderId) return existingOrderId
+      if (attempt === maxAttempts) throw error
+      await waitForStartSessionRetry(attempt)
+    }
+  }
+  throw commandError('internal', 'Customer order start retry failed.')
+}
+
 async function loadOrderItemRefs(db, orderId) {
   const itemSnap = await db.collection('orderItems').where('orderId', '==', orderId).get()
   return itemSnap.docs.map(itemDoc => itemDoc.ref)
@@ -125,7 +164,7 @@ async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, ta
   const now = FieldValue.serverTimestamp()
   const normalizedGuestCount = normalizeGuestCount(guestCount)
 
-  return db.runTransaction(async transaction => {
+  return runCustomerStartTransaction(db, tableRef, storeId, async transaction => {
     const tableSnap = await transaction.get(tableRef)
     if (!tableSnap.exists) throw commandError('table-not-found', 'Table was not found.')
     const table = tableSnap.data()

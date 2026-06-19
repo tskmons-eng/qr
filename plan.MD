@@ -42,6 +42,15 @@
 - Impact scope: `scripts/check-order-safety-release-gate.mjs`, `package.json`, `docs/order-safety-round3/06-load-release-gate.md`, and this plan.
 - Verification: `npm run check:order-safety-release-gate`, `npm run check`, `npm run check:order-functions-emulator`, `npm run build`, and read-only audits when credentials are available.
 
+### 01 Customer Session Race Responsibility
+
+- Purpose: guarantee that many customers opening the same table QR and starting at nearly the same time converge to one active order session.
+- Current confirmation: Functions `startCustomerOrderSession()` already reads `tables/{tableId}` inside a Firestore transaction and returns the existing `currentOrderId` when one has already won.
+- Change policy: strengthen emulator coverage rather than changing production behavior unless the check exposes a real command-layer gap.
+- Impact scope: `functions/orderCommandHandlers.js`, `scripts/check-order-functions-emulator.mjs`, `scripts/check-customer-entry.mjs`, `docs/order-safety-round3/01-customer-session-race.md`, and this plan.
+- Verification: `npm run check:order-functions-emulator`, `npm run check:customer-entry`, `npm run check`, and `npm run build`.
+- Verification results: the strengthened 50-client emulator check first reproduced transaction contention, then passed after adding start-session contention recovery; `npm run check:customer-entry`, `npm run check`, and `npm run build` also passed. No Firebase deploy was run.
+
 ### 07 Kitchen Served Optimistic UI Responsibility
 
 - Purpose: make kitchen served actions feel immediate by hiding pressed items locally while keeping the existing Functions command as the source of truth.
