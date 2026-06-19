@@ -1,5 +1,81 @@
 # QR System Plan
 
+## 2026-06-19 Order reliability architecture review
+
+### Context
+
+- User reported that the restaurant QR ordering system is in a repeated bug-fix cycle and may need to be reconsidered from the mechanism level.
+- Current live symptom: when many customers come at once, orders can stop entering.
+- User priority: reduce recurring bugs through a coherent ordering design, not patchwork fixes.
+- User requested use of `cccc`; Codex can see the `cccc` tools, but this thread has no `CCCC_GROUP_ID`, so `cccc_project_info`, `cccc_context_get`, `cccc_capability_state`, and `cccc_inbox_list` currently return `missing_group_id`. Continue local analysis now and send/share this plan through `cccc` when a group id is available.
+
+### Current Findings
+
+- `npm run check` passes, so the current problem is not exposed by existing source checks.
+- The order domain is still split across client services:
+  - Customer order start creates `orders`, then updates `tables.currentOrderId`, then optionally creates an auto-added `orderItems` document.
+  - Customer cart submit creates `orderItems`, then best-effort updates `tables.pendingCount`.
+  - Staff ordering, kitchen served/cancel actions, table detail actions, checkout, and table move actions directly update both `orderItems` and `tables`.
+  - Cloud Functions also update `tables.pendingAggregate*` when `orderItems` change.
+- This means the same `tables/{tableId}` document is a hot coordination document for session state, pending counts, checkout reset, table move, and aggregate updates.
+- Official Firestore guidance warns that high concurrent operations on one document can cause high latency or contention errors; this matches the reported "many customers at once" failure shape.
+- Current security rules allow public `orders` and `orderItems` creation, while public `tables` update is only allowed for vacant-to-occupied entry. If two customers start the same table concurrently, one can create an orphan `orders` record and then fail to attach it to the table.
+- Functions logs currently show scheduled reservation activity but not order write failures, which is expected because the critical customer order path is mostly client-side Firestore writes.
+
+### Decision
+
+- Do not start with a full UI rewrite. The first rewrite target is the ordering mechanism, because the UI can remain mostly stable while writes are centralized.
+- Treat `orderItems` as the durable source of ordered products, and stop using `tables` as a high-frequency counter target.
+- Introduce an order command boundary:
+  - `startOrderSession`
+  - `submitOrderItems`
+  - `markItemServed`
+  - `cancelOrderItem`
+  - `checkoutOrder`
+  - `moveOrderTable`
+- Each command must be idempotent where customer retry or double-tap is possible.
+- Each command must either complete its related writes atomically or leave a recoverable command/error record.
+- Keep existing Firestore collections initially to avoid a risky data migration, then move callers behind the command boundary one slice at a time.
+
+### Stabilization Plan
+
+1. Add failure visibility before deeper rewrites.
+   - Record customer/staff order write failures with operation name, table id, order id, store id, error code, and timestamp.
+   - Keep the customer-facing message simple, but make the admin/debug trail inspectable.
+
+2. Hotfix customer order start.
+   - Make `createCustomerOrderSession` transaction/idempotency based.
+   - If the table is already occupied with `currentOrderId`, return that order id instead of creating another orphan order.
+   - If the table is vacant, create the order and attach it to the table in one transaction.
+
+3. Remove high-frequency table counter dependence.
+   - Stop treating `tables.pendingCount` as a source of truth.
+   - Use `orderItems` query results or `pendingAggregate*` only for display, with a repair/rebuild path.
+   - Avoid client-side `pendingCount` increments on every submit/served/cancel action.
+
+4. Move core order writes to server commands.
+   - Implement Cloud Functions callable/HTTPS commands for start, submit, serve, cancel, checkout, and move.
+   - Clients call commands instead of writing multiple collections directly.
+   - Firestore rules can then be tightened so public clients cannot create arbitrary order data.
+
+5. Add concurrency and retry checks.
+   - Emulator test: many customers start the same table at once.
+   - Emulator test: many customers submit multiple cart lines for one active order.
+   - Emulator test: duplicate submit idempotency key does not duplicate items.
+   - Emulator test: checkout during late submit is rejected or queued consistently.
+   - Emulator test: served/cancelled counts rebuild from `orderItems`.
+
+6. Decide rebuild scope after the command layer.
+   - If errors disappear after centralizing commands, keep the current UI and continue incremental cleanup.
+   - If data model issues remain, rebuild backend/data model first and keep route/UI compatibility during migration.
+
+### Verification Plan
+
+- `npm run check`
+- `npm run build`
+- Firebase emulator concurrency tests for order commands before production deploy.
+- Production deploy only after the command path can be verified without changing visible ordering flow.
+
 ## 2026-06-14 Customer guest auto-add loading guard
 
 ### Context
