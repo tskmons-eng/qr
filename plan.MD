@@ -82,6 +82,7 @@
 - Change policy: `npm run check` に通常モードの配線チェックを組み込み、`--final` の時だけ各担当完了メモ、clean git、push済みを強制する。最終deploy対象はHostingと `functions:completeCheckoutCommand` に絞り、rules / indexes / storage は差分がない限りdeployしない。
 - Impact scope: `scripts/check-restaurant-ux-release-gate.mjs`, `functions/orderCommandApi.js`, `package.json`, `.gitignore`, `docs/restaurant-ux-round4/README.md`, `docs/restaurant-ux-round4/07-integration-release-gate.md`, and this plan.
 - Verification: `npm run check:restaurant-ux-release-gate`, `git diff --check`, `npm run check`, `npm run check:order-functions-emulator`, and `npm run build`. Commit/push後に `npm run check:restaurant-ux-release-gate -- --final` を実行する。
+- Verification results: final gate passed after commit/push, Hosting and `functions:completeCheckoutCommand` were deployed to `qrproduct-3340b`, live assets were `assets/index-DIJYZ4C0.js` and `assets/index-BA3KaryF.css`, 主要ルートHTTP 200を確認した。Production command failure auditはADC/service-account credentials未設定で未実行。
 
 ### Verification
 

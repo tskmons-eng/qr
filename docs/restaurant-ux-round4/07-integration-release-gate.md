@@ -74,7 +74,7 @@
 ## Completion Notes
 
 - Integrated commits: 7d406e0 admin category iOS zoom, 90d8099 guest auto-add visibility, e7a0566 staff order/checkout scroll layout, 7ead6a1 customer cart/checkout history navigation, plus current 01 kitchen undo/density, 06 menu row tap setting, and 07 release gate changes.
-- Checks: `git diff --check`, `npm run check:restaurant-ux-release-gate`, `npm run check`, `npm run build`, and `npm run check:order-functions-emulator` passed after 07 fixed `complete_checkout` transaction contention error normalization. `npm run check:restaurant-ux-release-gate -- --final` is expected to pass only after this integration commit is pushed.
-- Deploy target: pending final gate. Planned target is Hosting plus `functions:completeCheckoutCommand`; rules / indexes / storage have no intended deploy target.
-- Production result: not deployed yet.
-- Remaining risk: iPhone実機のカテゴリー編集ズーム、顧客メニューの実機タップ感、キッチンUndoの現場操作感は自動チェックでは確認できない。deploy後は live HTML asset hash、主要ルートHTTP 200、Functions log、`audit:command-failures` を確認する。
+- Checks: `git diff --check`, `npm run check:restaurant-ux-release-gate`, `npm run check`, `npm run build`, `npm run check:order-functions-emulator`, and `npm run check:restaurant-ux-release-gate -- --final` passed after 07 fixed `complete_checkout` transaction contention error normalization.
+- Deploy target: deployed Hosting and `functions:completeCheckoutCommand` to `qrproduct-3340b`. rules / indexes / storage were not deployed.
+- Production result: deploy completed. Live HTML references `assets/index-DIJYZ4C0.js` and `assets/index-BA3KaryF.css`; `/`, `/login`, `/admin`, `/staff`, `/staff/kitchen`, and `/order/test-token` returned HTTP 200. `functions:list` shows `completeCheckoutCommand` active in `us-central1`, and `functions:log --only completeCheckoutCommand --lines 20` returned recent rollout/invocation logs without a new error line. `npm run audit:command-failures -- --limit 10` could not read production Firestore because local ADC/service-account credentials were unavailable.
+- Remaining risk: iPhone実機のカテゴリー編集ズーム、顧客メニューの実機タップ感、キッチンUndoの現場操作感は自動チェックでは確認できない。Production Firestoreのcommand failure監査は認証設定後に再実行する。
