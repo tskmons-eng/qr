@@ -64,7 +64,9 @@ function gitBin() {
 
 async function runCommand(command, commandArgs) {
   console.log(`\n> ${[command, ...commandArgs].join(' ')}`)
-  const child = execFileAsync(command, commandArgs, {
+  const execCommand = process.platform === 'win32' && command.endsWith('.cmd') ? 'cmd.exe' : command
+  const execArgs = execCommand === 'cmd.exe' ? ['/d', '/c', command, ...commandArgs] : commandArgs
+  const child = execFileAsync(execCommand, execArgs, {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 20,
   })
