@@ -37,3 +37,12 @@
 - `npm run check:staff-menu`
 - `npm run check`
 - `npm run build`
+
+## 検証結果
+
+- `npm run check:menu-product-order` passed.
+- `npm run check:customer-entry` passed.
+- `npm run check:staff-menu` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- Firebase deploy は実行していない。

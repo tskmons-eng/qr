@@ -28,6 +28,9 @@
 
 ## 2026-06-19 現在の到達点
 
+- 01では、品切れ/売り切れ商品を各カテゴリ内の下部へ回す対応を追加済み。
+- 02では、お客様の注文確認を `準備中` / `提供済み` / `キャンセル` に整理し、今回追加分の反映状態を分かるようにした。
 - 03では、キッチンの商品行に `optionSelections` を表示する対応を追加済み。
-- `npm run check:kitchen-display`, `npm run check:staff-table-detail`, `npm run check`, `npm run build` は通過済み。
+- 統合対象チェック `npm run check:menu-product-order`, `npm run check:customer-order-status`, `npm run check:customer-cart`, `npm run check:customer-entry`, `npm run check:staff-menu`, `npm run check:kitchen-display`, `npm run check:staff-table-detail` は通過済み。
+- 統合ゲート `npm run check` と `npm run build` は通過済み。
 - 本番 deploy は未実施。

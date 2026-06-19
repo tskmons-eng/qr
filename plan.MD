@@ -51,14 +51,28 @@
 - Add `sortSoldOutProductsLast` as a shared display-order helper.
 - Apply it to customer menu and staff order menu after category filtering.
 - Keep Firestore `sortOrder` and product data unchanged.
+- Show customer-visible order history on the existing completion screen, grouped by preparing, served, and cancelled status.
+- Keep cancelled rows visible as non-billable history and mark the latest reflected submission as `今回追加`.
+- Show `optionSelections` on each kitchen item row so sauce/salt and other option choices are visible during preparation.
 
 ### Verification
 
 - `npm run check:menu-product-order`
+- `npm run check:customer-order-status`
+- `npm run check:customer-cart`
 - `npm run check:customer-entry`
 - `npm run check:staff-menu`
+- `npm run check:kitchen-display`
+- `npm run check:staff-table-detail`
 - `npm run check`
 - `npm run build`
+
+### Integration Results
+
+- 01 sold-out product ordering, 02 customer order visibility, and 03 kitchen option display are all integrated on `codex/customer-order-ux-integration`.
+- `npm run check:menu-product-order`, `npm run check:customer-order-status`, `npm run check:customer-cart`, `npm run check:customer-entry`, `npm run check:staff-menu`, `npm run check:kitchen-display`, and `npm run check:staff-table-detail` passed.
+- Full integration gates `npm run check` and `npm run build` passed.
+- Firebase deploy is intentionally left for a separate explicit release step.
 
 ### 02 Customer Order Visibility Responsibility
 
