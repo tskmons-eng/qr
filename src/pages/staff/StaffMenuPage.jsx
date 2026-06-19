@@ -9,6 +9,7 @@ import StaffMenuProductList from '../../components/staff/StaffMenuProductList'
 import StaffMenuSubmitBar from '../../components/staff/StaffMenuSubmitBar'
 import StaffOrderCompleteScreen from '../../components/staff/StaffOrderCompleteScreen'
 import { getDiscountedProductPrice } from '../../lib/discounts'
+import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { productMatchesCategory } from '../../lib/productTags'
@@ -148,9 +149,9 @@ export default function StaffMenuPage() {
     return sum + (discountedPrice + extra) * item.quantity
   }, 0)
   const activeCategory = categories.find(category => category.id === activeCat)
-  const filteredProducts = activeCategory
+  const filteredProducts = sortSoldOutProductsLast(activeCategory
     ? products.filter(product => productMatchesCategory(product, activeCategory))
-    : products
+    : products)
 
   if (loading) return <div className="staff-menu__loading">読み込み中...</div>
 

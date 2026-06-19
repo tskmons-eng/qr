@@ -7,6 +7,7 @@ import OptionModal from '../../components/OptionModal'
 import SuggestionSheet from '../../components/SuggestionSheet'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
+import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
 import { productMatchesCategory } from '../../lib/productTags'
 import { createCustomerCall, loadCustomerMenuData } from '../../services/customerMenuService'
 
@@ -107,9 +108,9 @@ export default function MenuPage() {
   }
 
   const activeCategory = categories.find(category => category.id === activeCat)
-  const filteredProducts = activeCategory
+  const filteredProducts = sortSoldOutProductsLast(activeCategory
     ? products.filter(product => productMatchesCategory(product, activeCategory))
-    : products
+    : products)
 
   if (loading) return <div className="customer-menu__loading">読み込み中...</div>
 
