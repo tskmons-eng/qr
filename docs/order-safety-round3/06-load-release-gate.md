@@ -119,6 +119,53 @@ npm run audit:pending-counts -- --json
 - rollback方法: 今回はdeployしていないため本番rollbackなし。ゲート tooling のみ戻す場合は `package.json` の script wiring、`scripts/check-order-safety-release-gate.mjs`、このMD追記を戻す。
 - 監視継続点: 最終deploy判断時は clean worktree、空き emulator ports、Firestore read credentials をそろえて `npm run check:order-safety-release-gate -- --final` を通す。
 
+## 2026-06-20 統合deploy結果
+
+- 統合した担当MD: 01〜05 と 07 の実装済み成果、および 06 の最終ゲート。
+- deploy対象:
+  - Functions: 注文 command 11本のみを明示deploy。
+  - Hosting: Production build を deploy。
+  - Firestore rules / Storage: 今回差分なしのため deploy していない。
+- 実行した check:
+  - `npm run check:order-safety-release-gate -- --final` passed.
+  - final gate 内で `npm run check` passed.
+  - final gate 内で `npm run check:order-functions-emulator` passed.
+  - final gate 内で `npm run build` passed.
+  - final gate 内で `npm run audit:command-failures -- --limit 10` passed, rows 0.
+  - final gate 内で `npm run audit:pending-counts -- --json` passed.
+- deploy結果:
+  - `startCustomerOrderSessionCommand`
+  - `submitCustomerOrderItemsCommand`
+  - `submitStaffOrderItemsCommand`
+  - `seatStaffOrderSessionCommand`
+  - `completeCheckoutCommand`
+  - `markOrderItemServedCommand`
+  - `markOrderItemsServedCommand`
+  - `markOrderItemOrderedCommand`
+  - `cancelOrderItemCommand`
+  - `moveTableOrderCommand`
+  - `guideReservationToTableCommand`
+  の更新が成功。
+- 本番 smoke:
+  - Production HTML served `assets/index-CJoV9Bg3.js`.
+  - `/`, `/login`, `/admin`, `/admin/staff`, `/staff`, `/staff/kitchen`, `/order/test-token` returned HTTP 200.
+  - Deployed JS contains admin login fallback, customer submit recovery text, and kitchen served UI strings.
+- `orderCommandFailures`:
+  - deploy後の `npm run audit:command-failures -- --limit 10` は rows 0。
+  - deploy後の Functions log scan で注文 command の error pattern は検出されなかった。
+- `audit:pending-counts`:
+  - tableCount 19, pendingItemCount 20, driftedTableCount 7, itemIssueCount 0。
+  - 既存の集計ズレが残っているため、本番データ削除や自動修復は実施していない。
+  - 修復が必要な場合は `repair:pending-counts` の dry-run を確認してから、対象店舗/席を絞って判断する。
+- rollback方法:
+  - Hosting問題は直前Hostingへ戻す。
+  - Functions問題は注文 command 11本の直前ソースへ戻し、`orderCommandFailures` と Functions logs を保存して調査する。
+  - rulesは今回触っていないため rules rollback は不要。
+- 監視継続点:
+  - `orderCommandFailures` rows 0 を維持できるか。
+  - `audit:pending-counts` の driftedTableCount 7 を別タスクで dry-run 修復判断するか。
+  - Firebase の Node.js 20 runtime deprecation と `firebase-functions` outdated warning は別計画で対応する。
+
 ## 完了時の報告
 
 - 統合した担当MD:

@@ -1,5 +1,29 @@
 # QR System Plan
 
+## 2026-06-20 Order safety Round 3 deploy
+
+### Summary
+
+- 01〜05 と 07 の完了後、`npm run check:order-safety-release-gate -- --final` を監査込みで通過した。
+- 注文 command Functions 11本を明示deployし、Hostingを本番反映した。
+- Firestore rules / Storage は今回差分なしのため deploy していない。
+
+### Verification Results
+
+- `npm run check` passed.
+- `npm run check:order-functions-emulator` passed.
+- `npm run build` passed.
+- `npm run audit:command-failures -- --limit 10` は rows 0。
+- Production HTML は `assets/index-CJoV9Bg3.js` を返した。
+- `/`, `/login`, `/admin`, `/admin/staff`, `/staff`, `/staff/kitchen`, `/order/test-token` は HTTP 200。
+- Functions log scan で注文 command の error pattern は検出されなかった。
+
+### Monitoring Notes
+
+- `npm run audit:pending-counts -- --json` は tableCount 19, pendingItemCount 20, driftedTableCount 7, itemIssueCount 0 を報告した。
+- 既存の pending 集計ズレは自動修復していない。必要なら `repair:pending-counts` の dry-run で対象を確認してから判断する。
+- Firebase の Node.js 20 runtime deprecation と `firebase-functions` outdated warning は別計画で対応する。
+
 ## 2026-06-19 Order safety Round 3: real restaurant scenarios
 
 ### Purpose
