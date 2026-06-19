@@ -7,7 +7,7 @@
 - User reported that the restaurant QR ordering system is in a repeated bug-fix cycle and may need to be reconsidered from the mechanism level.
 - Current live symptom: when many customers come at once, orders can stop entering.
 - User priority: reduce recurring bugs through a coherent ordering design, not patchwork fixes.
-- User requested use of `cccc`; Codex can see the `cccc` tools, but this thread has no `CCCC_GROUP_ID`, so `cccc_project_info`, `cccc_context_get`, `cccc_capability_state`, and `cccc_inbox_list` currently return `missing_group_id`. Continue local analysis now and send/share this plan through `cccc` when a group id is available.
+- User requested use of `cccc`; the missing group problem was resolved by attaching this repository to CCCC group `g_5e91a7c6461d` and creating actor `lead`.
 
 ### Current Findings
 
@@ -75,6 +75,52 @@
 - `npm run build`
 - Firebase emulator concurrency tests for order commands before production deploy.
 - Production deploy only after the command path can be verified without changing visible ordering flow.
+
+## 2026-06-19 CCCC parallel workflow setup
+
+### Context
+
+- `cccc` initially failed because the Codex MCP server had no `CCCC_GROUP_ID`.
+- Local CCCC state contained an unrelated `test-project` group, so using that would have mixed QR system work into the wrong scope.
+- User wants parallel processing for the QR system redesign/reliability work.
+
+### Decision
+
+- Attach `C:\Users\tskmo\OneDrive\Desktop\プログラム\QRシステム` as its own CCCC working group.
+- Use CCCC group `g_5e91a7c6461d` for this repository.
+- Use actor `lead` as the coordinating actor for Codex-driven work.
+- Add `CCCC_GROUP_ID = 'g_5e91a7c6461d'` and `CCCC_ACTOR_ID = 'lead'` to `C:\Users\tskmo\.codex\config.toml` for future Codex sessions.
+- In this already-running Codex session, keep passing `group_id` and `actor_id` explicitly because the MCP server was started before the env defaults were added.
+- Use CCCC for durable task tracking and coordination. Use Codex sub-agents for actual parallel code investigation/execution unless a reliable CCCC runtime actor is intentionally started.
+
+### Active Parallel Tasks
+
+- `T002`: Order start/session race investigation.
+- `T003`: Pending counters and kitchen consistency investigation.
+- `T004`: Command-layer migration and test strategy investigation.
+
+### Verification Results
+
+- `cccc_context_get` succeeds with `group_id: g_5e91a7c6461d`.
+- `cccc_capability_state` succeeds with `group_id: g_5e91a7c6461d` and `actor_id: lead`.
+- `cccc_task` created and listed QR-system tasks under the QR group.
+- A no-argument `cccc_context_get` still fails in the current MCP process; restart Codex to pick up the new env defaults.
+
+### Parallel Investigation Results
+
+- `T002` found the highest-priority race: customer and staff seating create an `orders` document before attaching it to `tables.currentOrderId`. A failed or competing table update can leave orphan open orders.
+- `T003` found that `tables.pendingCount` is already non-authoritative, and `pendingAggregate*` can also become wrong when checkout resets aggregate fields while `orderItems` can still contain `itemStatus: 'ordered'`.
+- `T004` recommended adding `src/services/orderCommandService.js` and `src/lib/orderCommands.js` first, then delegating existing services to that boundary while keeping current UI/routes stable.
+- `T004` also found a Functions runtime mismatch to resolve before deeper Functions work: `firebase.json` uses `nodejs20`, while `functions/package.json` declares Node `22`.
+
+### Next Implementation Order
+
+1. Hotfix `createCustomerOrderSession` with a Firestore transaction and conflict return, so customer starts cannot create orphan orders.
+2. Hotfix `seatGuestsAtTable` with the same transaction guard for staff seating.
+3. Add a stale-table confirmation guard to reservation table assignment before it overwrites an occupied table.
+4. Add an aggregate audit/repair script before removing legacy `pendingCount` writes.
+5. Introduce the order command service boundary and move cart/staff order submit behind it.
+6. Add emulator/rules test tooling before tightening public `orders` / `orderItems` create rules.
 
 ## 2026-06-14 Customer guest auto-add loading guard
 
