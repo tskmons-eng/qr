@@ -1,5 +1,46 @@
 # QR System Plan
 
+## 2026-06-20 Restaurant UX Round 4
+
+### Purpose
+
+- キッチン、スタッフ注文/会計、顧客QR、カテゴリー管理、人数分メニュー自動追加、メニュー行タップ追加を、既存データを壊さず改善する。
+- 使っている人がいるため、各担当MDでは本番deployせず、最後に統合ゲートでまとめて判断する。
+
+### User UI Preference
+
+- スタッフ画面は、注文追加や会計確定などの下部操作まで長くドラッグしないで済むことを重視する。
+- 商品や会計の内容は内容領域としてスクロールさせ、主要操作は見失わない位置に残す。
+- 顧客画面は、カート、注文履歴/注文状況、会計依頼の意味が他アプリと同じ感覚で分かる命名にする。
+- 注文前のカート周辺では料金を強く出さず、会計確認で注文済み内容と金額を見せる。
+- キッチンの誤操作Undoは、安全に command 層で戻せる場合だけ追加する。表示だけ戻す実装はしない。
+- メニュー行タップ追加はデフォルトON候補。ただし店舗設定でプラスボタンのみへ戻せるようにする。
+
+### Parallel Work Documents
+
+- `docs/restaurant-ux-round4/README.md`
+- `docs/restaurant-ux-round4/01-kitchen-served-undo-density.md`
+- `docs/restaurant-ux-round4/02-staff-order-checkout-scroll-layout.md`
+- `docs/restaurant-ux-round4/03-customer-cart-checkout-history-navigation.md`
+- `docs/restaurant-ux-round4/04-admin-category-ios-zoom.md`
+- `docs/restaurant-ux-round4/05-guest-auto-add-entry-visibility.md`
+- `docs/restaurant-ux-round4/06-customer-menu-row-tap-add-setting.md`
+- `docs/restaurant-ux-round4/07-integration-release-gate.md`
+
+### Change Policy
+
+- 既存の注文履歴、会計履歴、メニュー、カテゴリー、オプション、QR URL は削除・移行・破壊更新しない。
+- UI改善でも、注文/会計/提供済み状態を変える場合は既存 command 層を通す。
+- 各担当MDは完了時に検証結果と未解決リスクを自分のMDへ追記する。
+- deployは `07-integration-release-gate.md` のチェック通過後にまとめて判断する。
+
+### Verification
+
+- `git diff --check`
+- 各担当MDの個別チェック
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-20 Order safety Round 3 deploy
 
 ### Summary
