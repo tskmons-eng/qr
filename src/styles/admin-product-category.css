@@ -8,9 +8,15 @@
 .category-group-select,
 .category-edit-group-select {
   padding: 8px 10px;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.35;
   border: 1px solid #cccccc;
   border-radius: var(--radius-control);
+}
+
+.category-add-form .admin-text-input {
+  font-size: 16px;
+  line-height: 1.35;
 }
 
 .category-auto-toggle {
@@ -41,7 +47,8 @@
   width: 100%;
   box-sizing: border-box;
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.35;
   border: 1px solid #bae6fd;
   border-radius: var(--radius-control);
 }
@@ -82,23 +89,32 @@
   flex: 1;
   min-width: 160px;
   padding: 6px 10px;
-  font-size: 15px;
+  font-size: 16px;
+  line-height: 1.35;
   border: 1px solid #aaaaaa;
   border-radius: var(--radius-control);
 }
 
 .category-edit-group-select {
   padding-block: 6px;
-  font-size: 13px;
 }
 
 .category-edit-tags-input {
   flex: 1;
   min-width: 160px;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: 16px;
+  line-height: 1.35;
   border: 1px solid #bae6fd;
   border-radius: var(--radius-control);
+}
+
+.category-list-item.is-editing .category-auto-toggle-small,
+.category-list-item.is-editing .category-row-action,
+.category-list-item.is-editing .tag-template-name-input,
+.category-list-item.is-editing .tag-template-save-button {
+  font-size: 16px;
+  line-height: 1.2;
 }
 
 .category-row-main {

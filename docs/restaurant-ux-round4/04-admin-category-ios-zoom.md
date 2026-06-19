@@ -42,7 +42,11 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
+- Result: Category management inputs/selects and editing-row controls now keep a 16px font size so iOS Safari is less likely to zoom on focus. The fix stays in CSS and does not change category add/edit/delete/reorder data handling.
 - Checks:
-- Remaining risk:
-
+  - `npm run check:admin-category`
+  - `npm run check:product-form`
+  - `npm run check`
+  - `npm run build`
+  - `git diff --check`
+- Remaining risk: iPhone実機での手動確認は未実施。統合ゲートでモバイル実機またはiPhone相当viewportの編集操作を確認する。

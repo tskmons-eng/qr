@@ -34,6 +34,14 @@
 - 各担当MDは完了時に検証結果と未解決リスクを自分のMDへ追記する。
 - deployは `07-integration-release-gate.md` のチェック通過後にまとめて判断する。
 
+### 04 Admin Category iOS Zoom Responsibility
+
+- Purpose: カテゴリー編集でiOS Safariが入力フォーカス時に自動ズームしにくい状態へ整え、管理画面の既存データ処理は変えない。
+- Current confirmation: `CategoryRow` の編集行は `autoFocus` 付きのカテゴリ名input、分類select、任意のタグinputを持ち、対象CSSは `admin-product-category.css` で13pxから15pxの入力が混在している。
+- Change policy: viewportのズーム禁止には逃げず、カテゴリー管理内のinput/selectと編集行の操作ボタンだけを16px基準にする。行の高さはpaddingを増やさず、既存の追加/編集/削除/並び替えロジックには触れない。
+- Impact scope: `src/styles/admin-product-category.css`, `scripts/check-admin-category.mjs`, and `docs/restaurant-ux-round4/04-admin-category-ios-zoom.md`.
+- Verification: `npm run check:admin-category`, `npm run check:product-form`, `npm run check`, `npm run build`, and `git diff --check`.
+
 ### Verification
 
 - `git diff --check`
