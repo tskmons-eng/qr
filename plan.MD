@@ -34,6 +34,14 @@
 - 各担当は対象ファイル、禁止事項、合格条件、検証コマンドを守り、完了時に担当MDへ結果を追記する。
 - 最終 deploy は `06-load-release-gate.md` で全チェックと監視手順をそろえてから行う。
 
+### 06 Load Release Gate Responsibility
+
+- Purpose: integrate 01-05 and 07 into a deploy decision gate so crowded restaurant order safety is checked before Production release.
+- Current confirmation: existing scripts already cover normal source checks, Functions emulator concurrency, order rules lockdown, command failure audit, pending count audit, and Production build.
+- Change policy: add release-gate tooling and documentation only; do not deploy Firebase assets or write Production data from this responsibility.
+- Impact scope: `scripts/check-order-safety-release-gate.mjs`, `package.json`, `docs/order-safety-round3/06-load-release-gate.md`, and this plan.
+- Verification: `npm run check:order-safety-release-gate`, `npm run check`, `npm run check:order-functions-emulator`, `npm run build`, and read-only audits when credentials are available.
+
 ### 07 Kitchen Served Optimistic UI Responsibility
 
 - Purpose: make kitchen served actions feel immediate by hiding pressed items locally while keeping the existing Functions command as the source of truth.
