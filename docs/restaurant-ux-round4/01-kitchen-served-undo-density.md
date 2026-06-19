@@ -68,3 +68,10 @@
 - Fix: Reverted the Round4 kitchen undo bar and density styling back to the previous kitchen panel layout. Kept the safer Round3 served action behavior where an item disappears immediately after tapping served and is restored if the command fails.
 - Data impact: UI only. No menu data, order history, QR URL, Firestore rules, indexes, storage, or Functions schema changes.
 - Verification target: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check`, `npm run build`, and final release gate.
+
+## 2026-06-20 Crowded Table Visibility Fix
+
+- Finding: If many items arrive from one table, a single kitchen card grows too tall and forces excessive page scrolling.
+- Fix: Kitchen table cards now cap their height, keep the table header visible, and scroll only the item list inside the card. Crowded tables also span two columns on wider screens and render items in two columns to show more at once.
+- Data impact: Kitchen UI only. Served/cancel commands, order data, menu data, order history, QR URL, Firestore rules, indexes, storage, and Functions are unchanged.
+- Verification target: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check`, `npm run build`, and Hosting-only deploy verification.

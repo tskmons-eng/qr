@@ -71,8 +71,9 @@ const cleanedAfterSubscription = pruneOptimisticHiddenKitchenItemIds(hiddenAll, 
 assert.deepEqual([...cleanedAfterSubscription], ['drink-1'])
 assert.equal(pruneOptimisticHiddenKitchenItemIds(cleanedAfterSubscription, [{ id: 'drink-1' }]), cleanedAfterSubscription)
 
-const [kitchenItemRow, kitchenPage, kitchenService, kitchenLayoutCss, kitchenCss] = await Promise.all([
+const [kitchenItemRow, kitchenTableCard, kitchenPage, kitchenService, kitchenLayoutCss, kitchenCss] = await Promise.all([
   readFile('src/components/staff/KitchenItemRow.jsx', 'utf8'),
+  readFile('src/components/staff/KitchenTableCard.jsx', 'utf8'),
   readFile('src/pages/kitchen/KitchenPage.jsx', 'utf8'),
   readFile('src/services/kitchenService.js', 'utf8'),
   readFile('src/styles/staff-kitchen-layout.css', 'utf8'),
@@ -81,6 +82,9 @@ const [kitchenItemRow, kitchenPage, kitchenService, kitchenLayoutCss, kitchenCss
 
 assert.ok(kitchenItemRow.includes('formatKitchenOrderOptions(item.optionSelections)'), 'Kitchen row should format order item options')
 assert.ok(kitchenItemRow.includes('staff-kitchen-item__options'), 'Kitchen row should render option text')
+assert.ok(kitchenTableCard.includes('const isCrowded = items.length >= 8'), 'Kitchen table cards should detect crowded tables')
+assert.ok(kitchenTableCard.includes('staff-kitchen-table--crowded'), 'Kitchen table cards should mark crowded tables for wider layout')
+assert.ok(kitchenTableCard.includes('staff-kitchen-table__item-count'), 'Kitchen table cards should show item count')
 assert.ok(kitchenPage.includes('addOptimisticHiddenKitchenItemIds'), 'Kitchen served actions should optimistically hide rows')
 assert.ok(kitchenPage.includes('removeOptimisticHiddenKitchenItemIds'), 'Kitchen served failures should restore hidden rows')
 assert.ok(!kitchenPage.includes('KitchenServedUndoBar'), 'Kitchen page should keep the previous no-undo layout')
@@ -90,5 +94,10 @@ assert.ok(kitchenLayoutCss.includes('grid-template-columns: repeat(auto-fill, mi
 assert.ok(kitchenCss.includes('.staff-kitchen-item__options'), 'Kitchen CSS should style option text')
 assert.ok(kitchenCss.includes('overflow-wrap: anywhere'), 'Kitchen option labels should wrap instead of widening the row')
 assert.ok(kitchenCss.includes('padding: 10px 14px'), 'Kitchen item rows should use the previous spacing')
+assert.ok(kitchenCss.includes('max-height: clamp(360px, 62dvh, 620px)'), 'Kitchen cards should cap crowded table height')
+assert.ok(kitchenCss.includes('overflow-y: auto'), 'Kitchen item lists should scroll inside each card')
+assert.ok(kitchenCss.includes('overscroll-behavior: contain'), 'Kitchen item list scroll should not fight the staff shell')
+assert.ok(kitchenCss.includes('grid-column: span 2'), 'Crowded kitchen cards should span two columns when possible')
+assert.ok(kitchenCss.includes('grid-template-columns: repeat(2, minmax(0, 1fr))'), 'Crowded kitchen cards should show more items in two columns')
 
 console.log('kitchen display checks passed')

@@ -5,13 +5,15 @@ import { TableReservationBadge } from './TodayReservationNoticeList'
 export default function KitchenTableCard({ group, reservation, nowMs, servedWorkflowEnabled, onCancelItem, onMarkAllServed, onMarkServed }) {
   const { table, items, oldest } = group
   const waitLevel = servedWorkflowEnabled ? getKitchenWaitLevel(oldest, nowMs) : 'idle'
+  const isCrowded = items.length >= 8
 
   return (
-    <div className={`staff-kitchen-table staff-kitchen-table--${waitLevel}`}>
+    <div className={`staff-kitchen-table staff-kitchen-table--${waitLevel}${isCrowded ? ' staff-kitchen-table--crowded' : ''}`}>
       <div className="staff-kitchen-table__header">
         <div>
           <span className="staff-kitchen-table__name">{table.tableName}</span>
           <span className="staff-kitchen-table__guests">{table.guestCount}名</span>
+          <span className="staff-kitchen-table__item-count">{items.length}品</span>
           <TableReservationBadge reservation={reservation} />
         </div>
         <div className="staff-kitchen-table__actions">

@@ -1269,3 +1269,26 @@
 - Run `npm run check:checkout`.
 - Run `npm run build`.
 - Commit, push, then deploy Hosting only if checks pass.
+
+## 2026-06-20 Kitchen crowded table visibility
+
+### Context
+
+- User feedback: when many items come from one table, the kitchen panel becomes too tall and requires excessive page scrolling, making orders hard to see.
+- Current confirmation: `KitchenTableCard` renders all items in a single unbounded vertical list, so one busy table can dominate the entire kitchen grid.
+
+### Decision
+
+- Keep the previous kitchen panel look and served optimistic hide behavior.
+- Bound each kitchen table card height so one table cannot stretch the whole kitchen screen.
+- Make only the item list scroll inside the card; table name, guest count, item count, wait time, and all-served action remain visible.
+- Let crowded cards span two grid columns on wider screens and render item rows in two columns to show more items at once.
+- Do not change order data, menu data, QR URLs, Firestore rules, Functions, indexes, or storage.
+
+### Verification Plan
+
+- Run `npm run check:kitchen-display`.
+- Run `npm run check:order-command-ui`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit, push, then deploy Hosting only if checks pass.
