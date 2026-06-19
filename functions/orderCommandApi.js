@@ -22,6 +22,7 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['item-not-found', 'not-found'],
   ['product-not-found', 'not-found'],
   ['checkout-already-exists', 'already-exists'],
+  ['checkout-items-stale', 'failed-precondition'],
   ['order-already-checked-out', 'failed-precondition'],
   ['order-not-open', 'failed-precondition'],
   ['table-not-vacant', 'failed-precondition'],

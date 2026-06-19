@@ -58,9 +58,20 @@ npm run build
 
 ## 完了時の報告
 
-- 会計 vs 遅延 submit の結果:
-- 二重会計の結果:
-- 古いQR画面の遷移:
-- 席移動競合の扱い:
-- 未解決リスク:
+- 会計 vs 遅延 submit の結果: Functions の `completeCheckoutCommand()` が `orderItemsRevision`、非キャンセル明細ID、小計を検証するようにし、checkout が先なら late submit は `order-not-open`、submit が先なら stale checkout は `checkout-items-stale` で止まることを emulator で確認。
+- 二重会計の結果: `check_{orderId}` に収束し、同一 order の二重 checkout 呼び出しは同じ check id を返して `checks` を重複作成しないことを emulator で確認。
+- 古いQR画面の遷移: `OrderEntryPage` の `/menu` / `/cart` / `/complete` route guard が active order 不在時に `/guests` へ戻す構造を `check:order-concurrency` で固定。
+- 席移動競合の扱い: Functions の `moveTableOrderCommand()` が transaction 内で対象 `orderItems` を読み直し、submit が先なら新規明細も移動先へ、move が先なら古い tableId submit を `order-scope-mismatch` で保存しないことを emulator で確認。
+- 未解決リスク: 今回は Round3 の担当3対応のみ。担当MD単独の本番 deploy はしていない。
 
+## 検証結果（2026-06-19）
+
+```bash
+npm run check:order-concurrency
+npm run check:customer-entry
+npm run check:customer-cart
+npm run check:checkout
+npm run check:order-functions-emulator
+npm run check
+npm run build
+```

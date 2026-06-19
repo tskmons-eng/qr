@@ -71,6 +71,7 @@ class MockOrderStore {
       guestCount,
       status: 'open',
       createdBy,
+      orderItemsRevision: 0,
     })
     Object.assign(table, {
       status: 'occupied',
@@ -109,10 +110,12 @@ class MockOrderStore {
         itemStatus: 'ordered',
         productNameSnapshot: item.name,
         quantity: item.quantity ?? 1,
+        lineTotal: item.lineTotal ?? ((item.quantity ?? 1) * 100),
         orderedBy: source,
         clientRequestId,
       })
     })
+    order.orderItemsRevision += 1
 
     return { ok: true, deduped: false, clientRequestId }
   }
@@ -142,15 +145,50 @@ class MockOrderStore {
     return { ok: true, deduped: false }
   }
 
-  completeCheckout({ storeId, tableId, orderId }) {
+  completeCheckout({
+    storeId,
+    tableId,
+    orderId,
+    checkoutItemIds = null,
+    orderItemsRevision = null,
+    subtotalBeforeItemDiscount = null,
+  }) {
     const order = this.orders.get(orderId)
+    if (order?.status === 'checked_out') {
+      const existingCheckId = order.checkoutCheckId
+      if (existingCheckId) return existingCheckId
+      throw commandError('order-already-checked-out', 'Order is already checked out.')
+    }
     assertOpenOrder(order, { storeId, tableId })
     const table = this.tables.get(tableId)
     if (!table || table.currentOrderId !== orderId) {
       throw commandError('table-order-mismatch', 'Table is not linked to this order.')
     }
+    if (orderItemsRevision !== null && order.orderItemsRevision !== orderItemsRevision) {
+      throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+    }
+    const activeItems = this.activeCheckoutItems(orderId)
+    const sourceSubtotal = activeItems.reduce((sum, orderItem) => sum + (Number(orderItem.lineTotal) || 0), 0)
+    if (subtotalBeforeItemDiscount !== null && sourceSubtotal !== subtotalBeforeItemDiscount) {
+      throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+    }
+    if (Array.isArray(checkoutItemIds)) {
+      const expectedIds = [...checkoutItemIds].sort()
+      const actualIds = activeItems.map(orderItem => orderItem.id).sort()
+      if (expectedIds.length !== actualIds.length || expectedIds.some((value, index) => value !== actualIds[index])) {
+        throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+      }
+    }
     const checkId = `check_${orderId}`
-    this.checks.set(checkId, { id: checkId, storeId, tableId, orderId, status: 'completed' })
+    this.checks.set(checkId, {
+      id: checkId,
+      storeId,
+      tableId,
+      orderId,
+      checkoutItemCount: activeItems.length,
+      checkoutSourceSubtotalBeforeItemDiscount: sourceSubtotal,
+      status: 'completed',
+    })
     Object.assign(order, { status: 'checked_out', checkoutCheckId: checkId })
     Object.assign(table, {
       status: 'vacant',
@@ -159,6 +197,12 @@ class MockOrderStore {
       pendingCount: 0,
     })
     return checkId
+  }
+
+  activeCheckoutItems(orderId) {
+    return [...this.orderItems.values()].filter(orderItem => (
+      orderItem.orderId === orderId && normalizeItemStatus(orderItem) !== 'cancelled'
+    ))
   }
 
   moveTable({ sourceTableId, targetTableId, storeId }) {
@@ -208,8 +252,8 @@ class MockOrderStore {
   }
 }
 
-function item(name, quantity = 1) {
-  return { name, quantity }
+function item(name, quantity = 1, lineTotal = quantity * 100) {
+  return { name, quantity, lineTotal }
 }
 
 function runCustomerStartRaceCheck() {
@@ -331,7 +375,14 @@ function runCheckoutLateSubmitCheck() {
   const store = new MockOrderStore()
   store.addTable('table-1', { storeId: 'store-1' })
   const orderId = store.startOrderSession({ storeId: 'store-1', tableId: 'table-1' })
-  store.completeCheckout({ storeId: 'store-1', tableId: 'table-1', orderId })
+  store.completeCheckout({
+    storeId: 'store-1',
+    tableId: 'table-1',
+    orderId,
+    checkoutItemIds: [],
+    orderItemsRevision: 0,
+    subtotalBeforeItemDiscount: 0,
+  })
 
   assertCode('order-not-open', () => {
     store.submitItems({
@@ -343,6 +394,62 @@ function runCheckoutLateSubmitCheck() {
       items: [item('Late order')],
     })
   })
+}
+
+function runCheckoutStaleSnapshotCheck() {
+  const store = new MockOrderStore()
+  store.addTable('table-1', { storeId: 'store-1' })
+  const orderId = store.startOrderSession({ storeId: 'store-1', tableId: 'table-1' })
+  const checkoutSnapshot = {
+    storeId: 'store-1',
+    tableId: 'table-1',
+    orderId,
+    checkoutItemIds: [],
+    orderItemsRevision: store.orders.get(orderId).orderItemsRevision,
+    subtotalBeforeItemDiscount: 0,
+  }
+  store.submitItems({
+    source: 'customer',
+    orderId,
+    storeId: 'store-1',
+    tableId: 'table-1',
+    clientRequestId: 'submit-before-checkout',
+    items: [item('Late accepted order', 1, 500)],
+  })
+
+  assertCode('checkout-items-stale', () => {
+    store.completeCheckout(checkoutSnapshot)
+  })
+
+  const liveItems = store.activeCheckoutItems(orderId)
+  const checkId = store.completeCheckout({
+    storeId: 'store-1',
+    tableId: 'table-1',
+    orderId,
+    checkoutItemIds: liveItems.map(orderItem => orderItem.id),
+    orderItemsRevision: store.orders.get(orderId).orderItemsRevision,
+    subtotalBeforeItemDiscount: 500,
+  })
+  assert.equal(store.checks.get(checkId).checkoutItemCount, 1)
+  assert.equal(store.checks.get(checkId).checkoutSourceSubtotalBeforeItemDiscount, 500)
+}
+
+function runDoubleCheckoutCheck() {
+  const store = new MockOrderStore()
+  store.addTable('table-1', { storeId: 'store-1' })
+  const orderId = store.startOrderSession({ storeId: 'store-1', tableId: 'table-1' })
+  const payload = {
+    storeId: 'store-1',
+    tableId: 'table-1',
+    orderId,
+    checkoutItemIds: [],
+    orderItemsRevision: 0,
+    subtotalBeforeItemDiscount: 0,
+  }
+  const first = store.completeCheckout(payload)
+  const second = store.completeCheckout(payload)
+  assert.equal(first, second)
+  assert.equal(store.checks.size, 1)
 }
 
 function runTableMoveConsistencyCheck() {
@@ -372,12 +479,37 @@ function runTableMoveConsistencyCheck() {
 }
 
 await Promise.all([
+  assertSourceContains('functions/orderCommandHandlers.js', [
+    "throw commandError('checkout-items-stale'",
+    'orderItemsRevision: FieldValue.increment(1)',
+    "transaction.get(db.collection('orderItems').where('orderId', '==', orderId))",
+  ]),
+  assertSourceContains('functions/orderCommandApi.js', [
+    "['checkout-items-stale', 'failed-precondition']",
+  ]),
   assertSourceContains('src/services/orderClientCommandService.js', [
     'return runTransaction(db, async transaction =>',
     'if (table.currentOrderId) return table.currentOrderId',
     'if (firstItemSnap.exists()) return { ok: true, deduped: true, clientRequestId }',
     'assertOpenOrder(orderSnap.exists() ? orderSnap.data() : null, { storeId, tableId })',
     'transaction.update(tableRef, { pendingCount: increment(normalizedItems.length), updatedAt: now })',
+    'orderItemsRevision: increment(1)',
+    'checkoutItemIds',
+  ]),
+  assertSourceContains('src/pages/staff/CheckoutPage.jsx', [
+    'checkoutItemIds: items.map(item => item.id)',
+    "formatted.code === 'checkout-items-stale'",
+    'setOrderItemsRevision(data.orderItemsRevision)',
+  ]),
+  assertSourceContains('src/pages/order/OrderEntryPage.jsx', [
+    'const requireActiveOrder = element => (',
+    '<Route path="menu" element={requireActiveOrder(<MenuPage />)} />',
+    '<Route path="cart" element={requireActiveOrder(<CartPage />)} />',
+    '<Route path="complete" element={requireActiveOrder(<OrderCompletePage />)} />',
+  ]),
+  assertSourceContains('src/lib/orderCommandErrors.js', [
+    "'checkout-items-stale': '注文明細が更新されました。会計内容を確認してからもう一度確定してください。'",
+    "'checkout-items-stale'",
   ]),
   assertSourceContains('src/services/orderItemCommandService.js', [
     "if (normalizeItemStatus(item) !== 'ordered') return",
@@ -403,6 +535,8 @@ runCustomerTimeoutRetryCheck()
 runStaffDoubleTapDedupCheck()
 runItemStatusCounterChecks()
 runCheckoutLateSubmitCheck()
+runCheckoutStaleSnapshotCheck()
+runDoubleCheckoutCheck()
 runTableMoveConsistencyCheck()
 
 console.log('order concurrency mock checks passed')

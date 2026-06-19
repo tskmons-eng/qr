@@ -23,6 +23,7 @@ export default function CheckoutPage() {
   const { activeStaff } = useStaffMember()
   const [table, setTable] = useState(null)
   const [items, setItems] = useState([])
+  const [orderItemsRevision, setOrderItemsRevision] = useState(0)
   const [taxRate, setTaxRate] = useState(0)
   const [receivedCash, setReceivedCash] = useState('')
   const [loading, setLoading] = useState(true)
@@ -45,6 +46,7 @@ export default function CheckoutPage() {
       const data = await loadCheckoutData({ orderId, storeId })
       if (cancelled) return
       setItems(data.items)
+      setOrderItemsRevision(data.orderItemsRevision)
       setTaxRate(data.taxRate)
       setLoading(false)
     }
@@ -112,6 +114,8 @@ export default function CheckoutPage() {
         subtotalBeforeItemDiscount: totals.subtotalBeforeItemDiscount,
         itemDiscountAmount: totals.itemDiscountAmount,
         activeItemDiscounts: totals.activeItemDiscounts,
+        checkoutItemIds: items.map(item => item.id),
+        orderItemsRevision,
         subtotal: totals.subtotal,
         checkoutDiscountAmount: totals.discountAmount,
         totalDiscountAmount: totals.totalDiscountAmount,
@@ -125,6 +129,26 @@ export default function CheckoutPage() {
     } catch (error) {
       const formatted = formatOrderCommandError(error, { context: 'checkout' })
       setCheckoutError(formatted.message)
+      if (formatted.code === 'checkout-items-stale') {
+        try {
+          const data = await loadCheckoutData({ orderId, storeId })
+          setItems(data.items)
+          setOrderItemsRevision(data.orderItemsRevision)
+          setTaxRate(data.taxRate)
+          setItemDiscounts({})
+          setSelectedItemId(null)
+          setDiscountType(null)
+          setDiscountValue('')
+          setDiscountNote('')
+          setReceivedCash('')
+        } catch (reloadError) {
+          logOrderCommandError({
+            operation: 'reload_checkout_after_stale_items',
+            error: reloadError,
+            metadata: { storeId, tableId, orderId },
+          })
+        }
+      }
       logOrderCommandError({
         operation: 'complete_checkout',
         error,

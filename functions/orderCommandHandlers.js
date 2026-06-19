@@ -149,9 +149,58 @@ async function runCustomerStartTransaction(db, tableRef, storeId, transactionHan
   throw commandError('internal', 'Customer order start retry failed.')
 }
 
-async function loadOrderItemRefs(db, orderId) {
-  const itemSnap = await db.collection('orderItems').where('orderId', '==', orderId).get()
-  return itemSnap.docs.map(itemDoc => itemDoc.ref)
+function normalizeCheckoutMoney(value) {
+  const amount = Number(value)
+  return Number.isFinite(amount) ? Math.round(amount) : 0
+}
+
+function normalizeCheckoutItemIds(itemIds) {
+  if (!Array.isArray(itemIds)) return null
+  return itemIds.map(itemId => String(itemId ?? '').trim()).filter(Boolean).sort()
+}
+
+function sameSortedIds(left, right) {
+  if (left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
+}
+
+function assertCheckoutItemsFresh({
+  checkoutItemIds,
+  items,
+  storeId,
+  subtotalBeforeItemDiscount,
+  tableId,
+}) {
+  const activeItems = items.filter(item => normalizeItemStatus(item) !== 'cancelled')
+  const scopeMismatch = activeItems.some(item => item.storeId !== storeId || item.tableId !== tableId)
+  if (scopeMismatch) {
+    throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+  }
+
+  const checkoutSourceSubtotalBeforeItemDiscount = activeItems.reduce((sum, item) => (
+    sum + normalizeCheckoutMoney(item.lineTotal)
+  ), 0)
+  if (checkoutSourceSubtotalBeforeItemDiscount !== normalizeCheckoutMoney(subtotalBeforeItemDiscount)) {
+    throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.', {
+      checkoutSourceSubtotalBeforeItemDiscount,
+      subtotalBeforeItemDiscount: normalizeCheckoutMoney(subtotalBeforeItemDiscount),
+    })
+  }
+
+  const expectedIds = normalizeCheckoutItemIds(checkoutItemIds)
+  const actualIds = activeItems.map(item => item.id).sort()
+  if (expectedIds && !sameSortedIds(expectedIds, actualIds)) {
+    throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.', {
+      sourceItemCount: actualIds.length,
+      checkoutItemCount: expectedIds.length,
+    })
+  }
+
+  return {
+    checkoutItemCount: actualIds.length,
+    checkoutItemIds: actualIds,
+    checkoutSourceSubtotalBeforeItemDiscount,
+  }
 }
 
 async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
@@ -180,6 +229,7 @@ async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, ta
       openedAt: now,
       checkedOutAt: null,
       createdBy: 'customer',
+      orderItemsRevision: autoAddProduct ? 1 : 0,
       updatedAt: now,
       orderCommandVersion: ORDER_COMMAND_VERSION,
     })
@@ -230,6 +280,11 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
         timestamp: now,
       }), { clientRequestId: requestId, commandType: 'customer_submit_items' }))
     })
+    transaction.update(orderRef, {
+      orderItemsRevision: FieldValue.increment(1),
+      updatedAt: now,
+      orderCommandVersion: ORDER_COMMAND_VERSION,
+    })
     return { ok: true, deduped: false, clientRequestId: requestId }
   })
 }
@@ -267,6 +322,11 @@ async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRe
       }), { clientRequestId: requestId, commandType: 'staff_submit_items' }))
     })
     transaction.update(tableRef, { pendingCount: FieldValue.increment(itemsWithProducts.length), updatedAt: now })
+    transaction.update(orderRef, {
+      orderItemsRevision: FieldValue.increment(1),
+      updatedAt: now,
+      orderCommandVersion: ORDER_COMMAND_VERSION,
+    })
     return { ok: true, deduped: false, clientRequestId: requestId }
   })
 }
@@ -298,6 +358,7 @@ async function seatStaffOrderSession({ tableId, seatCount, activeStaff }, reques
       openedAt: now,
       checkedOutAt: null,
       createdBy: 'staff',
+      orderItemsRevision: 0,
       updatedAt: now,
       orderCommandVersion: ORDER_COMMAND_VERSION,
     })
@@ -332,6 +393,8 @@ async function completeCheckoutCommand(data, request) {
     orderId,
     checkoutDiscountAmount,
     itemDiscountAmount,
+    checkoutItemIds,
+    orderItemsRevision,
     total,
     activeStaff,
   } = data
@@ -348,6 +411,7 @@ async function completeCheckoutCommand(data, request) {
     const checkSnap = await transaction.get(checkRef)
     const orderSnap = await transaction.get(orderRef)
     const tableSnap = await transaction.get(tableRef)
+    const orderItemsSnap = await transaction.get(db.collection('orderItems').where('orderId', '==', orderId))
 
     if (!orderSnap.exists) throw commandError('order-not-found', 'Order was not found.')
     const order = orderSnap.data()
@@ -361,15 +425,29 @@ async function completeCheckoutCommand(data, request) {
     }
     if (order.status !== 'open') throw commandError('order-not-open', 'Order is not open.')
     if (checkSnap.exists) throw commandError('checkout-already-exists', 'Checkout already exists for this order.')
+    if (Number.isFinite(Number(orderItemsRevision)) && Number(order.orderItemsRevision ?? 0) !== Number(orderItemsRevision)) {
+      throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.', {
+        sourceOrderItemsRevision: Number(order.orderItemsRevision ?? 0),
+        checkoutOrderItemsRevision: Number(orderItemsRevision),
+      })
+    }
 
     if (!tableSnap.exists) throw commandError('table-not-found', 'Table was not found.')
     const table = tableSnap.data()
     if (table.storeId !== storeId || table.currentOrderId !== orderId) {
       throw commandError('table-order-mismatch', 'Table is not linked to this order.')
     }
+    const checkoutSnapshot = assertCheckoutItemsFresh({
+      checkoutItemIds,
+      items: orderItemsSnap.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() })),
+      storeId,
+      subtotalBeforeItemDiscount: data.subtotalBeforeItemDiscount,
+      tableId,
+    })
 
     transaction.set(checkRef, buildCheckoutCheckPayload({
       ...data,
+      ...checkoutSnapshot,
       timestamp: now,
     }))
     transaction.update(orderRef, {
@@ -539,7 +617,6 @@ async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }
   const orderId = sourcePreview.currentOrderId
   if (!orderId) throw commandError('order-not-found', 'No active order is linked to the source table.')
 
-  const itemRefs = await loadOrderItemRefs(db, orderId)
   const sourceTableRef = db.collection('tables').doc(sourceTableId)
   const targetTableRef = db.collection('tables').doc(targetTable.id)
   const orderRef = db.collection('orders').doc(orderId)
@@ -550,11 +627,8 @@ async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }
     const sourceSnap = await transaction.get(sourceTableRef)
     const targetSnap = await transaction.get(targetTableRef)
     const orderSnap = await transaction.get(orderRef)
-    const itemRows = []
-    for (const itemRef of itemRefs) {
-      const itemSnap = await transaction.get(itemRef)
-      if (itemSnap.exists) itemRows.push({ itemRef, item: itemSnap.data() })
-    }
+    const itemSnap = await transaction.get(db.collection('orderItems').where('orderId', '==', orderId))
+    const itemRows = itemSnap.docs.map(itemDoc => ({ itemRef: itemDoc.ref, item: itemDoc.data() }))
 
     if (!sourceSnap.exists) throw commandError('source-table-not-found', 'Source table was not found.')
     if (!targetSnap.exists) throw commandError('target-table-not-found', 'Target table was not found.')
@@ -672,6 +746,7 @@ async function guideReservationToTableCommand({ reservationId, targetTableId, ac
         checkedOutAt: null,
         createdBy: 'reservation',
         reservationId,
+        orderItemsRevision: 0,
         updatedAt: now,
         orderCommandVersion: ORDER_COMMAND_VERSION,
       })

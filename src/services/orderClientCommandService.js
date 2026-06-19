@@ -35,6 +35,58 @@ function itemRefFor({ orderId, clientRequestId, index }) {
   return doc(db, 'orderItems', buildOrderItemCommandDocId({ orderId, clientRequestId, index }))
 }
 
+function normalizeCheckoutMoney(value) {
+  const amount = Number(value)
+  return Number.isFinite(amount) ? Math.round(amount) : 0
+}
+
+function normalizeCheckoutItemIds(itemIds) {
+  if (!Array.isArray(itemIds)) return null
+  return itemIds.map(itemId => String(itemId ?? '').trim()).filter(Boolean).sort()
+}
+
+function sameSortedIds(left, right) {
+  if (left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
+}
+
+function normalizeItemStatus(item) {
+  return item?.itemStatus ?? 'ordered'
+}
+
+function assertCheckoutItemsFresh({
+  checkoutItemIds,
+  itemRows,
+  storeId,
+  subtotalBeforeItemDiscount,
+  tableId,
+}) {
+  const expectedIds = normalizeCheckoutItemIds(checkoutItemIds)
+  const activeItems = itemRows.filter(item => normalizeItemStatus(item) !== 'cancelled')
+  const scopeMismatch = activeItems.some(item => item.storeId !== storeId || item.tableId !== tableId)
+  if (scopeMismatch) {
+    throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+  }
+
+  const checkoutSourceSubtotalBeforeItemDiscount = activeItems.reduce((sum, item) => (
+    sum + normalizeCheckoutMoney(item.lineTotal)
+  ), 0)
+  if (checkoutSourceSubtotalBeforeItemDiscount !== normalizeCheckoutMoney(subtotalBeforeItemDiscount)) {
+    throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+  }
+
+  const actualIds = activeItems.map(item => item.id).sort()
+  if (expectedIds && !sameSortedIds(expectedIds, actualIds)) {
+    throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+  }
+
+  return {
+    checkoutItemCount: actualIds.length,
+    checkoutItemIds: actualIds,
+    checkoutSourceSubtotalBeforeItemDiscount,
+  }
+}
+
 export async function startCustomerOrderSessionClient({ guestAutoAdd, guestCount, storeId, tableId }) {
   const autoAddProduct = await loadAutoAddProduct(guestAutoAdd)
   const tableRef = doc(db, 'tables', tableId)
@@ -59,6 +111,7 @@ export async function startCustomerOrderSessionClient({ guestAutoAdd, guestCount
       openedAt: now,
       checkedOutAt: null,
       createdBy: 'customer',
+      orderItemsRevision: autoAddProduct ? 1 : 0,
       updatedAt: now,
       orderCommandVersion: ORDER_COMMAND_VERSION,
     })
@@ -105,6 +158,11 @@ export async function submitCustomerOrderItemsClient({ items, orderId, storeId, 
         timestamp: now,
       }), { clientRequestId, commandType: 'customer_submit_items' }))
     })
+    transaction.update(orderRef, {
+      orderItemsRevision: increment(1),
+      updatedAt: now,
+      orderCommandVersion: ORDER_COMMAND_VERSION,
+    })
     return { ok: true, deduped: false, clientRequestId }
   })
 }
@@ -137,6 +195,11 @@ export async function submitStaffOrderItemsClient({ cart, orderId, storeId, tabl
       }), { clientRequestId, commandType: 'staff_submit_items' }))
     })
     transaction.update(tableRef, { pendingCount: increment(normalizedItems.length), updatedAt: now })
+    transaction.update(orderRef, {
+      orderItemsRevision: increment(1),
+      updatedAt: now,
+      orderCommandVersion: ORDER_COMMAND_VERSION,
+    })
     return { ok: true, deduped: false, clientRequestId }
   })
 }
@@ -165,6 +228,7 @@ export async function seatStaffOrderSessionClient({ table, tableId, seatCount, a
       openedAt: now,
       checkedOutAt: null,
       createdBy: 'staff',
+      orderItemsRevision: 0,
       updatedAt: now,
       orderCommandVersion: ORDER_COMMAND_VERSION,
     })
@@ -200,6 +264,8 @@ export async function completeCheckoutClient({
   subtotalBeforeItemDiscount,
   itemDiscountAmount,
   activeItemDiscounts,
+  checkoutItemIds,
+  orderItemsRevision,
   subtotal,
   checkoutDiscountAmount,
   totalDiscountAmount,
@@ -213,12 +279,19 @@ export async function completeCheckoutClient({
   const tableRef = doc(db, 'tables', tableId)
   const checkRef = doc(db, 'checks', buildCheckoutCommandDocId({ orderId }))
   const staffActionRef = doc(collection(db, 'staffActions'))
+  const expectedItemIds = normalizeCheckoutItemIds(checkoutItemIds) ?? []
+  const checkoutItemRefs = expectedItemIds.map(itemId => doc(db, 'orderItems', itemId))
   const now = serverTimestamp()
 
   return runTransaction(db, async transaction => {
     const checkSnap = await transaction.get(checkRef)
     const orderSnap = await transaction.get(orderRef)
     const tableSnap = await transaction.get(tableRef)
+    const itemRows = []
+    for (const itemRef of checkoutItemRefs) {
+      const itemSnap = await transaction.get(itemRef)
+      if (itemSnap.exists()) itemRows.push({ id: itemSnap.id, ...itemSnap.data() })
+    }
 
     if (!orderSnap.exists()) throw commandError('order-not-found', 'Order was not found.')
     const order = orderSnap.data()
@@ -232,12 +305,22 @@ export async function completeCheckoutClient({
     }
     if (order.status !== 'open') throw commandError('order-not-open', 'Order is not open.')
     if (checkSnap.exists()) throw commandError('checkout-already-exists', 'Checkout already exists for this order.')
+    if (Number.isFinite(Number(orderItemsRevision)) && Number(order.orderItemsRevision ?? 0) !== Number(orderItemsRevision)) {
+      throw commandError('checkout-items-stale', 'Checkout items changed. Reload checkout before closing.')
+    }
 
     if (!tableSnap.exists()) throw commandError('table-not-found', 'Table was not found.')
     const table = tableSnap.data()
     if (table.storeId !== storeId || table.currentOrderId !== orderId) {
       throw commandError('table-order-mismatch', 'Table is not linked to this order.')
     }
+    const checkoutSnapshot = assertCheckoutItemsFresh({
+      checkoutItemIds,
+      itemRows,
+      storeId,
+      subtotalBeforeItemDiscount,
+      tableId,
+    })
 
     transaction.set(checkRef, buildCheckoutCheckPayload({
       storeId,
@@ -247,6 +330,8 @@ export async function completeCheckoutClient({
       subtotalBeforeItemDiscount,
       itemDiscountAmount,
       activeItemDiscounts,
+      ...checkoutSnapshot,
+      orderItemsRevision,
       subtotal,
       checkoutDiscountAmount,
       totalDiscountAmount,

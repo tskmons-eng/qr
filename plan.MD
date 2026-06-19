@@ -51,6 +51,14 @@
 - Verification: `npm run check:order-functions-emulator`, `npm run check:customer-entry`, `npm run check`, and `npm run build`.
 - Verification results: the strengthened 50-client emulator check first reproduced transaction contention, then passed after adding start-session contention recovery; `npm run check:customer-entry`, `npm run check`, and `npm run build` also passed. No Firebase deploy was run.
 
+### 03 Checkout And Stale QR Race Responsibility
+
+- Purpose: keep checkout history, table reset, and old customer QR screens consistent when customer submit, checkout, table move, or double checkout happen at nearly the same time.
+- Current confirmation: `completeCheckoutCommand()` is idempotent for the same order check, but checkout needs a command-layer item snapshot guard so stale totals cannot close an order after a late submit has already landed.
+- Change policy: validate checkout against the latest non-cancelled order items, keep the existing UI flow, and add emulator races for checkout vs submit, double checkout, stale customer route guards, and move vs submit.
+- Impact scope: `functions/orderCommandHandlers.js`, command error mapping, checkout command clients, customer route/static checks, `scripts/check-order-functions-emulator.mjs`, `scripts/check-order-concurrency.mjs`, `docs/order-safety-round3/03-checkout-and-stale-qr-races.md`, and this plan.
+- Verification: `npm run check:order-functions-emulator`, `npm run check:customer-entry`, `npm run check:customer-cart`, `npm run check:checkout`, `npm run check`, and `npm run build`.
+
 ### 04 Client Recovery And Offline UX Responsibility
 
 - Purpose: when customer submit loses the response, reloads, or returns from browser back, keep the last `clientRequestId` and cart snapshot so saved orders are treated as reflection-pending instead of failed.
