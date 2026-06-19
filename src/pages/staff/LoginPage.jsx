@@ -112,12 +112,19 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setError('')
+    setLoading(true)
     try {
       rememberLoginRedirect(loginRedirect)
-      await signInStaffWithGoogle()
+      const result = await signInStaffWithGoogle()
+      if (result?.user && !result.user.isAnonymous) {
+        clearLoginRedirect()
+        navigate(loginRedirect, { replace: true })
+      }
     } catch (event) {
       console.error('Google sign-in failed:', event)
       setError(GOOGLE_LOGIN_ERROR_MESSAGE)
+    } finally {
+      setLoading(false)
     }
   }
 
