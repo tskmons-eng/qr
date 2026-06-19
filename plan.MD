@@ -127,6 +127,33 @@
 - Production `/staff` was checked in a clean browser and showed the staff store-code entry screen with no console errors.
 - Firebase deploy was not run.
 
+## 2026-06-19 Admin login return path
+
+### Purpose
+
+- Googleログインが必要な管理画面を開いた時、ログイン後に `/staff` へ戻されず、元の管理画面へ戻れるようにする。
+- 匿名スタッフセッションから管理画面へ進む場合も、Google管理者ログインへ自然につなぐ。
+
+### Current Confirmation
+
+- `PrivateRoute` は未ログイン時に `/login` へ固定遷移しており、元の `/admin/...` パスを保持していなかった。
+- `LoginPage` はGoogleログイン済みになった時点で常に `/staff` へ遷移していた。
+- スタッフログイン画面のスタッフ追加導線も、匿名スタッフ状態では `/login` に固定遷移していた。
+
+### Change Policy
+
+- 管理画面でログインが必要な場合は `/login?next=/admin...` に遷移する。
+- Google/メールログイン後は、安全な同一アプリ内 `next` のみへ戻す。
+- `next` がない、不正、または `/login` 自身の場合は既存通り `/staff` に戻す。
+- 注文、メニュー、履歴、店舗データには触れない。
+
+### Verification
+
+- `npm run check:staff-entry`
+- `npm run check:staff-permissions`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-19 Staff add-order option quantity fix
 
 ### Purpose

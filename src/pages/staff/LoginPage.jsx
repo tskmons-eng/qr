@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import StaffEmailLoginForm from '../../components/staff/StaffEmailLoginForm'
 import StaffGoogleLoginButton from '../../components/staff/StaffGoogleLoginButton'
 import { useAuth } from '../../contexts/AuthContext'
 import { consumeStaffGoogleRedirectResult, signInStaffWithEmail, signInStaffWithGoogle } from '../../services/staffLoginService'
 
 const GOOGLE_LOGIN_ERROR_MESSAGE = 'Googleログインに失敗しました'
+const DEFAULT_LOGIN_REDIRECT = '/staff'
+
+function getSafeLoginRedirect(search) {
+  const next = new URLSearchParams(search).get('next')
+  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/login')) {
+    return DEFAULT_LOGIN_REDIRECT
+  }
+  return next
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,7 +22,9 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
+  const loginRedirect = getSafeLoginRedirect(location.search)
 
   useEffect(() => {
     let active = true
@@ -26,9 +37,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !user.isAnonymous) {
-      navigate('/staff', { replace: true })
+      navigate(loginRedirect, { replace: true })
     }
-  }, [navigate, user])
+  }, [loginRedirect, navigate, user])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -36,7 +47,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signInStaffWithEmail(email, password)
-      navigate('/staff')
+      navigate(loginRedirect)
     } catch {
       setError('メールアドレスまたはパスワードが違います')
     } finally {
