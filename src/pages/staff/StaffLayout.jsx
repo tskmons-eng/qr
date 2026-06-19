@@ -43,6 +43,8 @@ const ELEVATED_PERMISSION_DEFAULTS = {
   manageStaff: false,
 }
 
+const STAFF_ADMIN_LOGIN_PATH = `/login?next=${encodeURIComponent('/admin/staff')}`
+
 export default function StaffLayout() {
   const navigate = useNavigate()
   const { storeId, loading: storeLoading, clearDeviceStore } = useStore()
@@ -164,7 +166,7 @@ export default function StaffLayout() {
           storeId={storeId}
           onLogin={handleStaffLogin}
           onLogout={handleLogout}
-          onOpenStaffAdmin={() => navigate(user && !user.isAnonymous ? '/admin/staff' : '/login')}
+          onOpenStaffAdmin={() => navigate(user && !user.isAnonymous ? '/admin/staff' : STAFF_ADMIN_LOGIN_PATH)}
         />
       </StaffMemberContext.Provider>
     )
