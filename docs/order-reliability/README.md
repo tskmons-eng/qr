@@ -71,7 +71,8 @@ Round 2 の完了条件:
 - 注文開始、お客様注文、スタッフ注文、スタッフ着席、会計、キャンセル、提供済み、提供済み戻し、席移動は command/transaction 境界へ寄せた。
 - `npm run check` と `npx vite build` は通過済み。
 - Functions callable command は opt-in runtime として追加済み。
-- Functions command failure は u{60}orderCommandFailuresu{60} に server-side で記録し、u{60}npm run audit:command-failuresu{60} と u{60}npm run audit:pending-counts -- --jsonu{60} で直近失敗と反映ズレを確認する。
+- Functions command failure は `orderCommandFailures` に server-side で記録し、`npm run audit:command-failures` と `npm run audit:pending-counts -- --json` で直近失敗と反映ズレを確認する。
 - 本番 deploy、Firestore データ削除、Firestore migration、rules 締め込みは未実施。
 - ここからは「Functions を用意した」ではなく「Functions を本番注文経路にする」ことを完了条件にする。
+- `07-functions-emulator-concurrency.md` では `npm run check:order-functions-emulator` を追加し、callable Functions の emulator 同時実行検証を通過済み。
 - 08では rules lockdown 用の stage helper を追加済み。現行rulesは Compatibility stage のままで、公開注文writeはまだ閉じていない。

@@ -24,6 +24,7 @@ const [
   firebaseJson,
   functionsPackage,
   functionsLock,
+  packageJson,
 ] = await Promise.all([
   readFile('functions/index.js', 'utf8'),
   readFile('functions/orderCommandHandlers.js', 'utf8'),
@@ -34,6 +35,7 @@ const [
   readFile('firebase.json', 'utf8'),
   readFile('functions/package.json', 'utf8'),
   readFile('functions/package-lock.json', 'utf8'),
+  readFile('package.json', 'utf8'),
 ])
 
 for (const name of functionExports) {
@@ -65,6 +67,8 @@ for (const token of [
 }
 
 assert.ok(api.includes("new HttpsError("), 'Functions command API should map command errors to callable errors')
+assert.ok(api.includes('category-scope-mismatch'), 'Functions command API should map category scope errors')
+assert.ok(handlers.includes('category-scope-mismatch') && handlers.includes('category.storeId'), 'Functions handlers should reject cross-store categories')
 assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME"), 'client command runtime should read VITE_ORDER_COMMAND_RUNTIME')
 assert.ok(clientRuntime.includes('import.meta.env.PROD'), 'client command runtime should default Production builds to Functions')
 assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'client'"), 'client command runtime should support explicit client rollback')
@@ -87,8 +91,10 @@ assert.ok(
 const firebase = JSON.parse(firebaseJson)
 const functionsPkg = JSON.parse(functionsPackage)
 const functionsPkgLock = JSON.parse(functionsLock)
+const rootPkg = JSON.parse(packageJson)
 assert.equal(firebase.functions?.runtime, 'nodejs20', 'firebase.json Functions runtime should be nodejs20')
 assert.equal(functionsPkg.engines?.node, '20', 'functions/package.json engine should match nodejs20')
 assert.equal(functionsPkgLock.packages?.['']?.engines?.node, '20', 'functions/package-lock.json engine should match nodejs20')
+assert.ok(rootPkg.scripts?.['check:order-functions-emulator']?.includes('check-order-functions-emulator.mjs'), 'package.json should expose the Functions emulator concurrency check')
 
 console.log('functions/rules migration checks passed')

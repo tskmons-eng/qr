@@ -34,6 +34,7 @@
     "check:order-command-boundary": "node scripts/check-order-command-boundary.mjs",
     "check:order-command-ui": "node scripts/check-order-command-ui.mjs",
     "check:order-concurrency": "node scripts/check-order-concurrency.mjs",
+    "check:order-functions-emulator": "node scripts/check-order-functions-emulator.mjs",
     "check:functions-rules-migration": "node scripts/check-functions-rules-migration.mjs",
     "check:order-functions-mainline": "node scripts/check-order-functions-mainline.mjs",
     "check:order-rules-lockdown": "node scripts/check-order-rules-lockdown.mjs",

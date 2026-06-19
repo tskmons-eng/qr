@@ -61,6 +61,52 @@
 - `npm run check:functions-rules-migration`
 - `npm run check`
 - `npm run build`
+
+## 2026-06-19 Functions emulator concurrency responsibility
+
+### Purpose
+
+- Take ownership of `docs/order-reliability/07-functions-emulator-concurrency.md`.
+- Add a real Firebase Emulator integration check for callable order command Functions, not only the existing in-memory concurrency mock.
+
+### Current Confirmation
+
+- The repo already has callable order command exports and in-memory `npm run check:order-concurrency`.
+- `07-functions-emulator-concurrency.md` requires emulator coverage for Functions handler, Firestore transaction, idempotency, staff authorization, and store-scope validation.
+- This step must not connect to production Firestore, deploy Firebase resources, delete production data, or modify live records.
+
+### Change Policy
+
+- Add a separate heavy check command, `npm run check:order-functions-emulator`, instead of putting the emulator run directly into normal `npm run check`.
+- Use `firebase emulators:exec` with a demo project and test-only seed data.
+- Seed Firestore through Admin SDK inside the emulator process; call callable Functions through the Firebase client SDK.
+- Cover customer start races, customer/staff duplicate submit idempotency, served/ordered/cancelled counter transitions, late submit after checkout, table move consistency, unauthorized staff rejection, and product/category store-scope rejection.
+- If the emulator check finds a narrow Functions validation gap, fix only that command-layer validation.
+
+### Impact Scope
+
+- Emulator integration script and package script.
+- Functions command validation only if needed for the test contract.
+- 07 documentation and this plan.
+- No UI changes, no Firestore rules lockdown, no hosting/functions deploy, no production data writes.
+
+### Verification
+
+- `npm run check:order-concurrency`
+- `npm run check:order-functions-emulator`
+- `npm run check`
+- `npm run build`
+
+### Verification Results
+
+- `npm run check:order-functions-emulator` passed against the local Firebase Auth/Firestore/Functions emulators with demo project `demo-qr-functions-concurrency`.
+- `npm run check:functions-rules-migration` passed.
+- `npm run check:order-concurrency` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- Local dependency note: `functions/node_modules` was reinstalled because OneDrive had left an emulator dependency as a reparse point that Functions could not read.
+- Firebase deploy was not run for this 07 responsibility.
+
 ## 2026-06-19 Rules lockdown staging
 
 ### Purpose
@@ -139,6 +185,7 @@
 - `npm run build` passed.
 - `.env.local` has no `VITE_ORDER_COMMAND_RUNTIME` override, so the local Production build used the default Functions runtime.
 - No Firebase deploy was run.
+
 ## 2026-06-19 Order reliability architecture review
 
 ### Context

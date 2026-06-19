@@ -56,7 +56,13 @@ async function loadProductWithCategoryGroup(db, productId, storeId, fallbackProd
   let categoryGroup = product.categoryGroup ?? fallbackProduct.categoryGroup ?? ''
   if (!categoryGroup && product.categoryId) {
     const categorySnap = await db.collection('categories').doc(product.categoryId).get()
-    categoryGroup = categorySnap.exists ? (categorySnap.data().group ?? '') : ''
+    if (categorySnap.exists) {
+      const category = categorySnap.data()
+      if (category.storeId && category.storeId !== storeId) {
+        throw commandError('category-scope-mismatch', 'Category does not match this store.')
+      }
+      categoryGroup = category.group ?? ''
+    }
   }
 
   return {

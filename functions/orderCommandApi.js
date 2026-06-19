@@ -28,6 +28,7 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['item-table-mismatch', 'failed-precondition'],
   ['item-scope-mismatch', 'failed-precondition'],
   ['product-scope-mismatch', 'failed-precondition'],
+  ['category-scope-mismatch', 'failed-precondition'],
 ])
 
 function toHttpsError(error) {

@@ -47,3 +47,54 @@ in-memory mock だけではなく、Functions handler、Firestore transaction、
 - 本番データで負荷テストしない。
 - 本番 deploy しない。
 - テストのために production の `orders`, `orderItems`, `tables`, `products`, `categories` を書き換えない。
+
+## 2026-06-19 実装メモ
+
+追加:
+
+- `scripts/check-order-functions-emulator.mjs`
+  - 外側で `firebase emulators:exec --project demo-qr-functions-concurrency --only firestore,functions,auth` を起動。
+  - 内側で test-only seed data を emulator Firestore に作成。
+  - Firebase client SDK から callable Functions を呼び、Functions handler と Firestore transaction を通した状態を検証。
+- `npm run check:order-functions-emulator`
+  - 重い integration check のため、通常の `npm run check` には直接入れない。
+  - 11 の統合担当が deploy 前ゲートとして明示実行する。
+- `functions/orderCommandHandlers.js`
+  - product が同一 store でも、参照 category が別 store の場合は `category-scope-mismatch` で reject。
+- `functions/orderCommandApi.js`
+  - `category-scope-mismatch` を callable error details へ渡す。
+- `scripts/check-functions-rules-migration.mjs`
+  - emulator check コマンド登録と category scope validation を静的確認。
+
+検証範囲:
+
+1. 同じ席に複数顧客が同時入店しても、`orders` が1件だけになる。
+2. 同じ `clientRequestId` の顧客カート送信で `orderItems` が重複しない。
+3. 同じ `clientRequestId` のスタッフ注文で `orderItems` と `pendingCount` が重複しない。
+4. `ordered -> served` の同時操作で `pendingCount` が二重減算されない。
+5. `served -> ordered` の同時操作で `pendingCount` が二重加算されない。
+6. `ordered -> cancelled` の同時操作だけ `pendingCount` を減らし、`served -> cancelled` では減らない。
+7. checkout 後の遅延 submit が `order-not-open` で reject される。
+8. 席移動後に `tables`, `orders.tableId`, `orderItems.tableId`, `pendingCount` が揃う。
+9. staff session のない匿名 staff command が `permission-denied` で reject される。
+10. product store mismatch と category store mismatch が reject される。
+
+実行コマンド:
+
+```bash
+npm run check:order-functions-emulator
+```
+
+実行結果:
+
+- 2026-06-19 に `npm run check:order-functions-emulator` 通過。
+- 追加確認として `npm run check:functions-rules-migration`, `npm run check:order-concurrency`, `npm run check`, `npm run build` も通過。
+- local Firebase emulator は Java 21 以上が必要。スクリプトは Windows で `JAVA_HOME` と代表的な JDK install path を探し、Java 21 以上を優先して emulator の `PATH` に追加する。
+- 初回検証時に `functions/node_modules` の一部が OneDrive reparse point になっていて Functions emulator が読めなかったため、`functions` 配下の依存のみ再インストールした。
+- 本番 deploy は実行していない。
+
+注意:
+
+- demo project と emulator のみを使う。`.firebaserc` の本番既定プロジェクトには接続しない。
+- 初回実行時は `npx firebase-tools` の取得で時間がかかる場合がある。
+- 本番 deploy はこの分担では実行しない。
