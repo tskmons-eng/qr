@@ -118,8 +118,26 @@ function isStartSessionContentionError(error) {
     /ABORTED|Too much contention/i.test(error?.message ?? '')
 }
 
+function isOrderCommandContentionError(error) {
+  const code = String(error?.code ?? error?.status ?? error?.details?.code ?? '').toLowerCase()
+  return isStartSessionContentionError(error) ||
+    code === '4' ||
+    code === 'deadline-exceeded' ||
+    code === 'deadline_exceeded' ||
+    /Transaction lock timeout|Transaction is invalid or closed|DEADLINE_EXCEEDED|deadline exceeded/i.test(error?.message ?? '')
+}
+
 function waitForStartSessionRetry(attempt) {
   const delayMs = 20 * attempt + Math.floor(Math.random() * 20)
+  return waitForStartSessionDelay(delayMs)
+}
+
+function waitForOrderCommandRetry(attempt) {
+  const delayMs = 60 * attempt + Math.floor(Math.random() * 40)
+  return waitForStartSessionDelay(delayMs)
+}
+
+function waitForStartSessionDelay(delayMs) {
   return new Promise(resolve => {
     setTimeout(resolve, delayMs)
   })
@@ -131,6 +149,42 @@ async function readExistingCustomerOrderId(tableRef, storeId) {
   const table = tableSnap.data()
   if (table.storeId !== storeId) throw commandError('table-scope-mismatch', 'Table does not match this store.')
   return table.currentOrderId ?? null
+}
+
+async function waitForExistingCustomerOrderId(tableRef, storeId, { attempts = 80, delayMs = 50 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const existingOrderId = await readExistingCustomerOrderId(tableRef, storeId)
+    if (existingOrderId) return existingOrderId
+    await waitForStartSessionDelay(delayMs)
+  }
+  return null
+}
+
+function isAlreadyExistsError(error) {
+  const code = String(error?.code ?? error?.status ?? error?.details?.code ?? '').toLowerCase()
+  return code === '6' ||
+    code === 'already-exists' ||
+    code === 'already_exists' ||
+    /already exists/i.test(error?.message ?? '')
+}
+
+async function deleteExpiredCustomerStartLock(lockRef, maxAgeMs = 30000) {
+  const lockSnap = await lockRef.get()
+  if (!lockSnap.exists) return true
+  const createdAtMs = Number(lockSnap.data()?.createdAtMs ?? 0)
+  if (createdAtMs && Date.now() - createdAtMs < maxAgeMs) return false
+  await lockRef.delete()
+  return true
+}
+
+async function acquireCustomerStartLock(lockRef, payload) {
+  try {
+    await lockRef.create(payload)
+    return true
+  } catch (error) {
+    if (isAlreadyExistsError(error)) return false
+    throw error
+  }
 }
 
 async function runCustomerStartTransaction(db, tableRef, storeId, transactionHandler) {
@@ -147,6 +201,18 @@ async function runCustomerStartTransaction(db, tableRef, storeId, transactionHan
     }
   }
   throw commandError('internal', 'Customer order start retry failed.')
+}
+
+async function runOrderCommandTransaction(db, transactionHandler, { maxAttempts = 6 } = {}) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await db.runTransaction(transactionHandler)
+    } catch (error) {
+      if (!isOrderCommandContentionError(error) || attempt === maxAttempts) throw error
+      await waitForOrderCommandRetry(attempt)
+    }
+  }
+  throw commandError('internal', 'Order command retry failed.')
 }
 
 function normalizeCheckoutMoney(value) {
@@ -210,49 +276,95 @@ async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, ta
   const tableRef = db.collection('tables').doc(tableId)
   const orderRef = db.collection('orders').doc()
   const autoAddRef = autoAddProduct ? db.collection('orderItems').doc() : null
+  const startLockRef = db.collection('orderStartLocks').doc(tableId)
   const now = FieldValue.serverTimestamp()
   const normalizedGuestCount = normalizeGuestCount(guestCount)
+  let acquiredStartLock = false
 
-  return runCustomerStartTransaction(db, tableRef, storeId, async transaction => {
-    const tableSnap = await transaction.get(tableRef)
-    if (!tableSnap.exists) throw commandError('table-not-found', 'Table was not found.')
-    const table = tableSnap.data()
-    if (table.storeId !== storeId) throw commandError('table-scope-mismatch', 'Table does not match this store.')
-    if (table.currentOrderId) return table.currentOrderId
-    if (table.status && table.status !== 'vacant') throw commandError('table-not-vacant', 'Table is not vacant.')
+  const existingOrderId = await readExistingCustomerOrderId(tableRef, storeId)
+  if (existingOrderId) return existingOrderId
 
-    transaction.set(orderRef, {
+  try {
+    acquiredStartLock = await acquireCustomerStartLock(startLockRef, {
       storeId,
       tableId,
-      guestCount: normalizedGuestCount,
-      status: 'open',
-      openedAt: now,
-      checkedOutAt: null,
-      createdBy: 'customer',
-      orderItemsRevision: autoAddProduct ? 1 : 0,
-      updatedAt: now,
+      orderId: orderRef.id,
+      createdAt: now,
+      createdAtMs: Date.now(),
       orderCommandVersion: ORDER_COMMAND_VERSION,
     })
-    transaction.update(tableRef, {
-      status: 'occupied',
-      guestCount: normalizedGuestCount,
-      currentOrderId: orderRef.id,
-      startedAt: now,
-      pendingCount: autoAddProduct ? 1 : 0,
-      ...buildEmptyTablePendingAggregateFields(),
-      updatedAt: now,
-    })
-    if (autoAddProduct && autoAddRef) {
-      transaction.set(autoAddRef, withCommandFields(buildCustomerOrderItemPayload({
-        cartItem: { product: autoAddProduct, quantity: normalizedGuestCount, optionSelections: [] },
-        orderId: orderRef.id,
+
+    if (!acquiredStartLock) {
+      const lockedOrderId = await waitForExistingCustomerOrderId(tableRef, storeId, {
+        attempts: 600,
+        delayMs: 50,
+      })
+      if (lockedOrderId) return lockedOrderId
+      if (await deleteExpiredCustomerStartLock(startLockRef)) {
+        acquiredStartLock = await acquireCustomerStartLock(startLockRef, {
+          storeId,
+          tableId,
+          orderId: orderRef.id,
+          createdAt: now,
+          createdAtMs: Date.now(),
+          orderCommandVersion: ORDER_COMMAND_VERSION,
+        })
+      }
+      if (!acquiredStartLock) {
+        const recoveredOrderId = await waitForExistingCustomerOrderId(tableRef, storeId, {
+          attempts: 40,
+          delayMs: 50,
+        })
+        if (recoveredOrderId) return recoveredOrderId
+        throw commandError('order-start-timeout', 'Order start is still in progress. Please retry.')
+      }
+    }
+
+    return await runCustomerStartTransaction(db, tableRef, storeId, async transaction => {
+      const tableSnap = await transaction.get(tableRef)
+      if (!tableSnap.exists) throw commandError('table-not-found', 'Table was not found.')
+      const table = tableSnap.data()
+      if (table.storeId !== storeId) throw commandError('table-scope-mismatch', 'Table does not match this store.')
+      if (table.currentOrderId) return table.currentOrderId
+      if (table.status && table.status !== 'vacant') throw commandError('table-not-vacant', 'Table is not vacant.')
+
+      transaction.set(orderRef, {
         storeId,
         tableId,
-        timestamp: now,
-      }), { clientRequestId: `auto-add-${orderRef.id}`, commandType: 'customer_auto_add' }))
+        guestCount: normalizedGuestCount,
+        status: 'open',
+        openedAt: now,
+        checkedOutAt: null,
+        createdBy: 'customer',
+        orderItemsRevision: autoAddProduct ? 1 : 0,
+        updatedAt: now,
+        orderCommandVersion: ORDER_COMMAND_VERSION,
+      })
+      transaction.update(tableRef, {
+        status: 'occupied',
+        guestCount: normalizedGuestCount,
+        currentOrderId: orderRef.id,
+        startedAt: now,
+        pendingCount: autoAddProduct ? 1 : 0,
+        ...buildEmptyTablePendingAggregateFields(),
+        updatedAt: now,
+      })
+      if (autoAddProduct && autoAddRef) {
+        transaction.set(autoAddRef, withCommandFields(buildCustomerOrderItemPayload({
+          cartItem: { product: autoAddProduct, quantity: normalizedGuestCount, optionSelections: [] },
+          orderId: orderRef.id,
+          storeId,
+          tableId,
+          timestamp: now,
+        }), { clientRequestId: `auto-add-${orderRef.id}`, commandType: 'customer_auto_add' }))
+      }
+      return orderRef.id
+    })
+  } finally {
+    if (acquiredStartLock) {
+      await startLockRef.delete().catch(() => {})
     }
-    return orderRef.id
-  })
+  }
 }
 
 async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clientRequestId }) {
@@ -266,7 +378,7 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
   const itemRefs = itemsWithProducts.map((_, index) => itemRefFor(db, { orderId, clientRequestId: requestId, index }))
   const now = FieldValue.serverTimestamp()
 
-  return db.runTransaction(async transaction => {
+  return runOrderCommandTransaction(db, async transaction => {
     const firstItemSnap = await transaction.get(itemRefs[0])
     const orderSnap = await transaction.get(orderRef)
     if (firstItemSnap.exists) return { ok: true, deduped: true, clientRequestId: requestId }
@@ -623,7 +735,7 @@ async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }
   const staffActionRef = db.collection('staffActions').doc()
   const now = FieldValue.serverTimestamp()
 
-  return db.runTransaction(async transaction => {
+  return runOrderCommandTransaction(db, async transaction => {
     const sourceSnap = await transaction.get(sourceTableRef)
     const targetSnap = await transaction.get(targetTableRef)
     const orderSnap = await transaction.get(orderRef)
@@ -641,6 +753,9 @@ async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }
       throw commandError('table-scope-mismatch', 'Tables do not match this store.')
     }
     if (latestSource.currentOrderId !== orderId) {
+      if (latestTarget.currentOrderId === orderId && order.tableId === targetTable.id) {
+        return { ok: true, deduped: true }
+      }
       throw commandError('source-order-mismatch', 'Source table is no longer linked to this order.')
     }
     if (latestTarget.currentOrderId || (latestTarget.status && latestTarget.status !== 'vacant')) {

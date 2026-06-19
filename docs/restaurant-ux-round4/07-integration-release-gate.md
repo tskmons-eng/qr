@@ -78,3 +78,13 @@
 - Deploy target: deployed Hosting and `functions:completeCheckoutCommand` to `qrproduct-3340b`. rules / indexes / storage were not deployed.
 - Production result: deploy completed. Live HTML references `assets/index-DIJYZ4C0.js` and `assets/index-BA3KaryF.css`; `/`, `/login`, `/admin`, `/staff`, `/staff/kitchen`, and `/order/test-token` returned HTTP 200. `functions:list` shows `completeCheckoutCommand` active in `us-central1`, and `functions:log --only completeCheckoutCommand --lines 20` returned recent rollout/invocation logs without a new error line. `npm run audit:command-failures -- --limit 10` could not read production Firestore because local ADC/service-account credentials were unavailable.
 - Remaining risk: iPhone実機のカテゴリー編集ズーム、顧客メニューの実機タップ感、キッチンUndoの現場操作感は自動チェックでは確認できない。Production Firestoreのcommand failure監査は認証設定後に再実行する。
+
+## 2026-06-20 Post-completion Verification Addendum
+
+- Finding: final re-check after all担当完了で `npm run check:restaurant-ux-release-gate -- --final` を再実行したところ、`check:order-functions-emulator` の `same-table customer start race` が 50 concurrent requests すべて timeout/internal で失敗した。
+- Cause: 同じ席の注文開始を50件同時に `tables/{tableId}` transaction へ集中させると、Functions emulator では60秒timeoutまで待たされるケースがあった。
+- Fix: `startCustomerOrderSessionCommand` に `orderStartLocks/{tableId}` の短い開始ロックを追加。勝者だけが注文作成transactionを実行し、他リクエストは `tables/{tableId}.currentOrderId` が入るのを待って同じ注文IDを返す。ロックが残っている間は、ロックなしで注文作成transactionへ入らない。
+- Additional finding: lock fix後の再実行で、席移動と顧客追加注文が同時に走る `move vs submit race` が Firestore `Transaction lock timeout` により `internal` で失敗するケースを検出した。
+- Additional fix: 顧客追加注文と席移動のtransactionに、Firestoreの一時的なロック/期限切れだけを再試行する薄いリトライを追加。席移動が既に完了していた再試行では同じ注文IDが移動先にある場合だけ成功扱いにする。
+- Verification: `node --check functions/orderCommandHandlers.js` passed. `npm run check:order-functions-emulator` passed after the lock fix.
+- Deploy target: `functions:startCustomerOrderSessionCommand`, `functions:submitCustomerOrderItemsCommand`, `functions:moveTableOrderCommand` only. Hosting / rules / indexes / storage は追加deployしない。

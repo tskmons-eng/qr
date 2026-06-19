@@ -84,6 +84,16 @@
 - Verification: `npm run check:restaurant-ux-release-gate`, `git diff --check`, `npm run check`, `npm run check:order-functions-emulator`, and `npm run build`. Commit/push後に `npm run check:restaurant-ux-release-gate -- --final` を実行する。
 - Verification results: final gate passed after commit/push, Hosting and `functions:completeCheckoutCommand` were deployed to `qrproduct-3340b`, live assets were `assets/index-DIJYZ4C0.js` and `assets/index-BA3KaryF.css`, 主要ルートHTTP 200を確認した。Production command failure auditはADC/service-account credentials未設定で未実行。
 
+### 2026-06-20 Post-gate Customer Start Contention Fix
+
+- Purpose: 全担当完了後の再検証で、同じ席の顧客注文開始50同時実行が Functions emulator 上で timeout/internal になったため、本番注文入口の余裕を増やす。
+- Current confirmation: UI系チェックと本番Hosting疎通は通ったが、`npm run check:order-functions-emulator` の `same-table customer start race` が失敗した。
+- Change policy: `startCustomerOrderSessionCommand` だけを補強し、既存の注文履歴、会計履歴、メニュー、QR URL、Firestore rules は変更しない。
+- Implementation: `orderStartLocks/{tableId}` の短い開始ロックで、勝者だけが注文作成transactionを実行し、他リクエストは `tables/{tableId}.currentOrderId` を待って同じ注文IDを返す。ロック待ち中は、ロックなしで注文作成transactionへ入らない。
+- Additional implementation: 再検証で検出した席移動と顧客追加注文の同時実行について、Firestoreの一時的なロック/期限切れだけを顧客追加注文と席移動transactionで再試行する。
+- Verification: `node --check functions/orderCommandHandlers.js` passed. `npm run check:order-functions-emulator` passed.
+- Deploy plan: `functions:startCustomerOrderSessionCommand`, `functions:submitCustomerOrderItemsCommand`, `functions:moveTableOrderCommand` のみdeployし、Hosting / rules / indexes / storage は追加deployしない。
+
 ### Verification
 
 - `git diff --check`
