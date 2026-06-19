@@ -44,13 +44,20 @@
   - `legacyPublicOrderWritesAllowed()`
   - `legacyPublicTableOccupyAllowed()`
   - `legacyPublicTableOccupyRequest()`
-- 現在は `legacyPublicOrderWritesAllowed()` と `legacyPublicTableOccupyAllowed()` が `true`。
-- 11 の統合担当が Functions mainline、emulator concurrency、live monitoring を確認した後、この2つを `false` にするのが Lockdown stage。
+- 現在は `legacyPublicOrderWritesAllowed()` と `legacyPublicTableOccupyAllowed()` が `false`。
+- Functions mainline、emulator concurrency、live monitoring を確認したため、この2つを `false` にする Lockdown stage へ進めた。
 - `orders` / `orderItems` の `allow read: if true` は維持し、顧客・スタッフ・キッチン・会計表示の既存readを壊さない。
 - `orders` / `orderItems` の staff/admin update/delete は `canAccess(resource.data.storeId)` のまま維持する。
 - `checks`, `staffActions`, `orderCommandFailures` の read/create rules は既存の運用・観測に必要なため削らない。
 - `scripts/check-order-rules-lockdown.mjs` を追加し、互換stageの維持、lockdown flip point、read権限維持、11のdeploy注意点を静的確認する。
 - 本番 deploy は未実行。
+
+## 2026-06-19 予約案内の残経路
+
+- Lockdown 前の追加確認で、スタッフの予約待ち案内 `guideReservationToTable` がブラウザ側 transaction で `orders` を作る可能性を確認。
+- `guideReservationToTableCommand` を追加し、Production では Functions command 経由にする。
+- 既存UIの返却形 `{ ok, reason, orderId, wasOccupied }` は維持する。
+- これにより公開 `orders` create を閉じても、予約待ちから空席へ案内する経路を維持できる。
 
 ## 11 統合担当への引き継ぎ
 
@@ -88,5 +95,5 @@
 - `npm run check:order-functions-mainline` passed.
 - `npm run check` passed.
 - `npm run build` passed.
-- 現行 `firestore.rules` は Compatibility stage のまま。
-- 本番 deploy は未実行。
+- 現行 `firestore.rules` は Lockdown stage。
+- 予約待ち案内を `guideReservationToTableCommand` へ移した後に適用する。

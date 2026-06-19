@@ -12,6 +12,7 @@ const functionExports = [
   'markOrderItemOrderedCommand',
   'cancelOrderItemCommand',
   'moveTableOrderCommand',
+  'guideReservationToTableCommand',
 ]
 
 const [
@@ -62,6 +63,7 @@ for (const token of [
   'markOrderItemOrderedCommand',
   'cancelOrderItemCommand',
   'moveTableOrderCommand',
+  'guideReservationToTableCommand',
 ]) {
   assert.ok(handlers.includes(token), `functions/orderCommandHandlers.js should include ${token}`)
 }
@@ -77,8 +79,8 @@ assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'functions'"), 'clie
 
 assert.match(
   rules,
-  /function legacyPublicOrderWritesAllowed\(\) \{[\s\S]*?return true;/,
-  'legacy public order writes must remain compatible during migration'
+  /function legacyPublicOrderWritesAllowed\(\) \{[\s\S]*?return false;/,
+  'legacy public order writes should be locked down after Functions mainline'
 )
 assert.ok(
   rules.includes('match /orders/{orderId}') && rules.includes('allow create: if legacyPublicOrderWritesAllowed();'),

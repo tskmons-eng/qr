@@ -527,6 +527,49 @@ async function runTableMoveConsistency(db, staffFunctions, productId) {
   assert.ok(movedItems.every(item => item.tableId === targetTableId), 'all order items should move to target table')
 }
 
+async function runReservationGuideCommand(db, staffFunctions) {
+  const tableId = `${runId}_reservation_table`
+  const reservationId = `${runId}_reservation_wait`
+  await seedTable(db, tableId)
+  await db.collection('reservations').doc(reservationId).set({
+    storeId,
+    tableId,
+    name: 'Emulator Reservation',
+    guestCount: 5,
+    status: 'confirmed',
+    waitingStatus: 'pending',
+    waitingReason: 'table_unassigned',
+    arrivalNoticeAt: FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  })
+
+  const result = await call(staffFunctions, 'guideReservationToTableCommand', {
+    reservationId,
+    targetTableId: tableId,
+    storeId,
+    activeStaff: staff,
+  })
+
+  assert.equal(result.ok, true, 'reservation guide command should succeed')
+  assert.equal(result.wasOccupied, false, 'reservation guide to vacant table should report vacant path')
+  assert.ok(result.orderId, 'reservation guide command should return an order id')
+
+  const reservationSnap = await db.collection('reservations').doc(reservationId).get()
+  const reservation = reservationSnap.data()
+  const table = await tableData(db, tableId)
+  const order = await orderData(db, result.orderId)
+
+  assert.equal(reservation.status, 'seated')
+  assert.equal(reservation.waitingStatus, 'handled')
+  assert.equal(reservation.seatedTableId, tableId)
+  assert.equal(reservation.seatedOrderId, result.orderId)
+  assert.equal(table.status, 'occupied')
+  assert.equal(table.currentOrderId, result.orderId)
+  assert.equal(order.createdBy, 'reservation')
+  assert.equal(order.reservationId, reservationId)
+}
+
 async function runStoreScopeRejects(db, publicFunctions, productId, otherProductId, categoryMismatchProductId) {
   const tableId = `${runId}_scope_table`
   await seedTable(db, tableId)
@@ -580,6 +623,7 @@ await runStaffSubmitDedup(db, staffClient.functions, products.productId, product
 await runItemStatusCounterChecks(db, staffClient.functions, products.productId)
 await runLateSubmitAfterCheckout(db, publicClient.functions, staffClient.functions, products.productId)
 await runTableMoveConsistency(db, staffClient.functions, products.productId)
+await runReservationGuideCommand(db, staffClient.functions)
 await runStoreScopeRejects(db, publicClient.functions, products.productId, products.otherProductId, products.categoryMismatchProductId)
 
 console.log('order Functions emulator concurrency checks passed')

@@ -39,6 +39,28 @@ function assertTargetTableMatches(item, requestedTableId) {
   }
 }
 
+function buildSeatReservationStaffActionPayload({
+  storeId,
+  reservation,
+  reservationId,
+  table,
+  guestCount,
+  activeStaff,
+  timestamp,
+}) {
+  return {
+    storeId,
+    actionType: 'seat_reservation',
+    targetType: 'reservation',
+    targetId: reservationId,
+    actorType: 'staff',
+    actorStaffId: activeStaff?.id ?? null,
+    actorStaffName: activeStaff?.name ?? null,
+    note: `${reservation.name ?? '予約'} ${guestCount}名を${table.tableName ?? ''}へ案内`,
+    createdAt: timestamp,
+  }
+}
+
 function addTableDelta(tableDeltas, tableId, delta) {
   if (!tableId || delta === 0) return
   tableDeltas.set(tableId, (tableDeltas.get(tableId) ?? 0) + delta)
@@ -558,9 +580,113 @@ async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }
   })
 }
 
+async function guideReservationToTableCommand({ reservationId, targetTableId, activeStaff, storeId }, request) {
+  if (!reservationId || !targetTableId) {
+    throw commandError('invalid-argument', 'Reservation and target table are required.')
+  }
+
+  const db = getFirestore()
+  const reservationRef = db.collection('reservations').doc(reservationId)
+  const tableRef = db.collection('tables').doc(targetTableId)
+  const reservationPreviewSnap = await reservationRef.get()
+  if (!reservationPreviewSnap.exists) return { ok: false, reason: 'reservation-missing' }
+  const reservationPreview = reservationPreviewSnap.data()
+  if (storeId && reservationPreview.storeId !== storeId) {
+    return { ok: false, reason: 'store-mismatch' }
+  }
+  await assertStoreAccess(db, request, reservationPreview.storeId)
+
+  return db.runTransaction(async transaction => {
+    const reservationSnap = await transaction.get(reservationRef)
+    const tableSnap = await transaction.get(tableRef)
+
+    if (!reservationSnap.exists) return { ok: false, reason: 'reservation-missing' }
+    if (!tableSnap.exists) return { ok: false, reason: 'table-missing' }
+
+    const reservation = reservationSnap.data()
+    const table = tableSnap.data()
+    if (reservation.storeId !== reservationPreview.storeId) {
+      throw commandError('reservation-store-mismatch', 'Reservation store changed during command.')
+    }
+    if (storeId && reservation.storeId !== storeId) return { ok: false, reason: 'store-mismatch' }
+    if (reservation.storeId !== table.storeId) return { ok: false, reason: 'store-mismatch' }
+    if (reservation.status !== 'confirmed') return { ok: false, reason: 'reservation-closed' }
+
+    const now = FieldValue.serverTimestamp()
+    const guestCount = normalizeGuestCount(reservation.guestCount)
+    const actorFields = {
+      handledByStaffId: activeStaff?.id ?? null,
+      handledByStaffName: activeStaff?.name ?? null,
+    }
+    let orderId = table.currentOrderId ?? null
+    const isVacant = table.status === 'vacant' || !table.currentOrderId
+
+    if (isVacant) {
+      const orderRef = db.collection('orders').doc()
+      orderId = orderRef.id
+      transaction.set(orderRef, {
+        storeId: reservation.storeId,
+        tableId: targetTableId,
+        guestCount,
+        status: 'open',
+        openedAt: now,
+        checkedOutAt: null,
+        createdBy: 'reservation',
+        reservationId,
+        updatedAt: now,
+        orderCommandVersion: ORDER_COMMAND_VERSION,
+      })
+      transaction.update(tableRef, {
+        status: 'occupied',
+        guestCount,
+        currentOrderId: orderId,
+        startedAt: now,
+        pendingCount: 0,
+        ...buildEmptyTablePendingAggregateFields(),
+        updatedAt: now,
+      })
+    } else if (orderId) {
+      transaction.update(db.collection('orders').doc(orderId), {
+        guestCount,
+        reservationId,
+        updatedAt: now,
+        orderCommandVersion: ORDER_COMMAND_VERSION,
+      })
+      transaction.update(tableRef, {
+        guestCount,
+        updatedAt: now,
+      })
+    }
+
+    transaction.update(reservationRef, {
+      status: 'seated',
+      waitingStatus: 'handled',
+      waitingReason: null,
+      seatedTableId: targetTableId,
+      seatedOrderId: orderId,
+      handledAt: now,
+      ...actorFields,
+      updatedAt: now,
+    })
+
+    transaction.set(db.collection('staffActions').doc(), buildSeatReservationStaffActionPayload({
+      storeId: reservation.storeId,
+      reservation,
+      reservationId,
+      table,
+      guestCount,
+      activeStaff,
+      timestamp: now,
+    }))
+
+    return { ok: true, orderId, wasOccupied: !isVacant }
+  })
+}
+
 module.exports = {
   cancelOrderItemCommand,
   completeCheckoutCommand,
+  guideReservationToTableCommand,
   markOrderItemOrderedCommand,
   markOrderItemServedCommand,
   markOrderItemsServedCommand,

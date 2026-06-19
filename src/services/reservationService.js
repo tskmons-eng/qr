@@ -14,6 +14,8 @@ import {
 import { db } from '../lib/firebase'
 import { sortReservationsByTime, sortWaitingReservations } from '../lib/reservationDisplay'
 import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
+import { withOrderCommandFailureLog } from './orderCommandFailureService'
+import { callOrderCommandFunction, shouldUseOrderCommandFunctions } from './orderFunctionCommandService'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
@@ -74,7 +76,7 @@ export async function dismissReservationWait({ reservationId, activeStaff }) {
   })
 }
 
-export async function guideReservationToTable({ reservationId, targetTableId, activeStaff }) {
+async function guideReservationToTableClient({ reservationId, targetTableId, activeStaff }) {
   return runTransaction(db, async transaction => {
     const reservationRef = doc(db, 'reservations', reservationId)
     const tableRef = doc(db, 'tables', targetTableId)
@@ -160,4 +162,22 @@ export async function guideReservationToTable({ reservationId, targetTableId, ac
 
     return { ok: true, orderId, wasOccupied: !isVacant }
   })
+}
+
+export async function guideReservationToTable({ reservationId, targetTableId, storeId, activeStaff }) {
+  return withOrderCommandFailureLog({
+    commandType: 'guide_reservation_to_table',
+    actorType: 'staff',
+    storeId,
+    targetTableId,
+  }, () => (
+    shouldUseOrderCommandFunctions()
+      ? callOrderCommandFunction('guideReservationToTableCommand', {
+          reservationId,
+          targetTableId,
+          storeId,
+          activeStaff,
+        })
+      : guideReservationToTableClient({ reservationId, targetTableId, activeStaff })
+  ))
 }

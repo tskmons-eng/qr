@@ -105,14 +105,13 @@ service cloud.firestore {
     }
 
     function legacyPublicOrderWritesAllowed() {
-      // Compatibility stage. Flip to false only after Functions mainline, emulator checks,
-      // live monitoring, and 11-integration-release gates confirm old clients are gone.
-      return true;
+      // Lockdown stage. Production order writes now go through Cloud Functions commands.
+      return false;
     }
 
     function legacyPublicTableOccupyAllowed() {
-      // Compatibility stage for old QR clients that directly occupy a vacant table.
-      return true;
+      // Lockdown stage. Customer/staff seating now goes through Cloud Functions commands.
+      return false;
     }
 
     function keepsTableManagementFields() {

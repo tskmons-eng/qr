@@ -12,6 +12,7 @@ const callableNames = [
   'markOrderItemOrderedCommand',
   'cancelOrderItemCommand',
   'moveTableOrderCommand',
+  'guideReservationToTableCommand',
 ]
 
 const [
@@ -19,6 +20,7 @@ const [
   orderCommandService,
   orderItemCommandService,
   tableMoveCommandService,
+  reservationService,
   functionsIndex,
   functionsApi,
   envExample,
@@ -28,6 +30,7 @@ const [
   readFile('src/services/orderCommandService.js', 'utf8'),
   readFile('src/services/orderItemCommandService.js', 'utf8'),
   readFile('src/services/tableMoveCommandService.js', 'utf8'),
+  readFile('src/services/reservationService.js', 'utf8'),
   readFile('functions/index.js', 'utf8'),
   readFile('functions/orderCommandApi.js', 'utf8'),
   readFile('.env.local.example', 'utf8'),
@@ -56,7 +59,7 @@ for (const token of clientFallbackTokens) {
   )
 }
 
-const serviceSources = [orderCommandService, orderItemCommandService, tableMoveCommandService].join('\n')
+const serviceSources = [orderCommandService, orderItemCommandService, tableMoveCommandService, reservationService].join('\n')
 for (const callableName of callableNames) {
   assert.ok(functionsIndex.includes(`exports.${callableName} = createOrderCommandCallable`), `Functions should export ${callableName}`)
   assert.ok(serviceSources.includes(`callOrderCommandFunction('${callableName}'`), `client wrappers should call ${callableName}`)

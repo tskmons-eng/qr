@@ -35,13 +35,13 @@ function extractBlock(source, marker) {
 
 assert.match(
   rules,
-  /function legacyPublicOrderWritesAllowed\(\) \{[\s\S]*?return true;/,
-  'deploy-target rules should keep legacy public order writes open in compatibility stage'
+  /function legacyPublicOrderWritesAllowed\(\) \{[\s\S]*?return false;/,
+  'deploy-target rules should close legacy public order writes in lockdown stage'
 )
 assert.match(
   rules,
-  /function legacyPublicTableOccupyAllowed\(\) \{[\s\S]*?return true;/,
-  'deploy-target rules should keep legacy public table occupy open in compatibility stage'
+  /function legacyPublicTableOccupyAllowed\(\) \{[\s\S]*?return false;/,
+  'deploy-target rules should close legacy public table occupy in lockdown stage'
 )
 assertToken(rules, 'legacyPublicTableOccupyRequest()', 'firestore.rules')
 assert.equal(
@@ -73,14 +73,6 @@ assert.match(
 )
 
 const lockdownPreview = rules
-  .replace(
-    /function legacyPublicOrderWritesAllowed\(\) \{([\s\S]*?)return true;/,
-    'function legacyPublicOrderWritesAllowed() {$1return false;'
-  )
-  .replace(
-    /function legacyPublicTableOccupyAllowed\(\) \{([\s\S]*?)return true;/,
-    'function legacyPublicTableOccupyAllowed() {$1return false;'
-  )
 const lockdownOrdersBlock = extractBlock(lockdownPreview, 'match /orders/{orderId}')
 const lockdownOrderItemsBlock = extractBlock(lockdownPreview, 'match /orderItems/{itemId}')
 
@@ -101,7 +93,7 @@ for (const token of [
   'Lockdown stage',
   'legacyPublicOrderWritesAllowed',
   'legacyPublicTableOccupyAllowed',
-  '本番 deploy は未実行',
+  'Lockdown stage',
 ]) {
   assertToken(doc08, token, '08-rules-lockdown.md')
 }

@@ -65,6 +65,7 @@ Production の注文経路を Cloud Functions command 本線へ切り替える�
   - `markOrderItemOrderedCommand`
   - `cancelOrderItemCommand`
   - `moveTableOrderCommand`
+  - `guideReservationToTableCommand`
 - 注文 callable は `us-central1` で定義する。client は region override がない場合 `getFunctions(app)` の既定 `us-central1` を呼ぶ。
 - rollback build は `VITE_ORDER_COMMAND_RUNTIME=client` を明示して作る。
 - この分担では Firebase deploy は実行しない。

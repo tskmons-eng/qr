@@ -56,6 +56,7 @@ export default function StaffReservationWaitController({
     const result = await guideReservationToTable({
       reservationId: reservation.id,
       targetTableId,
+      storeId: reservation.storeId,
       activeStaff,
     })
     if (!result.ok) {

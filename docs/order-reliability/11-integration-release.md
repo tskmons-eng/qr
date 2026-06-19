@@ -25,7 +25,7 @@
    - 初回 deploy は以下のように注文 command だけを明示する。
 
 ```bash
-npx --yes firebase-tools deploy --project qrproduct-3340b --only functions:startCustomerOrderSessionCommand,functions:submitCustomerOrderItemsCommand,functions:submitStaffOrderItemsCommand,functions:seatStaffOrderSessionCommand,functions:completeCheckoutCommand,functions:markOrderItemServedCommand,functions:markOrderItemsServedCommand,functions:markOrderItemOrderedCommand,functions:cancelOrderItemCommand,functions:moveTableOrderCommand --non-interactive
+npx --yes firebase-tools deploy --project qrproduct-3340b --only functions:startCustomerOrderSessionCommand,functions:submitCustomerOrderItemsCommand,functions:submitStaffOrderItemsCommand,functions:seatStaffOrderSessionCommand,functions:completeCheckoutCommand,functions:markOrderItemServedCommand,functions:markOrderItemsServedCommand,functions:markOrderItemOrderedCommand,functions:cancelOrderItemCommand,functions:moveTableOrderCommand,functions:guideReservationToTableCommand --non-interactive
 ```
 
    - deploy 後に callable command export がすべて作成/更新されることを確認する。
@@ -58,6 +58,7 @@ npx --yes firebase-tools deploy --project qrproduct-3340b --only functions:start
    - 旧 client write が残っていないことを確認してから公開 `orders` / `orderItems` write を段階的に閉じる。
    - `legacyPublicOrderWritesAllowed()` を `false` にする。
    - `legacyPublicTableOccupyAllowed()` を `false` にする。
+   - 予約待ち案内 `guideReservationToTable` が Functions command 経由になっていることを確認する。
    - deploy 前に `npm run check:order-rules-lockdown` を実行する。
    - deploy 後に顧客QR、スタッフ注文、キッチン、会計の主要導線と `orderCommandFailures` を確認する。
 

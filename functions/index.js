@@ -53,6 +53,10 @@ exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.
   commandType: 'move_table_order',
   actorType: 'staff',
 })
+exports.guideReservationToTableCommand = createOrderCommandCallable(orderCommandHandlers.guideReservationToTableCommand, {
+  commandType: 'guide_reservation_to_table',
+  actorType: 'staff',
+})
 
 function getPendingAggregateCounts(item) {
   if (!item || item.itemStatus !== 'ordered' || !item.tableId) return null
