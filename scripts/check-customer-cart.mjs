@@ -119,4 +119,15 @@ assert.match(cartPageSource, /saveCustomerSubmitRecovery/)
 assert.match(cartPageSource, /loadCustomerSubmitRecovery/)
 assert.match(cartPageSource, /recoveringPendingSubmit/)
 
+const menuPageSource = readFileSync(new URL('../src/pages/order/MenuPage.jsx', import.meta.url), 'utf8')
+assert.match(menuPageSource, /customerMenuTapToAddEnabled=\{storeConfig\.customerMenuTapToAddEnabled !== false\}/)
+
+const customerMenuProductListSource = readFileSync(new URL('../src/components/order/CustomerMenuProductList.jsx', import.meta.url), 'utf8')
+assert.match(customerMenuProductListSource, /customerMenuTapToAddEnabled = true/)
+assert.match(customerMenuProductListSource, /const rowTapEnabled = customerMenuTapToAddEnabled && !product\.isSoldOut/)
+assert.match(customerMenuProductListSource, /const TapArea = rowTapEnabled \? 'button' : 'div'/)
+assert.match(customerMenuProductListSource, /onSetSimpleProductQuantity\(product, \(simpleItem\?\.quantity \?\? 0\) \+ 1\)/)
+assert.match(customerMenuProductListSource, /event\.stopPropagation\(\)/)
+assert.match(customerMenuProductListSource, /'aria-label': tapLabel/)
+
 console.log('customer cart checks passed')

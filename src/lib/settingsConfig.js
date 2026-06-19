@@ -2,6 +2,7 @@ export const CUSTOMER_SETTING_TOGGLES = [
   { key: 'showServedStatus', label: '提供済み表示', description: 'お客様の注文確認画面に「提供済み」ラベルを表示する' },
   { key: 'showItemPrice', label: '商品ごとの金額表示', description: 'お客様の注文確認画面に各商品の金額を表示する' },
   { key: 'allowAdditionalOrders', label: '追加注文ボタン表示', description: 'お客様の注文確認画面に「追加注文する」ボタンを表示する' },
+  { key: 'customerMenuTapToAddEnabled', label: '商品行タップで追加', description: 'お客様メニューで商品名や画像の行をタップして追加できるようにする' },
 ]
 
 export const WORKFLOW_SETTING_TOGGLES = [
@@ -20,6 +21,7 @@ export const STORE_CONFIG_DEFAULTS = {
   showServedStatus: true,
   showItemPrice: true,
   allowAdditionalOrders: true,
+  customerMenuTapToAddEnabled: true,
   notificationsEnabled: true,
   servedWorkflowEnabled: true,
   guestAutoAdd: GUEST_AUTO_ADD_DEFAULTS,

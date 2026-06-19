@@ -50,6 +50,14 @@
 - Impact scope: `scripts/check-customer-entry.mjs`, `scripts/check-settings-config.mjs`, `docs/restaurant-ux-round4/05-guest-auto-add-entry-visibility.md`, and this plan.
 - Verification: `npm run check:customer-entry`, `npm run check:settings`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
 
+### 06 Customer Menu Row Tap Add Setting Responsibility
+
+- Purpose: 顧客メニューでプラス/選択ボタンに加えて商品行の広い領域をタップ追加にし、店舗設定でプラスボタンのみへ戻せるようにする。
+- Current confirmation: `OrderEntryPage` は `storeConfig` を `OrderProvider` に渡しており、`MenuPage` から参照できる。顧客商品行は `CustomerMenuProductList`、店舗設定UIは `CustomerDisplaySettings` に既存トグル構造がある。
+- Change policy: 既定は `customerMenuTapToAddEnabled: true` とし、売り切れ行はタップ追加不可。オプションありは既存 `onAddProduct()`、オプションなしは既存数量更新を使い、カートIDや注文送信処理は触らない。
+- Impact scope: `src/lib/settingsConfig.js`, `src/lib/customerEntry.js`, `src/pages/order/MenuPage.jsx`, `src/components/order/CustomerMenuProductList.jsx`, `src/styles/customer-menu.css`, related check scripts, and `docs/restaurant-ux-round4/06-customer-menu-row-tap-add-setting.md`.
+- Verification: `npm run check:customer-cart`, `npm run check:customer-entry`, `npm run check:settings`, `npm run check:option-modal`, `npm run check`, and `npm run build`.
+
 ### Verification
 
 - `git diff --check`

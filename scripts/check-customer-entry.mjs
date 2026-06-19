@@ -12,6 +12,8 @@ assert.deepEqual(normalizeCustomerStoreConfig({ showItemPrice: false }), {
   ...CUSTOMER_ENTRY_CONFIG_DEFAULTS,
   showItemPrice: false,
 })
+assert.equal(CUSTOMER_ENTRY_CONFIG_DEFAULTS.customerMenuTapToAddEnabled, true)
+assert.equal(normalizeCustomerStoreConfig({ customerMenuTapToAddEnabled: false }).customerMenuTapToAddEnabled, false)
 assert.deepEqual(normalizeCustomerStoreConfig({ guestAutoAdd: { enabled: true, productId: 'p1' } }).guestAutoAdd, {
   ...CUSTOMER_ENTRY_CONFIG_DEFAULTS.guestAutoAdd,
   enabled: true,
@@ -36,6 +38,10 @@ assert.match(orderEntrySource, /const \[configLoading, setConfigLoading\] = useS
 assert.match(orderEntrySource, /setStoreConfig\(CUSTOMER_ENTRY_CONFIG_DEFAULTS\)/)
 assert.match(orderEntrySource, /if \(loading \|\| configLoading \|\| error\)/)
 assert.match(orderEntrySource, /<OrderEntryStatus loading=\{loading \|\| configLoading\} error=\{error\} \/>/)
+
+const menuPageSource = readFileSync(new URL('../src/pages/order/MenuPage.jsx', import.meta.url), 'utf8')
+assert.match(menuPageSource, /storeConfig/)
+assert.match(menuPageSource, /customerMenuTapToAddEnabled=\{storeConfig\.customerMenuTapToAddEnabled !== false\}/)
 
 const guestCountPageSource = readFileSync(new URL('../src/pages/order/GuestCountPage.jsx', import.meta.url), 'utf8')
 const guestCountSelectorSource = readFileSync(new URL('../src/components/order/GuestCountSelector.jsx', import.meta.url), 'utf8')

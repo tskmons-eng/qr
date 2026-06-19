@@ -12,7 +12,7 @@ import { productMatchesCategory } from '../../lib/productTags'
 import { createCustomerCall, loadCustomerMenuData } from '../../services/customerMenuService'
 
 export default function MenuPage() {
-  const { storeId, tableId, orderId, table } = useOrder()
+  const { storeId, tableId, orderId, table, storeConfig } = useOrder()
   const { items, addItem, updateQuantity } = useCart()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
@@ -140,6 +140,7 @@ export default function MenuPage() {
       <CustomerMenuProductList
         products={filteredProducts}
         cartItems={items}
+        customerMenuTapToAddEnabled={storeConfig.customerMenuTapToAddEnabled !== false}
         onAddProduct={handleAddProduct}
         onSetSimpleProductQuantity={setSimpleProductQuantity}
       />

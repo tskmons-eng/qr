@@ -2,6 +2,7 @@ export const CUSTOMER_ENTRY_CONFIG_DEFAULTS = {
   showServedStatus: true,
   showItemPrice: true,
   allowAdditionalOrders: true,
+  customerMenuTapToAddEnabled: true,
   notificationsEnabled: true,
   servedWorkflowEnabled: true,
   guestAutoAdd: {
