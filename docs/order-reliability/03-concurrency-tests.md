@@ -26,8 +26,27 @@
 - Firebase Emulator 用の command integration test を作る。
 - 既存 `scripts/check-*` に、軽い静的境界チェックとロジックチェックを追加する。
 
+## 2026-06-19 実装メモ
+
+- `scripts/check-order-concurrency.mjs` を追加。
+- `package.json` に `check:order-concurrency` を追加し、`npm run check` に組み込む。
+- 本番データや Firebase Emulator には接続せず、まず in-memory mock で command の不変条件を検証する。
+- 実サービスが transaction / idempotency / status guard / table move update を保っていることは source guard で確認する。
+
+### 追加した検証
+
+1. 同じ席への複数入店試行が同じ `orderId` に収束し、孤立 `orders` を増やさない。
+2. 同じ `clientRequestId` のお客様カート再送が同じ `orderItems` doc id に収束する。
+3. スタッフ追加注文の二重押しで `orderItems` と `pendingCount` が重複しない。
+4. `ordered -> served` の連打で `pendingCount` が一度だけ減る。
+5. `served -> ordered` の連打で `pendingCount` が一度だけ戻る。
+6. `ordered -> cancelled` だけ `pendingCount` が減り、`served` / `cancelled` では二重減算しない。
+7. 会計後の遅延注文が `order-not-open` として reject される。
+8. 席移動後に `tables`, `orders.tableId`, `orderItems.tableId` が揃い、移動先 `pendingCount` が未提供明細数になる。
+
 ## 検証
 
+- `npm run check:order-concurrency`
 - `npm run check`
-- 追加した emulator test
-- `npx vite build`
+- 将来追加する Firebase Emulator command integration test
+- `npm run build`

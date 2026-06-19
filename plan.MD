@@ -144,6 +144,37 @@
 - Confirm no direct order mutation path remains outside the command wrapper except non-order table guest-count/admin flows.
 - Commit and push after verification.
 
+### 2026-06-19 Concurrency test responsibility
+
+#### Purpose
+
+- Cover `docs/order-reliability/03-concurrency-tests.md`.
+- Add repeatable regression checks for crowded customer entry, retry/double-tap, delayed submit after checkout, and staff concurrent item/table operations.
+
+#### Current State
+
+- The repo uses lightweight `scripts/check-*.mjs` Node checks instead of a dedicated test runner.
+- Command writes are already centralized enough to validate the expected semantics without touching production data.
+- No Firebase deploy, Firestore migration, Functions change, or production load test is part of this step.
+
+#### Change Plan
+
+- Add a mock command-concurrency check script that models the command invariants with in-memory tables, orders, orderItems, and checks.
+- Reuse production command id helpers for idempotent order item document ids.
+- Add source guards so the mock expectations stay tied to the transaction/idempotency code paths in the real services.
+- Register the check in `package.json` and include it in `npm run check`.
+
+#### Impact Scope
+
+- Test/check tooling and order reliability documentation only.
+- Runtime UI and Firestore write behavior should not change in this phase.
+
+#### Verification
+
+- `npm run check:order-concurrency`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-14 Customer guest auto-add loading guard
 
 ### Context
