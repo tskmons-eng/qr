@@ -13,6 +13,7 @@
 - 顧客の注文開始と注文送信は Functions 側で Firestore transaction / `clientRequestId` 冪等処理へ寄っている。
 - 既存の `npm run check:order-functions-emulator` は、同時着席、重複 submit、会計後の遅延 submit、store scope mismatch などを一部検証している。
 - ただし、実店舗の複数端末、通信断、リロード復旧、保存済み注文の顧客表示、監視/復旧を別担当でさらに検証する必要がある。
+- キッチンパネルの「提供済み」は安全性を保ちつつ、押した瞬間に一度消し、処理失敗時だけ戻す操作感改善も必要。
 
 ### Parallel MDs
 
@@ -23,11 +24,13 @@
 - `docs/order-safety-round3/04-client-recovery-and-offline-ux.md`
 - `docs/order-safety-round3/05-live-failure-monitoring-and-repair.md`
 - `docs/order-safety-round3/06-load-release-gate.md`
+- `docs/order-safety-round3/07-kitchen-served-optimistic-ui.md`
 
 ### Change Policy
 
 - データ履歴、会計履歴、メニュー、カテゴリ、オプション、QR URL は消さない。
 - 担当MD単独では本番 deploy しない。
+- キッチン提供済みUIは optimistic hide / rollback で、失敗防止と現場の操作感を両立する。
 - 各担当は対象ファイル、禁止事項、合格条件、検証コマンドを守り、完了時に担当MDへ結果を追記する。
 - 最終 deploy は `06-load-release-gate.md` で全チェックと監視手順をそろえてから行う。
 
