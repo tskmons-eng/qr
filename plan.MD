@@ -104,6 +104,41 @@
 - `npm run build` passed.
 - Current `firestore.rules` remains in Compatibility stage; no public order write lockdown was deployed.
 - No Firebase deploy was run.
+
+## 2026-06-19 06 Functions mainline implementation
+
+#### Current State
+
+- Callable order commands are already implemented and exported from Functions.
+- Client wrappers can call Functions, but the current runtime switch is still opt-in through `VITE_ORDER_COMMAND_RUNTIME=functions`.
+- `06-functions-mainline.md` requires Production build to use Functions commands by default and allow explicit `VITE_ORDER_COMMAND_RUNTIME=client` only for local/dev/rollback.
+
+#### Change Plan
+
+- Change the order command runtime resolver so Production defaults to Functions when no override is set.
+- Keep non-production default as client for local development, while allowing explicit `functions` for emulator/manual verification.
+- Add a static `check:order-functions-mainline` script that asserts the runtime policy and all expected callable command names stay wired.
+- Update the existing functions/rules migration check so it no longer treats Functions as opt-in-only.
+- Update docs/env example to describe the new mainline and rollback behavior.
+
+#### Verification
+
+- `npm run check:functions-rules-migration`
+- `npm run check:order-functions-mainline`
+- `node --check` for Functions command files.
+- `npm run check`
+- `npm run build`
+- No Firebase deploy in this phase.
+
+#### Verification Results
+
+- `npm run check:functions-rules-migration` passed.
+- `npm run check:order-functions-mainline` passed.
+- `node --check functions/index.js functions/orderCommandApi.js functions/orderCommandAuth.js functions/orderCommandHandlers.js functions/orderCommandShared.js` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- `.env.local` has no `VITE_ORDER_COMMAND_RUNTIME` override, so the local Production build used the default Functions runtime.
+- No Firebase deploy was run.
 ## 2026-06-19 Order reliability architecture review
 
 ### Context

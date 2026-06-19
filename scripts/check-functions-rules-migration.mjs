@@ -65,7 +65,10 @@ for (const token of [
 }
 
 assert.ok(api.includes("new HttpsError("), 'Functions command API should map command errors to callable errors')
-assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME") && clientRuntime.includes("=== 'functions'"), 'client command runtime should be opt-in')
+assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME"), 'client command runtime should read VITE_ORDER_COMMAND_RUNTIME')
+assert.ok(clientRuntime.includes('import.meta.env.PROD'), 'client command runtime should default Production builds to Functions')
+assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'client'"), 'client command runtime should support explicit client rollback')
+assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'functions'"), 'client command runtime should support explicit Functions verification')
 
 assert.match(
   rules,

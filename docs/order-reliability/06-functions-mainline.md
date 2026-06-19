@@ -42,6 +42,41 @@ Production の注文経路を Cloud Functions command 本線へ切り替える�
 - `npm run check:functions-rules-migration` と新規 mainline check が通る。
 - `node --check` で Functions 関連ファイルが通る。
 
+## 実装結果
+
+- `src/services/orderFunctionCommandService.js` は `VITE_ORDER_COMMAND_RUNTIME=client` のときだけ client command に戻す。
+- `VITE_ORDER_COMMAND_RUNTIME=functions` は emulator/manual verification 用に残す。
+- runtime override が未設定の場合、Production build は Functions command、dev build は client command を選ぶ。
+- `scripts/check-order-functions-mainline.mjs` で Production default、rollback override、callable export と wrapper 呼び出しの対応を静的確認する。
+- `npm run check` は `check:order-functions-mainline` を含む。
+- `.env.local.example` は local/dev rollback 用として `VITE_ORDER_COMMAND_RUNTIME=client` を残す。
+
+## 統合担当への注意
+
+- Hosting を新ビルドへ切り替える前に、以下の callable Functions を deploy 済みにする。
+  - `startCustomerOrderSessionCommand`
+  - `submitCustomerOrderItemsCommand`
+  - `submitStaffOrderItemsCommand`
+  - `seatStaffOrderSessionCommand`
+  - `completeCheckoutCommand`
+  - `markOrderItemServedCommand`
+  - `markOrderItemsServedCommand`
+  - `markOrderItemOrderedCommand`
+  - `cancelOrderItemCommand`
+  - `moveTableOrderCommand`
+- rollback build は `VITE_ORDER_COMMAND_RUNTIME=client` を明示して作る。
+- この分担では Firebase deploy は実行しない。
+
+## 検証結果
+
+- `npm run check:functions-rules-migration` passed.
+- `npm run check:order-functions-mainline` passed.
+- `node --check functions/index.js functions/orderCommandApi.js functions/orderCommandAuth.js functions/orderCommandHandlers.js functions/orderCommandShared.js` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- `.env.local` に `VITE_ORDER_COMMAND_RUNTIME` override がないことを確認した。
+- Firebase deploy は実行していない。
+
 ## 禁止事項
 
 - この分担単独で本番 deploy しない。

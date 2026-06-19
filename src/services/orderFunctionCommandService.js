@@ -3,6 +3,7 @@ import { app } from '../lib/firebase'
 
 const ORDER_COMMAND_RUNTIME = import.meta.env.VITE_ORDER_COMMAND_RUNTIME
 const FUNCTIONS_REGION = import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION
+const IS_PRODUCTION_BUILD = import.meta.env.PROD
 
 let functionsInstance = null
 
@@ -22,7 +23,9 @@ function restoreCommandError(error) {
 }
 
 export function shouldUseOrderCommandFunctions() {
-  return ORDER_COMMAND_RUNTIME === 'functions'
+  if (ORDER_COMMAND_RUNTIME === 'client') return false
+  if (ORDER_COMMAND_RUNTIME === 'functions') return true
+  return IS_PRODUCTION_BUILD
 }
 
 export async function callOrderCommandFunction(functionName, payload = {}) {
