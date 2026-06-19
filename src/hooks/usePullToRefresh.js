@@ -8,6 +8,42 @@ function getScrollTop() {
   return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0
 }
 
+function getElementTarget(target) {
+  if (target instanceof Element) return target
+  return target?.parentElement ?? null
+}
+
+function isScrollableElement(element) {
+  const style = window.getComputedStyle(element)
+  const canScrollY = style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'overlay'
+  return canScrollY && element.scrollHeight - element.clientHeight > 1
+}
+
+function findScrollableAncestor(target) {
+  let element = getElementTarget(target)
+  while (element && element !== document.body && element !== document.documentElement) {
+    if (isScrollableElement(element)) return element
+    element = element.parentElement
+  }
+  return null
+}
+
+function canStartDocumentPullRefresh(event) {
+  if (getScrollTop() > 0) return { allowed: false, scrollableAncestor: null }
+
+  const scrollableAncestor = findScrollableAncestor(event.target)
+  if (!scrollableAncestor) return { allowed: true, scrollableAncestor: null }
+
+  const ancestorTop = scrollableAncestor.getBoundingClientRect().top
+  const ancestorScrolled = scrollableAncestor.scrollTop > 1
+  const ancestorStartsBelowViewportTop = ancestorTop > 1
+
+  return {
+    allowed: !ancestorScrolled && !ancestorStartsBelowViewportTop,
+    scrollableAncestor,
+  }
+}
+
 function getPullRefreshText(phase) {
   if (phase === 'ready') return '離すと更新'
   if (phase === 'refreshing') return '更新中...'
@@ -19,6 +55,7 @@ export function usePullToRefresh({ enabled, onRefresh }) {
   const distanceRef = useRef(0)
   const onRefreshRef = useRef(onRefresh)
   const refreshingRef = useRef(false)
+  const scrollableAncestorRef = useRef(null)
   const startYRef = useRef(0)
   const trackingRef = useRef(false)
 
@@ -37,6 +74,7 @@ export function usePullToRefresh({ enabled, onRefresh }) {
     function resetPullRefresh() {
       trackingRef.current = false
       refreshingRef.current = false
+      scrollableAncestorRef.current = null
       setPullRefreshState(0, 'idle')
     }
 
@@ -46,12 +84,15 @@ export function usePullToRefresh({ enabled, onRefresh }) {
     }
 
     function handleTouchStart(event) {
-      if (event.touches.length !== 1 || refreshingRef.current || getScrollTop() > 0) {
+      const startState = canStartDocumentPullRefresh(event)
+      if (event.touches.length !== 1 || refreshingRef.current || !startState.allowed) {
         trackingRef.current = false
+        scrollableAncestorRef.current = null
         return
       }
 
       startYRef.current = event.touches[0].clientY
+      scrollableAncestorRef.current = startState.scrollableAncestor
       trackingRef.current = true
     }
 
@@ -67,6 +108,15 @@ export function usePullToRefresh({ enabled, onRefresh }) {
       if (getScrollTop() > 0) {
         resetPullRefresh()
         return
+      }
+
+      const scrollableAncestor = scrollableAncestorRef.current
+      if (scrollableAncestor) {
+        const ancestorTop = scrollableAncestor.getBoundingClientRect().top
+        if (scrollableAncestor.scrollTop > 1 || ancestorTop > 1) {
+          resetPullRefresh()
+          return
+        }
       }
 
       if (event.cancelable) event.preventDefault()

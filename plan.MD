@@ -1248,3 +1248,24 @@
 - Run `npm run build`.
 - Browser-check `/staff/reservations`, `/staff`, and `/staff/kitchen`.
 - Deploy Firestore rules/indexes, Functions, and Hosting, then commit and push `codex/reservation-arrival-notices`.
+
+## 2026-06-20 Staff pull refresh nested scroll guard
+
+### Context
+
+- User feedback: while scrolling from lower content upward, the staff screen refreshes before the visible content reaches the top.
+- Local confirmation: `src/hooks/usePullToRefresh.js` currently checks only `window.scrollY`. Recent staff table detail and checkout fixes added internal scroll containers, so `window.scrollY` can stay `0` while the touched content is still scrolled.
+
+### Decision
+
+- Keep the staff pull-to-refresh feature, but do not start it from an internal scroll container unless the gesture is truly at the document-level top.
+- Avoid changes to orders, checkout commands, menus, QR URLs, Firestore rules, Functions, indexes, or storage.
+- Add a source check so future scroll layout changes do not reintroduce this behavior.
+
+### Verification Plan
+
+- Run `npm run check:staff-permissions`.
+- Run `npm run check:staff-table-detail`.
+- Run `npm run check:checkout`.
+- Run `npm run build`.
+- Commit, push, then deploy Hosting only if checks pass.
