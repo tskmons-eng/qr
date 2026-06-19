@@ -144,6 +144,28 @@
 - Remaining direct order writes are staff/kitchen served toggles, item cancellation, and table moves.
 
 #### Command Plan
+### 2026-06-19 Command failure logging for order boundary
+
+#### Current State
+
+- The client-side command boundary now covers customer start, customer/staff submit, staff seating, checkout, served/revert, cancel, and table move.
+- The remaining gap in `01-command-boundary.md` is failure visibility: when a transaction or permission error happens, the current UI only sees a simple failure and there is no command-level debug trail.
+
+#### Command Plan
+
+- Add a small best-effort failure logger for order commands.
+- Record command type, actor type, store id, table id, order id, item id, client request id, error code, error name, error message, command version, and timestamp where available.
+- Keep logging outside the transaction so the original command outcome is not changed.
+- If logging itself fails, do not replace the original order error.
+- Add local Firestore rules for the new log collection, but do not deploy rules in this phase.
+- Do not change visible UI, run data migrations, delete Firestore data, change Functions, or deploy production assets.
+
+#### Verification
+
+- Run `npm run check:order-command-boundary`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit and push after verification.
 
 - Add transaction-backed commands for:
   - `markOrderItemServedCommand`

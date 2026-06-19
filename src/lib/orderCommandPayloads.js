@@ -1,9 +1,12 @@
 import { getDiscountedProductPrice } from './discounts'
 import { ORDER_COMMAND_VERSION } from './orderCommands'
 
-export function commandError(code, message) {
+export function commandError(code, message, context = {}) {
   const error = new Error(message)
   error.code = code
+  if (context && Object.keys(context).length > 0) {
+    error.orderCommandContext = context
+  }
   return error
 }
 

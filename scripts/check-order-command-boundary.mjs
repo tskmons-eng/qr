@@ -66,6 +66,54 @@ const checks = [
       "addDoc(collection(db, 'staffActions')",
     ],
   },
+  {
+    file: 'src/services/orderCommandService.js',
+    required: [
+      'withOrderCommandFailureLog',
+      "commandType: 'start_customer_order_session'",
+      "commandType: 'customer_submit_items'",
+      "commandType: 'staff_submit_items'",
+      "commandType: 'seat_staff_order_session'",
+      "commandType: 'complete_checkout'",
+    ],
+    forbidden: [],
+  },
+  {
+    file: 'src/services/orderItemCommandService.js',
+    required: [
+      'withOrderCommandFailureLog',
+      "commandType: 'mark_item_served'",
+      "commandType: 'mark_items_served'",
+      "commandType: 'mark_item_ordered'",
+      "commandType: 'cancel_order_item'",
+    ],
+    forbidden: [],
+  },
+  {
+    file: 'src/services/tableMoveCommandService.js',
+    required: [
+      'withOrderCommandFailureLog',
+      "commandType: 'move_table_order'",
+    ],
+    forbidden: [],
+  },
+  {
+    file: 'src/services/orderCommandFailureService.js',
+    required: [
+      'recordOrderCommandFailure',
+      'orderCommandFailures',
+      'buildOrderCommandFailurePayload',
+    ],
+    forbidden: [],
+  },
+  {
+    file: 'firestore.rules',
+    required: [
+      'validOrderCommandFailure',
+      'match /orderCommandFailures/{failureId}',
+    ],
+    forbidden: [],
+  },
 ]
 
 for (const check of checks) {

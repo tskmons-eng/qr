@@ -5,6 +5,8 @@ import {
   buildCancelItemStaffActionPayload,
   commandError,
 } from '../lib/orderCommandPayloads'
+import { withOrderCommandFailureLog } from './orderCommandFailureService'
+import { callOrderCommandFunction, shouldUseOrderCommandFunctions } from './orderFunctionCommandService'
 
 function normalizeItemStatus(item) {
   return item?.itemStatus ?? 'ordered'
@@ -16,7 +18,12 @@ function normalizeItemTargets(items) {
 
 function assertTargetTableMatches(item, requestedTableId) {
   if (requestedTableId && item.tableId && item.tableId !== requestedTableId) {
-    throw commandError('item-table-mismatch', 'Order item is not linked to this table.')
+    throw commandError('item-table-mismatch', 'Order item is not linked to this table.', {
+      storeId: item.storeId,
+      tableId: item.tableId ?? requestedTableId,
+      orderId: item.orderId,
+      itemId: item.id,
+    })
   }
 }
 
@@ -62,37 +69,67 @@ async function updateItemsToServed({ targets }) {
 }
 
 export function markOrderItemServedCommand({ tableId, itemId }) {
-  return updateItemsToServed({ targets: [{ id: itemId, tableId }] })
+  return withOrderCommandFailureLog({
+    commandType: 'mark_item_served',
+    actorType: 'staff',
+    tableId,
+    itemId,
+  }, () => (
+    shouldUseOrderCommandFunctions()
+      ? callOrderCommandFunction('markOrderItemServedCommand', { tableId, itemId })
+      : updateItemsToServed({ targets: [{ id: itemId, tableId }] })
+  ))
 }
 
 export function markOrderItemsServedCommand(items) {
-  return updateItemsToServed({ targets: normalizeItemTargets(items) })
+  const targets = normalizeItemTargets(items)
+  return withOrderCommandFailureLog({
+    commandType: 'mark_items_served',
+    actorType: 'staff',
+    tableId: targets[0]?.tableId,
+    itemId: targets[0]?.id,
+  }, () => (
+    shouldUseOrderCommandFunctions()
+      ? callOrderCommandFunction('markOrderItemsServedCommand', { items: targets })
+      : updateItemsToServed({ targets })
+  ))
 }
 
 export async function markOrderItemOrderedCommand({ tableId, itemId }) {
-  const itemRef = doc(db, 'orderItems', itemId)
-  const now = serverTimestamp()
-
-  return runTransaction(db, async transaction => {
-    const itemSnap = await transaction.get(itemRef)
-    if (!itemSnap.exists()) throw commandError('item-not-found', 'Order item was not found.')
-    const item = { id: itemSnap.id, ...itemSnap.data() }
-    assertTargetTableMatches(item, tableId)
-    if (normalizeItemStatus(item) !== 'served') return { ok: true, changed: false }
-
-    transaction.update(itemRef, {
-      itemStatus: 'ordered',
-      updatedAt: now,
-      orderCommandVersion: ORDER_COMMAND_VERSION,
-    })
-    const resolvedTableId = tableId ?? item.tableId ?? null
-    if (resolvedTableId) {
-      transaction.update(doc(db, 'tables', resolvedTableId), {
-        pendingCount: increment(1),
-        updatedAt: now,
-      })
+  return withOrderCommandFailureLog({
+    commandType: 'mark_item_ordered',
+    actorType: 'staff',
+    tableId,
+    itemId,
+  }, async () => {
+    if (shouldUseOrderCommandFunctions()) {
+      return callOrderCommandFunction('markOrderItemOrderedCommand', { tableId, itemId })
     }
-    return { ok: true, changed: true }
+
+    const itemRef = doc(db, 'orderItems', itemId)
+    const now = serverTimestamp()
+
+    return runTransaction(db, async transaction => {
+      const itemSnap = await transaction.get(itemRef)
+      if (!itemSnap.exists()) throw commandError('item-not-found', 'Order item was not found.')
+      const item = { id: itemSnap.id, ...itemSnap.data() }
+      assertTargetTableMatches(item, tableId)
+      if (normalizeItemStatus(item) !== 'served') return { ok: true, changed: false }
+
+      transaction.update(itemRef, {
+        itemStatus: 'ordered',
+        updatedAt: now,
+        orderCommandVersion: ORDER_COMMAND_VERSION,
+      })
+      const resolvedTableId = tableId ?? item.tableId ?? null
+      if (resolvedTableId) {
+        transaction.update(doc(db, 'tables', resolvedTableId), {
+          pendingCount: increment(1),
+          updatedAt: now,
+        })
+      }
+      return { ok: true, changed: true }
+    })
   })
 }
 
@@ -104,43 +141,61 @@ export async function cancelOrderItemCommand({
   activeStaff,
   actorUid,
 }) {
-  const itemRef = doc(db, 'orderItems', itemId)
-  const staffActionRef = doc(collection(db, 'staffActions'))
-  const now = serverTimestamp()
-
-  return runTransaction(db, async transaction => {
-    const itemSnap = await transaction.get(itemRef)
-    if (!itemSnap.exists()) throw commandError('item-not-found', 'Order item was not found.')
-    const item = { id: itemSnap.id, ...itemSnap.data() }
-    assertTargetTableMatches(item, tableId)
-
-    if (normalizeItemStatus(item) === 'cancelled') {
-      return { ok: true, deduped: true }
-    }
-
-    const resolvedTableId = tableId ?? item.tableId ?? null
-    transaction.update(itemRef, {
-      itemStatus: 'cancelled',
-      updatedAt: now,
-      orderCommandVersion: ORDER_COMMAND_VERSION,
-    })
-    if (normalizeItemStatus(item) === 'ordered' && resolvedTableId) {
-      transaction.update(doc(db, 'tables', resolvedTableId), {
-        pendingCount: increment(-1),
-        updatedAt: now,
+  return withOrderCommandFailureLog({
+    commandType: 'cancel_order_item',
+    actorType: 'staff',
+    tableId,
+    itemId,
+  }, async () => {
+    if (shouldUseOrderCommandFunctions()) {
+      return callOrderCommandFunction('cancelOrderItemCommand', {
+        itemId,
+        tableId,
+        tableName,
+        source,
+        activeStaff,
+        actorUid,
       })
     }
-    transaction.set(staffActionRef, buildCancelItemStaffActionPayload({
-      storeId: item.storeId,
-      itemId,
-      item,
-      tableName,
-      source,
-      activeStaff,
-      actorUid,
-      timestamp: now,
-    }))
 
-    return { ok: true, deduped: false }
+    const itemRef = doc(db, 'orderItems', itemId)
+    const staffActionRef = doc(collection(db, 'staffActions'))
+    const now = serverTimestamp()
+
+    return runTransaction(db, async transaction => {
+      const itemSnap = await transaction.get(itemRef)
+      if (!itemSnap.exists()) throw commandError('item-not-found', 'Order item was not found.')
+      const item = { id: itemSnap.id, ...itemSnap.data() }
+      assertTargetTableMatches(item, tableId)
+
+      if (normalizeItemStatus(item) === 'cancelled') {
+        return { ok: true, deduped: true }
+      }
+
+      const resolvedTableId = tableId ?? item.tableId ?? null
+      transaction.update(itemRef, {
+        itemStatus: 'cancelled',
+        updatedAt: now,
+        orderCommandVersion: ORDER_COMMAND_VERSION,
+      })
+      if (normalizeItemStatus(item) === 'ordered' && resolvedTableId) {
+        transaction.update(doc(db, 'tables', resolvedTableId), {
+          pendingCount: increment(-1),
+          updatedAt: now,
+        })
+      }
+      transaction.set(staffActionRef, buildCancelItemStaffActionPayload({
+        storeId: item.storeId,
+        itemId,
+        item,
+        tableName,
+        source,
+        activeStaff,
+        actorUid,
+        timestamp: now,
+      }))
+
+      return { ok: true, deduped: false }
+    })
   })
 }

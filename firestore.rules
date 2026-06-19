@@ -132,6 +132,60 @@ service cloud.firestore {
         ]);
     }
 
+    function validOptionalString(value, maxLength) {
+      return value == null || (value is string && value.size() <= maxLength);
+    }
+
+    function validOrderCommandFailure() {
+      return request.resource.data.keys().hasOnly([
+          'commandType',
+          'actorType',
+          'storeId',
+          'tableId',
+          'targetTableId',
+          'orderId',
+          'itemId',
+          'clientRequestId',
+          'errorCode',
+          'errorName',
+          'errorMessage',
+          'orderCommandVersion',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'commandType',
+          'actorType',
+          'errorCode',
+          'errorName',
+          'errorMessage',
+          'orderCommandVersion',
+          'createdAt'
+        ])
+        && request.resource.data.commandType is string
+        && request.resource.data.commandType.size() > 0
+        && request.resource.data.commandType.size() <= 120
+        && request.resource.data.actorType is string
+        && request.resource.data.actorType.size() > 0
+        && request.resource.data.actorType.size() <= 48
+        && validOptionalString(request.resource.data.get('storeId', null), 128)
+        && validOptionalString(request.resource.data.get('tableId', null), 128)
+        && validOptionalString(request.resource.data.get('targetTableId', null), 128)
+        && validOptionalString(request.resource.data.get('orderId', null), 128)
+        && validOptionalString(request.resource.data.get('itemId', null), 128)
+        && validOptionalString(request.resource.data.get('clientRequestId', null), 160)
+        && request.resource.data.errorCode is string
+        && request.resource.data.errorCode.size() > 0
+        && request.resource.data.errorCode.size() <= 120
+        && request.resource.data.errorName is string
+        && request.resource.data.errorName.size() > 0
+        && request.resource.data.errorName.size() <= 120
+        && request.resource.data.errorMessage is string
+        && request.resource.data.errorMessage.size() > 0
+        && request.resource.data.errorMessage.size() <= 500
+        && request.resource.data.orderCommandVersion is number
+        && request.resource.data.createdAt == request.time;
+    }
+
     // 許可メール（オーナーが管理）
     match /allowedEmails/{email} {
       allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
@@ -250,6 +304,23 @@ service cloud.firestore {
       allow read: if canViewHistory(resource.data.storeId);
       allow create: if canAccess(request.resource.data.storeId);
       allow update, delete: if canAccess(resource.data.storeId);
+    }
+
+    // 注文コマンド失敗ログ
+    match /orderCommandFailures/{failureId} {
+      allow read: if isSuper()
+        || (
+          resource.data.storeId is string
+          && resource.data.storeId.size() > 0
+          && canViewHistory(resource.data.storeId)
+        );
+      allow create: if validOrderCommandFailure();
+      allow update, delete: if isSuper()
+        || (
+          resource.data.storeId is string
+          && resource.data.storeId.size() > 0
+          && canManageStore(resource.data.storeId)
+        );
     }
 
     // 予約

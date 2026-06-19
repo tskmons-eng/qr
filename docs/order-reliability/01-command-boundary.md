@@ -23,9 +23,18 @@
 - `src/services/orderCommandService.js`
 - `src/services/orderItemCommandService.js`
 - `src/services/tableMoveCommandService.js`
+- `src/services/orderCommandFailureService.js`
 - `src/lib/orderCommands.js`
 - `src/lib/orderCommandPayloads.js`
+- `src/lib/orderCommandFailures.js`
 - `scripts/check-order-command-boundary.mjs`
+
+実装済み補助:
+
+- command 失敗時に `orderCommandFailures` へ best-effort で記録する。
+- 記録対象は command type、actor type、store/table/order/item/client request、error code/name/message、command version、timestamp。
+- ログ書き込み失敗は元の注文エラーを上書きしない。
+- local rules には `orderCommandFailures` を追加済み。ただし本番 deploy はこの分野では行わない。
 
 ## 作業ルール
 
@@ -37,7 +46,6 @@
 
 ## 次の候補
 
-- command 層のエラー記録を追加する。
 - command ごとの返却値を整理する。
 - Cloud Functions 化前に client command の emulator test を追加する。
 
