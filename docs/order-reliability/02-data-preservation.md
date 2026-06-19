@@ -50,9 +50,19 @@
 - 本番 Firestore を読む場合は `GOOGLE_APPLICATION_CREDENTIALS` または gcloud の Application Default Credentials が必要。Emulator は `FIRESTORE_EMULATOR_HOST` を使う。
 - 修復 write は含めない。データ修正が必要な場合は、監査結果を確認してから別タスクで扱う。
 
+## 2026-06-19 10番 repair 追加
+
+- `scripts/repair-pending-counts.mjs` を追加。
+- `npm run repair:pending-counts -- --store <storeId>` は dry-run で、変更予定だけを表示する。
+- `npm run repair:pending-counts -- --store <storeId> --apply` のときだけ write する。
+- repair は `orderItems` から再計算できる `tables.pendingCount` / `pendingAggregate*` だけに限定する。
+- `orders`, `orderItems`, `checks`, `staffActions`, メニュー系 collection、予約 collection は削除・移動・一括上書きしない。
+- 本番データ修復はこの分担単独では実行せず、11 の統合担当が監査結果と deploy 順を確認してから扱う。
+
 ## 検証
 
 - `git diff` に削除・migration・deploy が含まれていないこと。
 - `rg -n "deleteDoc|batch.delete|deploy|migration" src scripts functions` を確認する。
+- `npm run check:data-consistency-repair`
 - `npm run check`
 - `npm run build`

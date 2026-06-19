@@ -53,3 +53,32 @@
 - store 全体への無条件一括 update。
 - 監査なしの repair write。
 - 本番データ修復をこの分担単独で実行すること。
+
+## 2026-06-19 実装メモ
+
+- `scripts/lib/pending-count-audit.mjs` に pending count 監査/修復計画の共通ロジックを分離。
+- `scripts/audit-pending-counts.mjs` は共通ロジックを使う read-only CLI として維持。
+- `scripts/repair-pending-counts.mjs` を追加。
+- 修復 script は dry-run が既定で、`--apply` なしでは write しない。
+- `npm run repair:pending-counts -- --store <storeId>` は dry-run が既定で、変更予定だけを表示する。
+- `npm run repair:pending-counts -- --store <storeId> --json` は dry-run の修復計画を JSON で出す。
+- `npm run repair:pending-counts -- --store <storeId> --apply` のときだけ Firestore write を実行する。
+- `--store <storeId>` を必須にし、全店舗への無条件 repair を防ぐ。
+- repair write は `tables/{tableId}` の derived state だけに限定する。
+  - `pendingCount`
+  - `pendingAggregateVersion`
+  - `pendingAggregateCount`
+  - `pendingAggregateDrinkCount`
+  - `pendingAggregateFoodCount`
+- `orderItems` の欠けた `tableId`、存在しない席参照、店舗不一致などは report-only とし、自動削除・移動・履歴修正はしない。
+
+## 11 統合担当へ渡すコマンド
+
+- deploy 前 read-only 監査:
+  - `npm run audit:pending-counts -- --store <storeId>`
+  - `npm run audit:pending-counts -- --store <storeId> --json`
+- 修復が必要な場合の dry-run:
+  - `npm run repair:pending-counts -- --store <storeId>`
+  - `npm run repair:pending-counts -- --store <storeId> --json`
+- 統合担当が監査結果を確認してから実行する apply:
+  - `npm run repair:pending-counts -- --store <storeId> --apply`

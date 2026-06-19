@@ -347,6 +347,41 @@
 - Run `npm run check`.
 - Run `npm run build`.
 
+### 2026-06-19 Data consistency repair dry-run tooling
+
+#### Purpose
+
+- Take ownership of `docs/order-reliability/10-data-consistency-repair.md`.
+- Allow pending count drift to be inspected and repaired without deleting or moving order history, menu data, checks, reservations, or staff actions.
+
+#### Current State
+
+- `scripts/audit-pending-counts.mjs` already reports drift between `orderItems` and `tables.pendingCount` / `pendingAggregate*`.
+- The next required piece is a dry-run first repair command that can rebuild only derived table count fields from `orderItems`.
+- This step must not run production repair, deploy Firebase assets, migrate data, or tighten rules.
+
+#### Change Plan
+
+- Extract shared pending-count audit logic into `scripts/lib/pending-count-audit.mjs`.
+- Keep the audit command read-only.
+- Add `scripts/repair-pending-counts.mjs` with `--store <storeId>` required and dry-run as the default.
+- Allow writes only with `--apply`, and limit writes to:
+  - `tables.pendingCount`
+  - `tables.pendingAggregateVersion`
+  - `tables.pendingAggregateCount`
+  - `tables.pendingAggregateDrinkCount`
+  - `tables.pendingAggregateFoodCount`
+- Keep missing table references, store mismatches, and other history-judgment issues as report-only.
+
+#### Verification
+
+- `npm run check:data-consistency-repair`
+- `npm run audit:pending-counts -- --help`
+- `npm run repair:pending-counts -- --help`
+- `npm run repair:pending-counts -- --json` should fail without `--store`.
+- `npm run check`
+- `npm run build`
+
 ### 2026-06-19 Command layer continuation from handoff
 
 #### Current State
