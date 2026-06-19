@@ -19,7 +19,6 @@ export default function MenuPage() {
   const [activeCat, setActiveCat] = useState(null)
   const [loading, setLoading] = useState(true)
   const [callSent, setCallSent] = useState(false)
-  const [checkoutSent, setCheckoutSent] = useState(false)
   const [optionTarget, setOptionTarget] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const cooldownRef = useRef(null)
@@ -57,11 +56,6 @@ export default function MenuPage() {
     cooldownRef.current = setTimeout(() => setCallSent(false), 30000)
   }
 
-  async function handleCheckout() {
-    if (checkoutSent) return
-    await sendCall('checkout')
-    setCheckoutSent(true)
-  }
 
   function showSuggestionsFor(product) {
     const ids = product.linkedProductIds ?? []
@@ -148,8 +142,6 @@ export default function MenuPage() {
         current="menu"
         onCall={handleCall}
         callDisabled={callSent}
-        onCheckout={handleCheckout}
-        checkoutDisabled={checkoutSent}
       />
     </div>
   )

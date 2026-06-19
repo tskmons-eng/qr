@@ -20,10 +20,9 @@ import { createCustomerCall } from '../../services/customerMenuService'
 
 export default function CartPage() {
   const { tableId, storeId, orderId, table } = useOrder()
-  const { items, updateQuantity, clearCart, total, count } = useCart()
+  const { items, updateQuantity, clearCart, count } = useCart()
   const [submitting, setSubmitting] = useState(false)
   const [callSent, setCallSent] = useState(false)
-  const [checkoutSent, setCheckoutSent] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const cooldownRef = useRef(null)
   const submittingRef = useRef(false)
@@ -62,12 +61,6 @@ export default function CartPage() {
     await sendCall('call')
     setCallSent(true)
     cooldownRef.current = setTimeout(() => setCallSent(false), 30000)
-  }
-
-  async function handleCheckout() {
-    if (checkoutSent) return
-    await sendCall('checkout')
-    setCheckoutSent(true)
   }
 
   async function handleSubmit() {
@@ -144,13 +137,11 @@ export default function CartPage() {
       <CartHeader onBack={() => navigate(-1)} />
       <CartItemList
         items={items}
-        total={total}
         onUpdateQuantity={updateQuantity}
       />
       <CartSubmitBar
         submitting={submitting}
         itemCount={count}
-        total={total}
         disabled={submitting || items.length === 0}
         errorMessage={submitError}
         onSubmit={handleSubmit}
@@ -159,9 +150,6 @@ export default function CartPage() {
         current="cart"
         onCall={handleCall}
         callDisabled={callSent}
-        onCheckout={handleCheckout}
-        checkoutDisabled={checkoutSent}
-        checkoutConfirmMessage={items.length > 0 ? 'カート内の商品はまだ注文されません。会計希望だけスタッフに送ります。' : undefined}
       />
     </div>
   )

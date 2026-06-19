@@ -1,10 +1,10 @@
-export default function OrderTotalPanel({ show, total, perPerson, guestCount }) {
+export default function OrderTotalPanel({ show, total, perPerson, guestCount, label = '合計' }) {
   if (!show || total <= 0) return null
 
   return (
     <section className="order-status__total-panel">
       <div className={`order-status__total-row${perPerson ? ' has-per-person' : ''}`}>
-        <span className="order-status__total-label">合計</span>
+        <span className="order-status__total-label">{label}</span>
         <span className="order-status__total-value">¥{total.toLocaleString()}</span>
       </div>
       {perPerson && (

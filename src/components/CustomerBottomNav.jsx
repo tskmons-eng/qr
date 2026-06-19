@@ -11,9 +11,10 @@ export default function CustomerBottomNav({
   hideCart = false,
   checkoutDisabled = false,
   checkoutConfirmMessage,
+  checkoutLabel,
 }) {
   const navigate = useNavigate()
-  const { count, total } = useCart()
+  const { count } = useCart()
   const [confirming, setConfirming] = useState(null)
   const [sending, setSending] = useState(false)
 
@@ -25,10 +26,10 @@ export default function CustomerBottomNav({
       action: onCall,
     },
     checkout: {
-      title: '会計を出しますか？',
+      title: '会計を依頼しますか？',
       message: checkoutConfirmMessage ?? 'スタッフに会計希望を送ります。',
       confirmText: '会計を依頼する',
-      action: onCheckout ?? (() => navigate('../complete')),
+      action: onCheckout,
     },
   }
 
@@ -44,6 +45,10 @@ export default function CustomerBottomNav({
   function openConfirm(type) {
     if (type === 'call' && callDisabled) return
     if (type === 'checkout' && checkoutDisabled) return
+    if (type === 'checkout' && !onCheckout) {
+      navigate('../complete', { state: { checkoutPreview: true } })
+      return
+    }
     setConfirming(type)
   }
 
@@ -80,8 +85,8 @@ export default function CustomerBottomNav({
               onClick={() => navigate('../cart')}
               className={itemClassName({ active: current === 'cart' })}
             >
-              <span className="customer-bottom-nav__icon">注文確認</span>
-              <span>{count > 0 ? `${count}点 ¥${total.toLocaleString()}` : '追加'}</span>
+              <span className="customer-bottom-nav__icon">カート</span>
+              <span>{count > 0 ? `${count}点` : 'カート'}</span>
             </button>
           )}
           <button
@@ -100,7 +105,7 @@ export default function CustomerBottomNav({
             className={itemClassName({ active: current === 'checkout', disabled: checkoutDisabled, variant: 'checkout' })}
           >
             <span className="customer-bottom-nav__icon">会計</span>
-            <span>{checkoutDisabled ? '送信済' : '会計'}</span>
+            <span>{checkoutDisabled ? '送信済' : checkoutLabel ?? '会計'}</span>
           </button>
         </div>
       </nav>

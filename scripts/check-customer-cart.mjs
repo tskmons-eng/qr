@@ -118,5 +118,34 @@ assert.match(cartPageSource, /retryable: formatted\.retryable/)
 assert.match(cartPageSource, /saveCustomerSubmitRecovery/)
 assert.match(cartPageSource, /loadCustomerSubmitRecovery/)
 assert.match(cartPageSource, /recoveringPendingSubmit/)
+assert.doesNotMatch(cartPageSource, /onCheckout=\{handleCheckout\}/)
+
+const bottomNavSource = readFileSync(new URL('../src/components/CustomerBottomNav.jsx', import.meta.url), 'utf8')
+assert.match(bottomNavSource, /checkoutPreview: true/)
+assert.match(bottomNavSource, /カート/)
+assert.match(bottomNavSource, /\$\{count\}点/)
+assert.doesNotMatch(bottomNavSource, /total\.toLocaleString/)
+assert.doesNotMatch(bottomNavSource, /注文確認/)
+
+const cartHeaderSource = readFileSync(new URL('../src/components/order/CartHeader.jsx', import.meta.url), 'utf8')
+assert.match(cartHeaderSource, /注文前のカート/)
+
+const cartItemListSource = readFileSync(new URL('../src/components/order/CartItemList.jsx', import.meta.url), 'utf8')
+assert.doesNotMatch(cartItemListSource, /calculateCartItemPricing/)
+assert.doesNotMatch(cartItemListSource, /customer-cart__total-row/)
+assert.doesNotMatch(cartItemListSource, /lineTotal/)
+assert.doesNotMatch(cartItemListSource, /unitPrice/)
+
+const cartSubmitBarSource = readFileSync(new URL('../src/components/order/CartSubmitBar.jsx', import.meta.url), 'utf8')
+assert.match(cartSubmitBarSource, /この内容で注文する/)
+assert.doesNotMatch(cartSubmitBarSource, /total\.toLocaleString/)
+
+const cartFloatingButtonSource = readFileSync(new URL('../src/components/order/CartFloatingButton.jsx', import.meta.url), 'utf8')
+assert.match(cartFloatingButtonSource, /カートを確認/)
+assert.match(cartFloatingButtonSource, /\{count\}点/)
+assert.doesNotMatch(cartFloatingButtonSource, /total\.toLocaleString/)
+
+const menuPageSource = readFileSync(new URL('../src/pages/order/MenuPage.jsx', import.meta.url), 'utf8')
+assert.doesNotMatch(menuPageSource, /onCheckout=\{handleCheckout\}/)
 
 console.log('customer cart checks passed')

@@ -1,6 +1,6 @@
 import OrderCommandErrorNotice from '../OrderCommandErrorNotice'
 
-export default function CartSubmitBar({ submitting, itemCount, total, disabled, errorMessage, onSubmit }) {
+export default function CartSubmitBar({ submitting, itemCount, disabled, errorMessage, onSubmit }) {
   return (
     <div className="customer-cart__submit-bar">
       <OrderCommandErrorNotice message={errorMessage} />
@@ -10,7 +10,7 @@ export default function CartSubmitBar({ submitting, itemCount, total, disabled, 
         disabled={disabled}
         className="customer-cart__submit-button"
       >
-        {submitting ? '送信中...' : `注文する（${itemCount}品 · ¥${total.toLocaleString()}）`}
+        {submitting ? '送信中...' : `この内容で注文する（${itemCount}品）`}
       </button>
     </div>
   )

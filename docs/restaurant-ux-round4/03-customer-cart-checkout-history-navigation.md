@@ -65,6 +65,18 @@
 
 - Production deploy: not run in this task.
 - Result:
+  - 下部ナビとフローティングカートの表示を「カート」「点数」中心に変更し、注文前導線から金額表示を外した。
+  - カート画面タイトルを「注文前のカート」に変更し、カート内の行単価・行合計・合計表示と送信ボタン上の金額表示を外した。
+  - 会計ボタンは直接会計依頼を送らず、既存の `OrderCompletePage` を `会計確認` として開き、注文済み履歴とお会計合計を確認してから `会計を依頼する` を送る二段階にした。
+  - 会計確認時は `showItemPrice` がOFFでも、会計確認の責務として明細金額を表示する。通常の注文履歴では既存の `showItemPrice` 設定を維持する。
+  - カートに未注文の商品が残っている場合は、会計確認内で「カートを見る」導線を出す。
 - Checks:
+  - `git diff --check`: passed（CRLF変換警告のみ）
+  - `npm run check:customer-cart`: passed
+  - `npm run check:customer-order-status`: passed
+  - `npm run check:customer-entry`: passed
+  - `npm run check:order-command-ui`: passed
+  - `npm run check`: passed
+  - `npm run build`: passed
 - Remaining risk:
-
+  - 会計確認は既存の注文履歴画面を再利用しているため、店舗ごとの細かい会計UI文言は07統合時に実機表示で最終確認する。

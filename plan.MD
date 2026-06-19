@@ -34,6 +34,14 @@
 - 各担当MDは完了時に検証結果と未解決リスクを自分のMDへ追記する。
 - deployは `07-integration-release-gate.md` のチェック通過後にまとめて判断する。
 
+### 01 Kitchen Served Undo And Density Responsibility
+
+- Purpose: キッチンで直近の「提供済み」を command 層で戻せるUndoを追加し、文字サイズを維持したままカード内余白を詰めて表示密度を上げる。
+- Current confirmation: `KitchenPage` は `markKitchenItemServed()` / `markKitchenItemsServed()` で提供済みにし、`orderItemCommandService` には `markOrderItemOrderedCommand()` の戻し経路がある。
+- Change policy: Undoはこの画面で直近押した単品/全提供だけを対象にし、ローカル表示だけで戻さず `markOrderItemOrderedCommand()` を呼ぶ。密度調整はキッチンCSSのpadding/gap/line-height中心に留める。
+- Impact scope: `src/pages/kitchen/KitchenPage.jsx`, `src/services/kitchenService.js`, small kitchen undo component, `src/styles/staff-kitchen-layout.css`, `src/styles/staff-kitchen-table.css`, `scripts/check-kitchen-display.mjs`, `scripts/check-order-command-ui.mjs`, and `docs/restaurant-ux-round4/01-kitchen-served-undo-density.md`.
+- Verification: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
+
 ### 04 Admin Category iOS Zoom Responsibility
 
 - Purpose: カテゴリー編集でiOS Safariが入力フォーカス時に自動ズームしにくい状態へ整え、管理画面の既存データ処理は変えない。

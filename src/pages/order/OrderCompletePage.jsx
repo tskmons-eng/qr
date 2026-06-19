@@ -6,6 +6,7 @@ import OrderStatusHeader from '../../components/order/OrderStatusHeader'
 import OrderStatusList from '../../components/order/OrderStatusList'
 import OrderStatusSummary from '../../components/order/OrderStatusSummary'
 import OrderTotalPanel from '../../components/order/OrderTotalPanel'
+import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
 import {
   getCheckoutConfirmMessage,
@@ -27,6 +28,7 @@ import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusS
 
 export default function OrderCompletePage() {
   const { orderId, table, tableId, storeId, storeConfig } = useOrder()
+  const { count: cartCount } = useCart()
   const [items, setItems] = useState([])
   const [showSubmitComplete, setShowSubmitComplete] = useState(false)
   const [latestClientRequestId, setLatestClientRequestId] = useState('')
@@ -49,7 +51,8 @@ export default function OrderCompletePage() {
   } = getCustomerOrderSettings(storeConfig)
   const guestCount = table?.guestCount || 1
   const summary = summarizeOrderItems(items, guestCount)
-  const showTotal = checkoutStep !== null
+  const isCheckoutPreview = checkoutStep === 'confirming' || checkoutStep === 'sent'
+  const showTotal = isCheckoutPreview
   const latestOrderReflected = isCustomerOrderRequestReflected(items, latestClientRequestId)
 
   useEffect(() => {
@@ -73,6 +76,11 @@ export default function OrderCompletePage() {
     setLatestClientRequestId(nextClientRequestId)
     setLatestSubmittedItemCount(nextSubmittedItemCount)
   }, [location.state, orderId, storeId, tableId])
+
+  useEffect(() => {
+    if (!location.state?.checkoutPreview) return
+    setCheckoutStep(prev => prev === 'sent' ? prev : 'confirming')
+  }, [location.state])
 
   useEffect(() => {
     if (!latestClientRequestId || !latestOrderReflected) return
@@ -204,6 +212,13 @@ export default function OrderCompletePage() {
         total={summary.total}
         perPerson={summary.perPerson}
         guestCount={summary.guestCount}
+        label="お会計合計"
+      />
+      <OrderCheckoutNotice
+        checkoutStep={checkoutStep}
+        itemCount={summary.itemCount}
+        cartCount={cartCount}
+        onOpenCart={() => navigate('../cart')}
       />
       <OrderReflectionNotice
         clientRequestId={latestClientRequestId}
@@ -229,18 +244,46 @@ export default function OrderCompletePage() {
         latestClientRequestId={latestClientRequestId}
         isReflectingLatestOrder={Boolean(latestClientRequestId) && !latestOrderReflected}
         showServedStatus={showServedStatus}
-        showItemPrice={showItemPrice}
+        showItemPrice={showItemPrice || isCheckoutPreview}
       />
       <CustomerBottomNav
         current="checkout"
         onCall={handleCall}
         callDisabled={callCooldown}
         menuDisabled={!allowAdditionalOrders}
-        onCheckout={handleCheckout}
+        onCheckout={checkoutStep === 'confirming' ? handleCheckout : undefined}
         checkoutDisabled={checkoutStep === 'sent'}
+        checkoutLabel={checkoutStep === 'confirming' ? '依頼する' : '確認'}
         checkoutConfirmMessage={getCheckoutConfirmMessage(summary.total)}
       />
     </div>
+  )
+}
+
+function OrderCheckoutNotice({ checkoutStep, itemCount, cartCount, onOpenCart }) {
+  if (checkoutStep !== 'confirming' && checkoutStep !== 'sent') return null
+
+  const sent = checkoutStep === 'sent'
+  const title = sent ? '会計依頼を送信しました' : '会計確認'
+  const description = sent
+    ? 'スタッフが席へ向かいます。注文履歴と合計はこの画面で確認できます。'
+    : itemCount > 0
+      ? '注文済みの内容と合計を確認してから、会計を依頼してください。'
+      : '注文済みの商品がまだありません。必要な場合だけスタッフへ会計を依頼してください。'
+
+  return (
+    <section className={`order-status__checkout-notice${sent ? ' is-sent' : ''}`}>
+      <div className="order-status__checkout-title">{title}</div>
+      <div className="order-status__checkout-text">{description}</div>
+      {!sent && cartCount > 0 && (
+        <div className="order-status__checkout-cart-warning">
+          <span>カートに未注文の商品が{cartCount}点あります。</span>
+          <button type="button" onClick={onOpenCart} className="order-status__checkout-cart-button">
+            カートを見る
+          </button>
+        </div>
+      )}
+    </section>
   )
 }
 

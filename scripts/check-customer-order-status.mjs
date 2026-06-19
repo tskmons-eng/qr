@@ -88,6 +88,13 @@ assert.match(completePageSource, /CUSTOMER_SUBMIT_RECOVERY_ACTION_DELAY_MS/)
 assert.match(completePageSource, /submitCustomerCartOrder/)
 assert.match(completePageSource, /同じ内容で再送/)
 assert.match(completePageSource, /保存済みの可能性/)
+assert.match(completePageSource, /OrderCheckoutNotice/)
+assert.match(completePageSource, /checkoutStep === 'confirming'/)
+assert.match(completePageSource, /checkoutPreview/)
+assert.match(completePageSource, /showItemPrice \|\| isCheckoutPreview/)
+assert.match(completePageSource, /会計確認/)
+assert.match(completePageSource, /カートに未注文の商品/)
+assert.match(completePageSource, /checkoutLabel=\{checkoutStep === 'confirming' \? '依頼する' : '確認'\}/)
 
 const cartPageSource = readFileSync(new URL('../src/pages/order/CartPage.jsx', import.meta.url), 'utf8')
 assert.match(cartPageSource, /clientRequestId:\s*completedRequestId/)
@@ -101,5 +108,13 @@ assert.match(statusListSource, /保存済みの場合はまもなく表示され
 
 const submitCompleteSource = readFileSync(new URL('../src/components/order/OrderSubmitCompleteScreen.jsx', import.meta.url), 'utf8')
 assert.match(submitCompleteSource, /注文確認にも反映しました/)
+
+const statusHeaderSource = readFileSync(new URL('../src/components/order/OrderStatusHeader.jsx', import.meta.url), 'utf8')
+assert.match(statusHeaderSource, /注文履歴/)
+assert.match(statusHeaderSource, /会計確認/)
+
+const totalPanelSource = readFileSync(new URL('../src/components/order/OrderTotalPanel.jsx', import.meta.url), 'utf8')
+assert.match(totalPanelSource, /label = '合計'/)
+assert.match(completePageSource, /label="お会計合計"/)
 
 console.log('customer order status checks passed')

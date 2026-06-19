@@ -33,8 +33,7 @@
   text-align: center;
 }
 
-.customer-cart__items,
-.customer-cart__total-row {
+.customer-cart__items {
   background: #fff;
 }
 
@@ -58,17 +57,6 @@
   margin-top: 2px;
   color: #1d4ed8;
   font-size: 12px;
-}
-
-.customer-cart__item-unit {
-  margin-top: 2px;
-  color: #888;
-  font-size: 13px;
-}
-
-.customer-cart__regular-price {
-  margin-left: 6px;
-  color: #dc2626;
 }
 
 .customer-cart__quantity {
@@ -98,22 +86,6 @@
   font-size: 15px;
   font-weight: 700;
   text-align: center;
-}
-
-.customer-cart__line-total {
-  min-width: 64px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: right;
-}
-
-.customer-cart__total-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1px;
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 700;
 }
 
 .customer-cart__submit-bar {
