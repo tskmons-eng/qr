@@ -46,15 +46,18 @@
 }
 
 .checkout-page__body {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 88px);
 }
 
 .checkout-page__items-scroll {
-  max-height: clamp(160px, 34dvh, 280px);
+  flex: 0 0 auto;
+  max-height: clamp(130px, 28dvh, 220px);
   overflow-y: auto;
   overscroll-behavior: contain;
   border-bottom: 1px solid #eeeeee;
@@ -74,6 +77,10 @@
 }
 
 .checkout-page__payment {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: #f5f5f5;
 }
 

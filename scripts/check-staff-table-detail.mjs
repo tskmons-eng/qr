@@ -30,10 +30,14 @@ assert.equal(formatTableOrderOptions([]), null)
 
 const orderStyles = await readFile('src/styles/staff-table-orders.css', 'utf8')
 const shellStyles = await readFile('src/styles/staff-table-shell.css', 'utf8')
+const tableDetailPage = await readFile('src/pages/staff/TableDetailPage.jsx', 'utf8')
 
 assert.ok(orderStyles.includes('flex-wrap: wrap'), 'staff table order rows should wrap instead of overflowing action buttons')
 assert.ok(orderStyles.includes('.staff-table-order-row.is-served .staff-table-row-button'), 'served rows should have compact action buttons')
 assert.ok(orderStyles.includes('overflow-wrap: anywhere'), 'long order names/options should wrap inside staff table rows')
+assert.ok(tableDetailPage.includes('className="staff-table-content-scroll"'), 'staff table detail should scroll order content separately from fixed actions')
+assert.ok(shellStyles.includes('.staff-table-content-scroll'), 'staff table detail should define a bounded content scroll region')
+assert.ok(shellStyles.includes('overflow-y: auto'), 'staff table detail content should scroll internally')
 assert.ok(shellStyles.includes('bottom: var(--staff-bottom-nav-offset, 74px)'), 'staff table action bar should avoid the bottom nav')
 
 console.log('staff table detail checks passed')

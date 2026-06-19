@@ -21,7 +21,6 @@ export default function CustomerMenuProductList({
           .filter(item => item.product.id === product.id && item.optionSelections.length > 0)
           .reduce((sum, item) => sum + item.quantity, 0)
         const rowTapEnabled = customerMenuTapToAddEnabled && !product.isSoldOut
-        const TapArea = rowTapEnabled ? 'button' : 'div'
         const tapLabel = hasOptions ? `${product.name}のオプションを選択` : `${product.name}を1個追加`
 
         function handleRowTap() {
@@ -33,11 +32,26 @@ export default function CustomerMenuProductList({
           onSetSimpleProductQuantity(product, (simpleItem?.quantity ?? 0) + 1)
         }
 
+        function handleRowKeyDown(event) {
+          if (!rowTapEnabled || (event.key !== 'Enter' && event.key !== ' ')) return
+          event.preventDefault()
+          handleRowTap()
+        }
+
         return (
-          <div key={product.id} className="customer-product">
-            <TapArea
-              className={`customer-product__tap-area${rowTapEnabled ? ' is-tappable' : ''}`}
-              {...(rowTapEnabled ? { type: 'button', onClick: handleRowTap, 'aria-label': tapLabel } : {})}
+          <div
+            key={product.id}
+            className={`customer-product${rowTapEnabled ? ' is-tappable' : ''}`}
+            {...(rowTapEnabled ? {
+              role: 'button',
+              tabIndex: 0,
+              onClick: handleRowTap,
+              onKeyDown: handleRowKeyDown,
+              'aria-label': tapLabel,
+            } : {})}
+          >
+            <div
+              className="customer-product__tap-area"
             >
               <div className="customer-product__body">
                 <div className={`customer-product__name${product.isSoldOut ? ' is-sold-out' : ''}`}>{product.name}</div>
@@ -58,7 +72,7 @@ export default function CustomerMenuProductList({
               {product.imageUrl && (
                 <img className="customer-product__image" src={product.imageUrl} alt={product.name} />
               )}
-            </TapArea>
+            </div>
 
             {hasOptions ? (
               <button

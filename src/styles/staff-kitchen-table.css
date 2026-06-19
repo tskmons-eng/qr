@@ -21,8 +21,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-3);
+  padding: 10px 14px;
   background: #333333;
 }
 
@@ -40,7 +40,7 @@
 .staff-kitchen-table .table-reservation-badge {
   display: flex;
   width: fit-content;
-  margin-top: 4px;
+  margin-top: 6px;
   background: #45320d;
   color: #fde68a;
 }
@@ -48,7 +48,7 @@
 .staff-kitchen-table__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .staff-kitchen-table__wait {
@@ -70,7 +70,7 @@
 }
 
 .staff-kitchen-table__served-all {
-  padding: 4px 9px;
+  padding: 4px 10px;
   color: #ffffff;
   background: #888888;
   border: none;
@@ -93,15 +93,15 @@
 }
 
 .staff-kitchen-table__items {
-  padding: 4px 0;
+  padding: 8px 0;
 }
 
 .staff-kitchen-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-3);
+  padding: 10px 14px;
   border-bottom: 1px solid #333333;
 }
 
@@ -137,8 +137,8 @@
 .staff-kitchen-item__options {
   width: fit-content;
   max-width: 100%;
-  margin-top: 4px;
-  padding: 2px 6px;
+  margin-top: 5px;
+  padding: 3px 7px;
   color: #fde68a;
   background: #3a2c10;
   border: 1px solid #8a6418;
@@ -150,20 +150,20 @@
 }
 
 .staff-kitchen-item__meta {
-  margin-top: 1px;
+  margin-top: 2px;
   color: #666666;
   font-size: 11px;
 }
 
 .staff-kitchen-item__actions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .staff-kitchen-item__served,
 .staff-kitchen-item__cancel {
-  padding: 5px 9px;
+  padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;

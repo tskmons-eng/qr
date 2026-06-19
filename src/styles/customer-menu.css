@@ -70,6 +70,20 @@
   border-bottom: 1px solid #f0f0f0;
 }
 
+.customer-product.is-tappable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(34, 34, 34, 0.08);
+}
+
+.customer-product.is-tappable:active {
+  opacity: 0.72;
+}
+
+.customer-product:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: -2px;
+}
+
 .customer-product__tap-area {
   display: flex;
   flex: 1;
@@ -83,21 +97,6 @@
   border: 0;
   appearance: none;
   font: inherit;
-}
-
-.customer-product__tap-area.is-tappable {
-  cursor: pointer;
-  -webkit-tap-highlight-color: rgba(34, 34, 34, 0.08);
-}
-
-.customer-product__tap-area.is-tappable:active {
-  opacity: 0.72;
-}
-
-.customer-product__tap-area:focus-visible {
-  outline: 2px solid #111827;
-  outline-offset: 4px;
-  border-radius: 8px;
 }
 
 .customer-product__body {

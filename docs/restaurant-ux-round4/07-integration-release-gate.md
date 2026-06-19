@@ -92,3 +92,10 @@
 - Production deploy result: deployed only `functions:startCustomerOrderSessionCommand`, `functions:submitCustomerOrderItemsCommand`, and `functions:moveTableOrderCommand` to `qrproduct-3340b`. Firebase CLI reported successful update for all three. Hosting / Firestore rules / indexes / storage were not deployed.
 - Production verification: `functions:list` showed all three as `v2 callable` in `us-central1` on `nodejs20`. `/`, `/login`, `/admin`, `/staff`, `/staff/kitchen`, and `/order/test-token` returned HTTP 200. `functions:log` runtime error scan for the three functions returned no `ERROR`, exception, timeout, or deadline line after deploy.
 - Remaining verification gap: `npm run audit:command-failures -- --limit 10` could not read Production Firestore because local ADC/service-account credentials were unavailable. Runtime deploy/log checks succeeded, but command failure collection audit still needs credentials.
+
+## 2026-06-20 Live UI Feedback Correction
+
+- Finding: After deployment, user feedback reported that staff/checkout scroll behavior still felt unchanged, customer menu row tap ordering did not work, and the previous kitchen panel layout was preferred.
+- Fix set: Revert the Round4 kitchen undo/density UI while preserving served optimistic hide/rollback; move customer row tap handling to the root product row; strengthen staff table detail and checkout internal scroll containers.
+- Deploy target: Hosting only. Functions, Firestore rules, indexes, storage, menu data, order history, and QR URLs must remain untouched.
+- Required verification: targeted checks for customer cart, kitchen display, staff table detail, checkout, staff menu, order-command UI, `git diff --check`, `npm run check`, `npm run build`, `npm run check:restaurant-ux-release-gate -- --final`, then Hosting deploy and live asset hash/route HTTP verification.

@@ -58,8 +58,10 @@ assert.ok(checkoutPage.includes('className="checkout-page__body"'), 'checkout pa
 assert.ok(checkoutPage.includes('className="checkout-page__items-scroll"'), 'checkout item list should have an independent scroll region')
 assert.ok(checkoutPage.includes('className="checkout-page__payment"'), 'checkout payment controls should remain outside the item scroll region')
 assert.ok(checkoutLayoutStyles.includes('.checkout-page__items-scroll'), 'checkout item scroll region should be styled')
-assert.ok(checkoutLayoutStyles.includes('max-height: clamp(160px, 34dvh, 280px)'), 'checkout item list should not push payment controls off screen')
+assert.ok(checkoutLayoutStyles.includes('max-height: clamp(130px, 28dvh, 220px)'), 'checkout item list should not push payment controls off screen')
 assert.ok(checkoutLayoutStyles.includes('overscroll-behavior: contain'), 'checkout item list should contain nested scroll momentum')
+assert.ok(checkoutLayoutStyles.includes('.checkout-page__payment'), 'checkout payment controls should have a separate scroll container')
+assert.ok(checkoutLayoutStyles.includes('overflow-y: auto'), 'checkout content regions should scroll internally')
 assert.ok(checkoutPaymentStyles.includes('bottom: var(--staff-bottom-nav-offset, 74px)'), 'checkout confirm bar should avoid the staff bottom nav')
 
 console.log('checkout calculation checks passed')

@@ -1,7 +1,12 @@
 .staff-table-page {
+  display: flex;
+  height: calc(100dvh - 56px);
+  min-height: 420px;
+  flex-direction: column;
   max-width: 600px;
   margin: 0 auto;
-  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 88px);
+  overflow: hidden;
+  background: #f5f5f5;
 }
 
 .staff-table-loading,
@@ -19,12 +24,25 @@
 }
 
 .staff-table-header {
+  flex: 0 0 auto;
   background: #ffffff;
   padding: 12px 16px;
   border-bottom: 1px solid #eeeeee;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.staff-table-command-error {
+  flex: 0 0 auto;
+}
+
+.staff-table-content-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 88px);
 }
 
 .staff-table-back-button {

@@ -253,27 +253,29 @@ export default function TableDetailPage() {
       />
       <OrderCommandErrorNotice message={actionError} className="staff-table-command-error" />
 
-      {!hasOrder ? (
-        <TableSeatingPanel
-          errorMessage={seatError}
-          seatCount={seatCount}
-          seating={seating}
-          onSeatCountChange={setSeatCount}
-          onSeat={handleSeat}
-        />
-      ) : (
-        <TableDetailOrderContent
-          items={items}
-          orderedItems={orderedItems}
-          servedItems={servedItems}
-          servedWorkflowEnabled={servedWorkflowEnabled}
-          total={total}
-          guestCount={guestCount}
-          onMarkServed={markServed}
-          onMarkOrdered={markOrdered}
-          onCancel={openCancel}
-        />
-      )}
+      <div className="staff-table-content-scroll">
+        {!hasOrder ? (
+          <TableSeatingPanel
+            errorMessage={seatError}
+            seatCount={seatCount}
+            seating={seating}
+            onSeatCountChange={setSeatCount}
+            onSeat={handleSeat}
+          />
+        ) : (
+          <TableDetailOrderContent
+            items={items}
+            orderedItems={orderedItems}
+            servedItems={servedItems}
+            servedWorkflowEnabled={servedWorkflowEnabled}
+            total={total}
+            guestCount={guestCount}
+            onMarkServed={markServed}
+            onMarkOrdered={markOrdered}
+            onCancel={openCancel}
+          />
+        )}
+      </div>
 
       <TableActionBar
         hasOrder={hasOrder}

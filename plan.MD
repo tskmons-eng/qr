@@ -103,6 +103,15 @@
 - `npm run check`
 - `npm run build`
 
+## 2026-06-20 UI correction after live feedback
+
+- Purpose: ユーザー様の実機確認で、スクロール類が体感で変わらず、顧客メニューの行タップ注文ができず、キッチンパネルは元の方がよいと分かったため、UIを現場向けに修正する。
+- Current confirmation: Round4 Hosting asset is live, but the row tap implementation only商品情報側を押下領域にしており、数量操作側を含む「欄全体タップ」の体感になっていない。キッチンはRound4でUndoバーと密度調整が追加されている。
+- Change policy: 履歴、メニュー商品データ、QR URL、Firestore rules、注文Functionsは変更しない。キッチンはRound4のUndo/密度UIだけ戻し、Round3の提供済みoptimistic hideは維持する。
+- Impact scope: `src/pages/kitchen/KitchenPage.jsx`, `src/services/kitchenService.js`, kitchen CSS/checks, customer menu row tap component/CSS/check, staff menu/checkout scroll CSS/checks, and docs.
+- Verification: `git diff --check`, `npm run check:kitchen-display`, `npm run check:customer-cart`, `npm run check:staff-menu`, `npm run check:staff-table-detail`, `npm run check:checkout`, `npm run check`, and `npm run build`.
+- Deploy plan: UI変更なので、チェック後にHostingのみdeployする。Functions / Firestore rules / indexes / storage はdeployしない。
+
 ## 2026-06-20 Order safety Round 3 deploy
 
 ### Summary

@@ -4,7 +4,6 @@ import StaffBottomNav from '../../components/StaffBottomNav'
 import OrderCommandErrorNotice from '../../components/OrderCommandErrorNotice'
 import KitchenEmptyState from '../../components/staff/KitchenEmptyState'
 import KitchenHeader from '../../components/staff/KitchenHeader'
-import KitchenServedUndoBar from '../../components/staff/KitchenServedUndoBar'
 import KitchenSoundPanel from '../../components/staff/KitchenSoundPanel'
 import KitchenTableGrid from '../../components/staff/KitchenTableGrid'
 import TodayReservationNoticeList from '../../components/staff/TodayReservationNoticeList'
@@ -25,7 +24,6 @@ import {
 } from '../../lib/kitchenDisplay'
 import {
   cancelKitchenItem,
-  markKitchenItemsOrdered,
   markKitchenItemsServed,
   markKitchenItemServed,
   subscribeKitchenTables,
@@ -47,8 +45,6 @@ export default function KitchenPage() {
   const [todayReservations, setTodayReservations] = useState([])
   const [commandError, setCommandError] = useState('')
   const [optimisticHiddenItemIds, setOptimisticHiddenItemIds] = useState(() => new Set())
-  const [servedUndo, setServedUndo] = useState(null)
-  const [undoingServed, setUndoingServed] = useState(false)
   const prevItemIdsRef = useRef(null)
   const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
   const today = getTokyoDateString()
@@ -112,11 +108,6 @@ export default function KitchenPage() {
     setOptimisticHiddenItemIds(currentIds => addOptimisticHiddenKitchenItemIds(currentIds, itemIds))
     try {
       await markKitchenItemServed(item)
-      setServedUndo({
-        id: `single-${item.id}-${Date.now()}`,
-        items: [item],
-        label: `${item.productNameSnapshot ?? '商品'} × ${item.quantity ?? 0}`,
-      })
     } catch (error) {
       setOptimisticHiddenItemIds(currentIds => removeOptimisticHiddenKitchenItemIds(currentIds, itemIds))
       const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
@@ -135,13 +126,6 @@ export default function KitchenPage() {
     setOptimisticHiddenItemIds(currentIds => addOptimisticHiddenKitchenItemIds(currentIds, itemIds))
     try {
       await markKitchenItemsServed(items)
-      if (itemIds.length > 0) {
-        setServedUndo({
-          id: `all-${itemIds.join('-')}-${Date.now()}`,
-          items,
-          label: `${items.length}品`,
-        })
-      }
     } catch (error) {
       setOptimisticHiddenItemIds(currentIds => removeOptimisticHiddenKitchenItemIds(currentIds, itemIds))
       const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
@@ -151,28 +135,6 @@ export default function KitchenPage() {
         error,
         metadata: { storeId, itemCount: items.length },
       })
-    }
-  }
-
-  async function handleUndoServed() {
-    if (!servedUndo || undoingServed) return
-    setUndoingServed(true)
-    setCommandError('')
-    const undoItemIds = servedUndo.items.map(item => item.id).filter(Boolean)
-    try {
-      await markKitchenItemsOrdered(servedUndo.items)
-      setOptimisticHiddenItemIds(currentIds => removeOptimisticHiddenKitchenItemIds(currentIds, undoItemIds))
-      setServedUndo(null)
-    } catch (error) {
-      const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
-      setCommandError(formatted.message)
-      logOrderCommandError({
-        operation: 'kitchen_undo_served',
-        error,
-        metadata: { storeId, itemCount: servedUndo.items.length, itemIds: undoItemIds },
-      })
-    } finally {
-      setUndoingServed(false)
     }
   }
 
@@ -203,12 +165,6 @@ export default function KitchenPage() {
         onToggleSound={() => setShowSoundSettings(value => !value)}
       />
       <OrderCommandErrorNotice message={commandError} />
-      <KitchenServedUndoBar
-        undoState={servedUndo}
-        undoing={undoingServed}
-        onDismiss={() => setServedUndo(null)}
-        onUndo={handleUndoServed}
-      />
       {showSoundSettings && <KitchenSoundPanel onClose={() => setShowSoundSettings(false)} />}
       {!servedWorkflowEnabled && (
         <div className="staff-kitchen-notice">

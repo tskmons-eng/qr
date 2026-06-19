@@ -61,3 +61,10 @@
 - Result: Added a command-backed latest-served undo bar to the kitchen screen and reduced kitchen card/grid spacing without shrinking base text size. Single-item and all-served actions store only the latest action from the current screen, and undo calls the existing ordered command path.
 - Checks: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build` passed.
 - Remaining risk: The final cross-task release gate and production deploy are intentionally left to `07-integration-release-gate.md`.
+
+## 2026-06-20 Live Feedback Rollback
+
+- Finding: User feedback after the first implementation was that the kitchen panel felt better before the Round4 undo/density UI change.
+- Fix: Reverted the Round4 kitchen undo bar and density styling back to the previous kitchen panel layout. Kept the safer Round3 served action behavior where an item disappears immediately after tapping served and is restored if the command fails.
+- Data impact: UI only. No menu data, order history, QR URL, Firestore rules, indexes, storage, or Functions schema changes.
+- Verification target: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check`, `npm run build`, and final release gate.

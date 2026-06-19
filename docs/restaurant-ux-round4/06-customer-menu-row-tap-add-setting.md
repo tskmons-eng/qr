@@ -69,3 +69,10 @@
   - `npm run check` passed.
   - `npm run build` passed.
 - Remaining risk: 実機でのタップ感と誤タップの出方は未確認。最終deploy判断と本番反映は `07-integration-release-gate.md` で扱う。
+
+## 2026-06-20 Live Feedback Fix
+
+- Finding: Product row tap-to-add did not work reliably because the clickable area was still limited to the inner product info block instead of the whole menu row.
+- Fix: Moved the tap/click/keyboard handler and focus style to the root `.customer-product` row. Quantity buttons, inputs, and option controls still stop propagation and keep their existing behavior.
+- Data impact: Customer menu UI only. Cart command IDs, option selection, order submission, order history, menu data, QR URL, rules, indexes, storage, and Functions are unchanged.
+- Verification target: `npm run check:customer-cart`, `npm run check`, `npm run build`, and final release gate.
