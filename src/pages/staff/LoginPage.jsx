@@ -7,13 +7,49 @@ import { consumeStaffGoogleRedirectResult, signInStaffWithEmail, signInStaffWith
 
 const GOOGLE_LOGIN_ERROR_MESSAGE = 'Googleログインに失敗しました'
 const DEFAULT_LOGIN_REDIRECT = '/staff'
+const LOGIN_REDIRECT_STORAGE_KEY = 'staffLoginRedirect'
+
+function isSafeLoginRedirect(next) {
+  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/login')) {
+    return false
+  }
+  return true
+}
+
+function getLoginRedirectStorage() {
+  try {
+    return globalThis.sessionStorage ?? null
+  } catch {
+    return null
+  }
+}
+
+function getSavedLoginRedirect() {
+  const storage = getLoginRedirectStorage()
+  if (!storage) return null
+  return storage.getItem(LOGIN_REDIRECT_STORAGE_KEY)
+}
+
+function rememberLoginRedirect(next) {
+  const storage = getLoginRedirectStorage()
+  if (!storage || !isSafeLoginRedirect(next)) return
+  storage.setItem(LOGIN_REDIRECT_STORAGE_KEY, next)
+}
+
+function clearLoginRedirect() {
+  const storage = getLoginRedirectStorage()
+  if (!storage) return
+  storage.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
+}
 
 function getSafeLoginRedirect(search) {
   const next = new URLSearchParams(search).get('next')
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/login')) {
-    return DEFAULT_LOGIN_REDIRECT
-  }
-  return next
+  if (isSafeLoginRedirect(next)) return next
+
+  const savedNext = getSavedLoginRedirect()
+  if (isSafeLoginRedirect(savedNext)) return savedNext
+
+  return DEFAULT_LOGIN_REDIRECT
 }
 
 export default function LoginPage() {
@@ -37,6 +73,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !user.isAnonymous) {
+      clearLoginRedirect()
       navigate(loginRedirect, { replace: true })
     }
   }, [loginRedirect, navigate, user])
@@ -47,6 +84,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signInStaffWithEmail(email, password)
+      clearLoginRedirect()
       navigate(loginRedirect)
     } catch {
       setError('メールアドレスまたはパスワードが違います')
@@ -58,6 +96,7 @@ export default function LoginPage() {
   async function handleGoogle() {
     setError('')
     try {
+      rememberLoginRedirect(loginRedirect)
       await signInStaffWithGoogle()
     } catch (event) {
       console.error('Google sign-in failed:', event)
