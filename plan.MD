@@ -50,6 +50,14 @@
 - Impact scope: `src/pages/kitchen/KitchenPage.jsx`, `src/lib/kitchenDisplay.js`, `scripts/check-kitchen-display.mjs`, `scripts/check-order-command-ui.mjs`, `docs/order-safety-round3/07-kitchen-served-optimistic-ui.md`, and this plan.
 - Verification: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
 
+### 05 Live Failure Monitoring And Repair Responsibility
+
+- Purpose: make "order did not enter" reports traceable from recent command failures, Functions logs, pending-count audit, and dry-run repair steps.
+- Current confirmation: server-side `orderCommandFailures`, client best-effort failure logs, read-only pending audit, and dry-run pending repair already exist, but the command failure audit needs time-window and trace filters for production triage.
+- Change policy: extend the existing read-only audit script with recent-window and trace filters, keep pending repair dry-run by default, and document the production response path in a runbook without deploying.
+- Impact scope: `scripts/audit-order-command-failures.mjs`, `scripts/check-live-observability.mjs`, `docs/order-safety-round3/05-live-failure-monitoring-and-repair.md`, new runbook MD, and this plan.
+- Verification: `npm run check:live-observability`, `npm run check:data-consistency-repair`, `npm run audit:command-failures -- --help`, `npm run audit:command-failures -- --limit 10`, `npm run audit:pending-counts -- --json`, and `npm run check`.
+
 ### Verification
 
 - `git diff --check`

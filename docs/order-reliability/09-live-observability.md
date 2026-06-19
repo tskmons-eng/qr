@@ -55,7 +55,12 @@ Functions command の成功/失敗、UI の再試行、Firestore の反映状態
 
 1. Functions command failure を確認する。
    - `npm run audit:command-failures`
+   - 直近15分を見る場合: `npm run audit:command-failures -- --minutes 15 --limit 20`
+   - 直近60分を店舗で絞る場合: `npm run audit:command-failures -- --minutes 60 --store <storeId> --limit 50`
    - 店舗を絞る場合: `npm run audit:command-failures -- --store <storeId>`
+   - 席を絞る場合: `npm run audit:command-failures -- --table <tableId>`
+   - 注文を絞る場合: `npm run audit:command-failures -- --order <orderId>`
+   - 再送/冪等IDを絞る場合: `npm run audit:command-failures -- --client-request-id <clientRequestId>`
    - JSONで残す場合: `npm run audit:command-failures -- --json`
 2. pending-count / aggregate の反映ズレを確認する。
    - `npm run audit:pending-counts -- --json`
@@ -66,6 +71,8 @@ Functions command の成功/失敗、UI の再試行、Firestore の反映状態
    - failure がなく drift だけある場合は、Cloud Functions aggregate 反映や既存 client write の混在を疑う。
 
 本番 Firestore を読む場合は `GOOGLE_APPLICATION_CREDENTIALS` または gcloud の Application Default Credentials が必要。Emulator は `FIRESTORE_EMULATOR_HOST` を使う。
+
+営業中の障害対応では、Round 3 runbook の [live-failure-monitoring-runbook.md](../order-safety-round3/live-failure-monitoring-runbook.md) を使い、Functions logs、直近15分/60分の failure audit、pending-count audit、dry-run repair の順に確認する。
 
 ## 禁止事項
 

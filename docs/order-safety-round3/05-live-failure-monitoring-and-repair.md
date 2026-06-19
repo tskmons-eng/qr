@@ -62,8 +62,22 @@ npm run check
 ## 完了時の報告
 
 - 追加した audit オプション:
+  - `--minutes <number>`: 直近15分/60分などの時間窓で `orderCommandFailures` を絞る。
+  - `--table <tableId>`: `tableId` / `targetTableId` で絞る。
+  - `--order <orderId>`: `orderId` で絞る。
+  - `--client-request-id <clientRequestId>` / `--request`: 再送・冪等IDで絞る。
+  - 出力に `summary.byErrorCode`, `summary.byCommandType`, `summary.byStoreId`, `summary.byActorType`, `summary.diagnosisSignals` を追加。
 - 本番 read-only 確認結果:
+  - `npm run audit:command-failures -- --limit 10` は、現環境に Firestore read credentials がなく未実行。
+  - `npm run audit:pending-counts -- --json` も同じ理由で未実行。
+  - Emulator 読み取りは `FIRESTORE_EMULATOR_HOST`、本番読み取りは `GOOGLE_APPLICATION_CREDENTIALS` または gcloud Application Default Credentials が必要。
 - dry-run 修復手順:
+  - `npm run repair:pending-counts -- --store <storeId>`
+  - `npm run repair:pending-counts -- --store <storeId> --json`
+  - `--apply` なしでは write しない。修復対象は `tables` の pending 派生フィールドのみ。
 - 障害時 runbook:
+  - `docs/order-safety-round3/live-failure-monitoring-runbook.md`
+  - 直近15分/60分 audit、Functions logs、pending audit、dry-run repair、判断基準を記載。
 - 未解決リスク:
-
+  - 本番Firestoreの読み取り認証がない状態では、実データのread-only監査結果は確認できない。
+  - 本担当では deploy しない。deploy は `06-load-release-gate.md` の最終ゲート後に判断する。

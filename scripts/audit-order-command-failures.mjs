@@ -12,15 +12,25 @@ function parsePositiveInteger(value, fallback, max) {
   return Math.min(max, Math.round(number))
 }
 
+function parseRequiredPositiveInteger(value, flag, max) {
+  const number = Number(value)
+  if (!Number.isFinite(number) || number <= 0) throw new Error(`${flag} requires a positive number`)
+  return Math.min(max, Math.round(number))
+}
+
 function parseArgs(argv) {
   const options = {
+    clientRequestId: null,
     code: null,
     help: false,
     json: false,
     limit: 20,
+    minutes: null,
+    orderId: null,
     projectId: null,
     scanLimit: null,
     storeId: null,
+    tableId: null,
   }
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -38,6 +48,18 @@ function parseArgs(argv) {
     } else if (arg === '--code') {
       options.code = argv[i + 1]
       i += 1
+    } else if (arg === '--table') {
+      options.tableId = argv[i + 1]
+      i += 1
+    } else if (arg === '--order') {
+      options.orderId = argv[i + 1]
+      i += 1
+    } else if (arg === '--client-request-id' || arg === '--request') {
+      options.clientRequestId = argv[i + 1]
+      i += 1
+    } else if (arg === '--minutes') {
+      options.minutes = parseRequiredPositiveInteger(argv[i + 1], '--minutes', 24 * 60)
+      i += 1
     } else if (arg === '--limit') {
       options.limit = parsePositiveInteger(argv[i + 1], options.limit, 100)
       i += 1
@@ -52,7 +74,20 @@ function parseArgs(argv) {
   if (options.projectId === '') throw new Error('--project requires a value')
   if (options.storeId === '') throw new Error('--store requires a value')
   if (options.code === '') throw new Error('--code requires a value')
-  options.scanLimit = options.scanLimit ?? Math.max(options.limit, options.storeId || options.code ? options.limit * 5 : options.limit)
+  if (options.tableId === '') throw new Error('--table requires a value')
+  if (options.orderId === '') throw new Error('--order requires a value')
+  if (options.clientRequestId === '') throw new Error('--client-request-id requires a value')
+
+  const hasLocalFilters = Boolean(
+    options.storeId ||
+    options.code ||
+    options.tableId ||
+    options.orderId ||
+    options.clientRequestId ||
+    options.minutes
+  )
+  options.scanLimit = options.scanLimit ?? Math.max(options.limit, hasLocalFilters ? Math.max(options.limit * 5, 100) : options.limit)
+  options.sinceMs = options.minutes ? Date.now() - (options.minutes * 60 * 1000) : null
   return options
 }
 
@@ -61,16 +96,23 @@ function printHelp() {
 
 Usage:
   npm run audit:command-failures
+  npm run audit:command-failures -- --minutes 15 --limit 20
+  npm run audit:command-failures -- --minutes 60 --store <storeId> --limit 50
   npm run audit:command-failures -- --store <storeId> --limit 20
+  npm run audit:command-failures -- --client-request-id <clientRequestId> --json
   npm run audit:command-failures -- --code permission-denied --json
 
 Options:
-  --project <projectId>  Firebase project id. Defaults to FIREBASE_PROJECT_ID or .firebaserc.
-  --store <storeId>      Filter recent failures to one store after reading the latest rows.
-  --code <errorCode>     Filter recent failures to one command error code.
-  --limit <number>       Rows to print. Defaults to 20, max 100.
-  --scan-limit <number>  Recent rows to scan before local filtering. Defaults to limit or limit * 5.
-  --json                 Print the full audit result as JSON.
+  --project <projectId>          Firebase project id. Defaults to FIREBASE_PROJECT_ID or .firebaserc.
+  --minutes <number>             Filter failures to the last N minutes. Use 15 or 60 during incidents.
+  --store <storeId>              Filter recent failures to one store after reading the latest rows.
+  --table <tableId>              Filter by tableId or targetTableId.
+  --order <orderId>              Filter by orderId.
+  --client-request-id <id>       Filter by clientRequestId. Alias: --request.
+  --code <errorCode>             Filter recent failures to one command error code.
+  --limit <number>               Rows to print. Defaults to 20, max 100.
+  --scan-limit <number>          Recent rows to scan before local filtering. Defaults to limit or limit * 5, at least 100 when filtered.
+  --json                         Print the full audit result as JSON.
 `)
 }
 
@@ -138,8 +180,18 @@ function serializeTimestamp(value) {
   return String(value)
 }
 
+function timestampToMillis(value) {
+  if (!value) return null
+  if (typeof value.toMillis === 'function') return value.toMillis()
+  if (typeof value.toDate === 'function') return value.toDate().getTime()
+  if (value instanceof Date) return value.getTime()
+  const parsed = Date.parse(String(value))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function normalizeRow(docSnap) {
   const data = docSnap.data()
+  const createdAt = serializeTimestamp(data.createdAt)
   return {
     id: docSnap.id,
     commandType: data.commandType ?? 'unknown_order_command',
@@ -154,13 +206,18 @@ function normalizeRow(docSnap) {
     errorName: data.errorName ?? 'Error',
     errorMessage: data.errorMessage ?? '',
     orderCommandVersion: data.orderCommandVersion ?? null,
-    createdAt: serializeTimestamp(data.createdAt),
+    createdAt,
+    createdAtMs: timestampToMillis(data.createdAt),
   }
 }
 
 function matchesFilters(row, options) {
   if (options.storeId && row.storeId !== options.storeId) return false
   if (options.code && row.errorCode !== options.code) return false
+  if (options.tableId && row.tableId !== options.tableId && row.targetTableId !== options.tableId) return false
+  if (options.orderId && row.orderId !== options.orderId) return false
+  if (options.clientRequestId && row.clientRequestId !== options.clientRequestId) return false
+  if (options.sinceMs && (!row.createdAtMs || row.createdAtMs < options.sinceMs)) return false
   return true
 }
 
@@ -176,13 +233,87 @@ async function loadRecentFailures(db, options) {
     .slice(0, options.limit)
 }
 
+function countRowsBy(rows, fieldName) {
+  const counts = {}
+  for (const row of rows) {
+    const key = row[fieldName] ?? 'none'
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  return counts
+}
+
+function largestCount(counts) {
+  let largest = null
+  for (const [key, count] of Object.entries(counts)) {
+    if (!largest || count > largest.count) largest = { key, count }
+  }
+  return largest
+}
+
+function formatCounts(counts) {
+  const entries = Object.entries(counts)
+  if (entries.length === 0) return 'none'
+  return entries.map(([key, count]) => `${key}:${count}`).join(', ')
+}
+
+function buildDiagnosisSignals(rows) {
+  if (rows.length === 0) {
+    return ['no_failure_log_in_window']
+  }
+
+  const signals = []
+  const byErrorCode = countRowsBy(rows, 'errorCode')
+  const byCommandType = countRowsBy(rows, 'commandType')
+  const permissionFailures = rows.filter(row => (
+    row.errorCode === 'permission-denied' ||
+    row.errorCode === 'unauthenticated' ||
+    row.errorCode === 'failed-precondition'
+  ))
+  const topError = largestCount(byErrorCode)
+  const topCommand = largestCount(byCommandType)
+
+  if (permissionFailures.length > 0) {
+    signals.push('rules_or_permission_error_seen')
+  }
+  if (topError && topError.count >= 3) {
+    signals.push(`functions_constant_error_possible:${topError.key}`)
+  }
+  if (topCommand && topCommand.count >= 3) {
+    signals.push(`command_cluster:${topCommand.key}`)
+  }
+  if (rows.some(row => row.clientRequestId)) {
+    signals.push('clientRequestId_trace_available')
+  }
+
+  return signals.length > 0 ? signals : ['isolated_or_mixed_failures']
+}
+
+function buildSummary(rows) {
+  return {
+    total: rows.length,
+    byErrorCode: countRowsBy(rows, 'errorCode'),
+    byCommandType: countRowsBy(rows, 'commandType'),
+    byStoreId: countRowsBy(rows, 'storeId'),
+    byActorType: countRowsBy(rows, 'actorType'),
+    diagnosisSignals: buildDiagnosisSignals(rows),
+  }
+}
+
 function printTextReport(audit) {
   console.log('Read-only order command failure audit')
   console.log(`Project: ${audit.projectId}`)
+  console.log(`Window: ${audit.window.minutes ? `last ${audit.window.minutes} minutes since ${audit.window.since}` : 'latest scanned rows'}`)
   console.log(`Store filter: ${audit.filters.storeId ?? 'none'}`)
+  console.log(`Table filter: ${audit.filters.tableId ?? 'none'}`)
+  console.log(`Order filter: ${audit.filters.orderId ?? 'none'}`)
+  console.log(`Client request filter: ${audit.filters.clientRequestId ?? 'none'}`)
   console.log(`Code filter: ${audit.filters.code ?? 'none'}`)
   console.log(`Source: ${audit.source}`)
   console.log(`Rows: ${audit.rows.length}`)
+  console.log(`Error codes: ${formatCounts(audit.summary.byErrorCode)}`)
+  console.log(`Commands: ${formatCounts(audit.summary.byCommandType)}`)
+  console.log(`Stores: ${formatCounts(audit.summary.byStoreId)}`)
+  console.log(`Diagnosis signals: ${audit.summary.diagnosisSignals.join(', ')}`)
 
   if (audit.rows.length === 0) {
     console.log('\nNo recent order command failures found for the selected filters.')
@@ -215,15 +346,24 @@ async function main() {
   if (app.getApps().length === 0) app.initializeApp({ projectId })
   const db = firestore.getFirestore()
   const rows = await loadRecentFailures(db, options)
+  const summary = buildSummary(rows)
   const audit = {
     projectId,
     source: process.env.FIRESTORE_EMULATOR_HOST ? `emulator:${process.env.FIRESTORE_EMULATOR_HOST}` : 'firestore',
+    window: {
+      minutes: options.minutes,
+      since: options.sinceMs ? new Date(options.sinceMs).toISOString() : null,
+    },
     filters: {
       storeId: options.storeId,
+      tableId: options.tableId,
+      orderId: options.orderId,
+      clientRequestId: options.clientRequestId,
       code: options.code,
       limit: options.limit,
       scanLimit: options.scanLimit,
     },
+    summary,
     rows,
   }
 
