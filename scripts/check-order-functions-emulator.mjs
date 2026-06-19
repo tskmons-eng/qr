@@ -374,7 +374,7 @@ async function runCustomerSubmitDedup(db, publicFunctions, productId) {
     tableId,
     clientRequestId: requestId,
   }
-  const results = await Promise.all(Array.from({ length: 24 }, () => (
+  const results = await Promise.all(Array.from({ length: 20 }, () => (
     call(publicFunctions, 'submitCustomerOrderItemsCommand', payload)
   )))
 

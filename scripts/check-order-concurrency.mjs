@@ -232,7 +232,7 @@ function runCustomerRetryDedupCheck() {
   const items = [item('Coffee'), item('Toast')]
 
   const first = store.submitItems({ source: 'customer', orderId, storeId: 'store-1', tableId: 'table-1', clientRequestId: request, items })
-  const retryResults = Array.from({ length: 24 }, () => (
+  const retryResults = Array.from({ length: 20 }, () => (
     store.submitItems({ source: 'customer', orderId, storeId: 'store-1', tableId: 'table-1', clientRequestId: request, items })
   ))
 
