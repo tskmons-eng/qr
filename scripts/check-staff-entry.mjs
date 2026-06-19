@@ -25,6 +25,7 @@ assert.equal(storage.has(SAVED_STAFF_STORE_CODE_KEY), false)
 const staffEntryService = readFileSync(new URL('../src/services/staffEntryService.js', import.meta.url), 'utf8')
 const staffLoginScreen = readFileSync(new URL('../src/components/staff/StaffLoginScreen.jsx', import.meta.url), 'utf8')
 const staffLayout = readFileSync(new URL('../src/pages/staff/StaffLayout.jsx', import.meta.url), 'utf8')
+const storeContext = readFileSync(new URL('../src/contexts/StoreContext.jsx', import.meta.url), 'utf8')
 
 assert.match(staffEntryService, /forceAnonymous = false/)
 assert.match(staffEntryService, /signOut\(auth\)/)
@@ -33,5 +34,9 @@ assert.match(staffLoginScreen, /enterStaffStoreByCode\(normalized, \{ forceAnony
 assert.match(staffLoginScreen, /className="staff-login__store-code-panel"/)
 assert.match(staffLoginScreen, /clearStaffAutoLoginPreference\(result\.storeId\)/)
 assert.match(staffLayout, /forceAnonymousStoreEntry=\{Boolean\(user && !user\.isAnonymous\)\}/)
+assert.match(storeContext, /doc\(db, 'staffSessions', user\.uid\)/)
+assert.match(storeContext, /sessionStoreId === deviceStoreId/)
+assert.match(storeContext, /localStorage\.removeItem\('deviceStoreId'\)/)
+assert.match(storeContext, /localStorage\.removeItem\('activeStaff'\)/)
 
 console.log('staff entry checks passed')

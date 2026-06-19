@@ -92,6 +92,41 @@
 - Verification: `npm run check:kitchen-display`, `npm run check:staff-table-detail`, `npm run check`, and `npm run build`.
 - Verification results: `npm run check:kitchen-display`, `npm run check:staff-table-detail`, `npm run check`, and `npm run build` passed. Firebase deploy was not run.
 
+## 2026-06-19 Staff entry session recovery
+
+### Purpose
+
+- Recover staff devices that still have `deviceStoreId` in localStorage but no matching `staffSessions/{uid}` document under the current Firestore rules.
+- Avoid leaving those users on a staff screen that cannot load staff members.
+
+### Current Confirmation
+
+- Production `/staff` returns the staff entry screen for a clean browser and has no console errors.
+- `firestore.rules` requires `staffSessions/{uid}` for `staffMembers` reads through `canAccess(storeId)`.
+- Older or partially reset devices can keep `deviceStoreId` without a matching session document, which makes `loadStaffMembers(storeId)` fail.
+
+### Change Policy
+
+- In `StoreProvider`, validate an anonymous user's saved `deviceStoreId` against that user's own `staffSessions/{uid}` before exposing `storeId`.
+- If the session is missing or points at another store, clear only `deviceStoreId` and `activeStaff`, then show the existing staff store-code entry screen.
+- Keep saved staff store code intact so the user can re-enter automatically or manually and recreate `staffSessions/{uid}`.
+
+### Verification
+
+- `npm run check:staff-entry`
+- `npm run check:staff-permissions`
+- `npm run check`
+- `npm run build`
+
+### Verification Results
+
+- `npm run check:staff-entry` passed.
+- `npm run check:staff-permissions` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- Production `/staff` was checked in a clean browser and showed the staff store-code entry screen with no console errors.
+- Firebase deploy was not run.
+
 ## 2026-06-19 Staff add-order option quantity fix
 
 ### Purpose

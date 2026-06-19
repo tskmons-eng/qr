@@ -17,6 +17,7 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     if (user === undefined) return
+    setLoading(true)
 
     if (!user) {
       setStoreId(null)
@@ -27,8 +28,32 @@ export function StoreProvider({ children }) {
     // 匿名ユーザー: localStorageのstoreIdを使う
     if (user.isAnonymous) {
       const deviceStoreId = localStorage.getItem('deviceStoreId')
-      setStoreId(deviceStoreId)
-      setLoading(false)
+      if (!deviceStoreId) {
+        setStoreId(null)
+        setLoading(false)
+        return
+      }
+
+      async function validateStaffSession() {
+        const sessionSnap = await getDoc(doc(db, 'staffSessions', user.uid))
+        const sessionStoreId = sessionSnap.exists() ? sessionSnap.data().storeId : null
+        if (sessionStoreId === deviceStoreId) {
+          setStoreId(deviceStoreId)
+        } else {
+          localStorage.removeItem('deviceStoreId')
+          localStorage.removeItem('activeStaff')
+          setStoreId(null)
+        }
+        setLoading(false)
+      }
+
+      validateStaffSession().catch(e => {
+        console.warn('validateStaffSession failed:', e)
+        localStorage.removeItem('deviceStoreId')
+        localStorage.removeItem('activeStaff')
+        setStoreId(null)
+        setLoading(false)
+      })
       return
     }
 
