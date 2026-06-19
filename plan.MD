@@ -1,5 +1,37 @@
 # QR System Plan
 
+## 2026-06-19 Order reliability Round 2: Functions mainline
+
+### User Priority
+
+- ユーザー様は「注文が入らない」「反映されない」状態を最優先で解消したい。
+- `VITE_ORDER_COMMAND_RUNTIME=functions` が opt-in のままでは、Production の通常注文経路が変わらず、改善完了とは扱わない。
+- 既存利用者がいるため、注文履歴、会計履歴、メニュー、カテゴリ、オプションは削除しない。
+
+### Decision
+
+- Cloud Functions command を Production の注文本線にする。
+- client command は local/dev/rollback 用として残すが、Production の通常既定として曖昧に残さない。
+- 06〜10 の分担MDで実装・検証を進め、11 の統合MDだけが deploy 順と rollback を管理する。
+- 既存UI導線は維持し、見た目の大幅変更ではなく注文実行経路、同時実行、観測、rules、復旧を直す。
+
+### Parallel Work Documents
+
+- `docs/order-reliability/06-functions-mainline.md`
+- `docs/order-reliability/07-functions-emulator-concurrency.md`
+- `docs/order-reliability/08-rules-lockdown.md`
+- `docs/order-reliability/09-live-observability.md`
+- `docs/order-reliability/10-data-consistency-repair.md`
+- `docs/order-reliability/11-integration-release.md`
+
+### Completion Gate
+
+- Production build の注文経路が Functions command であること。
+- Callable Functions の emulator concurrency check があること。
+- 注文失敗が server-side に記録され、原因を追えること。
+- rules 締め込みが deploy 順と新旧クライアント混在を考慮していること。
+- データ削除やメニュー移行なしで、監査/修復手順が dry-run first であること。
+
 ## 2026-06-19 Order reliability architecture review
 
 ### Context
