@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import {
   calculateTableOrderTotal,
   filterVisibleOrderItems,
@@ -26,5 +27,13 @@ assert.equal(stepGuestInputValue('0', -1), '0')
 assert.equal(stepGuestInputValue('', -1), '0')
 assert.equal(formatTableOrderOptions([{ choice: 'hot' }, { choice: 'large' }]), 'hot · large')
 assert.equal(formatTableOrderOptions([]), null)
+
+const orderStyles = await readFile('src/styles/staff-table-orders.css', 'utf8')
+const shellStyles = await readFile('src/styles/staff-table-shell.css', 'utf8')
+
+assert.ok(orderStyles.includes('flex-wrap: wrap'), 'staff table order rows should wrap instead of overflowing action buttons')
+assert.ok(orderStyles.includes('.staff-table-order-row.is-served .staff-table-row-button'), 'served rows should have compact action buttons')
+assert.ok(orderStyles.includes('overflow-wrap: anywhere'), 'long order names/options should wrap inside staff table rows')
+assert.ok(shellStyles.includes('bottom: var(--staff-bottom-nav-offset, 74px)'), 'staff table action bar should avoid the bottom nav')
 
 console.log('staff table detail checks passed')

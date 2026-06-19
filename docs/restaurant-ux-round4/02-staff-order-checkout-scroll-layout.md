@@ -62,7 +62,6 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
-- Checks:
-- Remaining risk:
-
+- Result: スタッフ注文追加はカテゴリ/商品を独立スクロール領域にし、送信バーを下部ナビ上の固定位置へ整理した。会計は注文明細だけを高さ制限付きスクロールにし、支払い入力と会計確定バーを見失いにくい配置にした。席詳細の提供済み/注文行は折り返し可能なコンパクト行へ調整した。
+- Checks: `git diff --check`, `npm run check:staff-menu`, `npm run check:staff-table-detail`, `npm run check:checkout`, `npm run check:order-command-ui`, `npm run check`, `npm run build` passed.
+- Remaining risk: 実データでのモバイル実機スクロール感は未確認。Firebase Production deploy は統合ゲートまで未実施。

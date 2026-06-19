@@ -178,38 +178,44 @@ export default function CheckoutPage() {
         onUpdate={updateItemDiscount}
       />
       <CheckoutHeader activeStaff={activeStaff} onBack={() => navigate(-1)} />
-      <CheckoutGuestCountPanel
-        editing={editingGuests}
-        guestCount={currentGuestCount}
-        guestInput={guestInput}
-        onCancel={() => setEditingGuests(false)}
-        onChange={setGuestInput}
-        onEdit={startEditGuests}
-        onSave={saveGuests}
-        onStep={stepGuestInput}
-      />
-      <CheckoutItemDiscountList
-        rows={totals.itemDiscountRows}
-        onSelect={setSelectedItemId}
-      />
-      <CheckoutPaymentPanel
-        subtotalBeforeItemDiscount={totals.subtotalBeforeItemDiscount}
-        itemDiscountAmount={totals.itemDiscountAmount}
-        discountType={discountType}
-        discountValue={discountValue}
-        discountNote={discountNote}
-        discountAmount={totals.discountAmount}
-        total={totals.total}
-        taxAmount={totals.taxAmount}
-        taxRate={taxRate}
-        receivedCash={receivedCash}
-        received={totals.received}
-        change={totals.change}
-        onDiscountTypeChange={changeDiscountType}
-        onDiscountValueChange={setDiscountValue}
-        onDiscountNoteChange={setDiscountNote}
-        onReceivedCashChange={setReceivedCash}
-      />
+      <div className="checkout-page__body">
+        <CheckoutGuestCountPanel
+          editing={editingGuests}
+          guestCount={currentGuestCount}
+          guestInput={guestInput}
+          onCancel={() => setEditingGuests(false)}
+          onChange={setGuestInput}
+          onEdit={startEditGuests}
+          onSave={saveGuests}
+          onStep={stepGuestInput}
+        />
+        <div className="checkout-page__items-scroll">
+          <CheckoutItemDiscountList
+            rows={totals.itemDiscountRows}
+            onSelect={setSelectedItemId}
+          />
+        </div>
+        <div className="checkout-page__payment">
+          <CheckoutPaymentPanel
+            subtotalBeforeItemDiscount={totals.subtotalBeforeItemDiscount}
+            itemDiscountAmount={totals.itemDiscountAmount}
+            discountType={discountType}
+            discountValue={discountValue}
+            discountNote={discountNote}
+            discountAmount={totals.discountAmount}
+            total={totals.total}
+            taxAmount={totals.taxAmount}
+            taxRate={taxRate}
+            receivedCash={receivedCash}
+            received={totals.received}
+            change={totals.change}
+            onDiscountTypeChange={changeDiscountType}
+            onDiscountValueChange={setDiscountValue}
+            onDiscountNoteChange={setDiscountNote}
+            onReceivedCashChange={setReceivedCash}
+          />
+        </div>
+      </div>
       <CheckoutConfirmBar
         disabled={totals.change === null}
         errorMessage={checkoutError}

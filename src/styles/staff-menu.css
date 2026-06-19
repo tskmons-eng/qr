@@ -1,22 +1,23 @@
 .staff-menu {
+  display: flex;
+  height: calc(100dvh - 56px);
+  min-height: 420px;
+  flex-direction: column;
   max-width: 600px;
   margin: 0 auto;
-  padding-bottom: 88px;
-}
-
-.staff-menu.has-cart {
-  padding-bottom: 156px;
+  overflow: hidden;
+  background: #f5f5f5;
 }
 
 .staff-menu__loading {
+  min-height: calc(100dvh - 56px);
   padding: 48px;
   color: #999;
   text-align: center;
 }
 
 .staff-menu__header {
-  position: sticky;
-  top: 56px;
+  flex: 0 0 auto;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -39,7 +40,23 @@
   font-weight: 600;
 }
 
+.staff-menu__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 16px);
+  background: #ffffff;
+}
+
+.staff-menu.has-cart .staff-menu__scroll {
+  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 88px);
+}
+
 .staff-menu-categories {
+  position: sticky;
+  top: 0;
+  z-index: 9;
   display: flex;
   overflow-x: auto;
   background: #fff;
@@ -62,6 +79,10 @@
   color: #222;
   border-bottom-color: #222;
   font-weight: 700;
+}
+
+.staff-menu-products {
+  background: #ffffff;
 }
 
 .staff-menu-product {
@@ -202,9 +223,11 @@
 .staff-menu-submit {
   position: fixed;
   right: 0;
-  bottom: 74px;
+  bottom: var(--staff-bottom-nav-offset, 74px);
   left: 0;
   z-index: 44;
+  width: min(100%, 600px);
+  margin: 0 auto;
   padding: 10px 16px;
   background: #fff;
   border-top: 1px solid #eee;
@@ -214,7 +237,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   width: 100%;
+  min-width: 0;
   padding: 14px;
   color: #fff;
   background: #222;
@@ -222,6 +247,20 @@
   border-radius: 10px;
   cursor: pointer;
   font-size: 15px;
+}
+
+.staff-menu-submit button span {
+  min-width: 0;
+}
+
+.staff-menu-submit button span:nth-child(2) {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.staff-menu-submit button span:last-child {
+  flex: 0 0 auto;
 }
 
 .staff-menu-submit__count {

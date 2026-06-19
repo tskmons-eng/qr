@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { calcDiscount, calcItemDiscount, calculateCheckoutTotals } from '../src/lib/checkoutCalculations.js'
 
 assert.equal(calcDiscount(1000, 'amount', 1500), 1000)
@@ -48,5 +49,17 @@ assert.deepEqual(totals.activeItemDiscounts, [
     note: 'promo',
   },
 ])
+
+const checkoutPage = await readFile('src/pages/staff/CheckoutPage.jsx', 'utf8')
+const checkoutLayoutStyles = await readFile('src/styles/staff-checkout-layout.css', 'utf8')
+const checkoutPaymentStyles = await readFile('src/styles/staff-checkout-payment.css', 'utf8')
+
+assert.ok(checkoutPage.includes('className="checkout-page__body"'), 'checkout page should separate scrollable content from fixed controls')
+assert.ok(checkoutPage.includes('className="checkout-page__items-scroll"'), 'checkout item list should have an independent scroll region')
+assert.ok(checkoutPage.includes('className="checkout-page__payment"'), 'checkout payment controls should remain outside the item scroll region')
+assert.ok(checkoutLayoutStyles.includes('.checkout-page__items-scroll'), 'checkout item scroll region should be styled')
+assert.ok(checkoutLayoutStyles.includes('max-height: clamp(160px, 34dvh, 280px)'), 'checkout item list should not push payment controls off screen')
+assert.ok(checkoutLayoutStyles.includes('overscroll-behavior: contain'), 'checkout item list should contain nested scroll momentum')
+assert.ok(checkoutPaymentStyles.includes('bottom: var(--staff-bottom-nav-offset, 74px)'), 'checkout confirm bar should avoid the staff bottom nav')
 
 console.log('checkout calculation checks passed')

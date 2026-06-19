@@ -1,7 +1,7 @@
 .staff-table-page {
   max-width: 600px;
   margin: 0 auto;
-  padding-bottom: 156px;
+  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 88px);
 }
 
 .staff-table-loading,
@@ -202,9 +202,11 @@
 
 .staff-table-action-bar {
   position: fixed;
-  bottom: 74px;
+  bottom: var(--staff-bottom-nav-offset, 74px);
   left: 0;
   right: 0;
+  width: min(100%, 600px);
+  margin: 0 auto;
   background: #ffffff;
   border-top: 1px solid #eeeeee;
   padding: 10px 16px;

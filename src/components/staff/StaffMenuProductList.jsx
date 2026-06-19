@@ -20,7 +20,7 @@ export default function StaffMenuProductList({
   onUpdateQuantity,
 }) {
   return (
-    <div>
+    <div className="staff-menu-products">
       {products.map(product => {
         const cartItems = cart.filter(item => item.product.id === product.id)
         const simpleItem = cartItems.find(item => item.optionSelections.length === 0)

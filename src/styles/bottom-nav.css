@@ -1,3 +1,7 @@
+:root {
+  --staff-bottom-nav-offset: max(74px, calc(52px + env(safe-area-inset-bottom)));
+}
+
 .customer-bottom-nav,
 .staff-bottom-nav {
   position: fixed;

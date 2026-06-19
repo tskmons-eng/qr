@@ -178,17 +178,19 @@ export default function StaffMenuPage() {
       )}
 
       <StaffMenuHeader onBack={() => navigate(-1)} />
-      <StaffMenuCategoryTabs
-        categories={categories}
-        activeCategoryId={activeCat}
-        onSelect={setActiveCat}
-      />
-      <StaffMenuProductList
-        products={filteredProducts}
-        cart={cart}
-        onAddProduct={handleAddProduct}
-        onUpdateQuantity={updateQty}
-      />
+      <div className="staff-menu__scroll">
+        <StaffMenuCategoryTabs
+          categories={categories}
+          activeCategoryId={activeCat}
+          onSelect={setActiveCat}
+        />
+        <StaffMenuProductList
+          products={filteredProducts}
+          cart={cart}
+          onAddProduct={handleAddProduct}
+          onUpdateQuantity={updateQty}
+        />
+      </div>
       <StaffMenuSubmitBar
         cartCount={cartCount}
         cartTotal={cartTotal}

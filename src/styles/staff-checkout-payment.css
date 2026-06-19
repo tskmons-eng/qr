@@ -126,6 +126,7 @@
   padding: 8px 16px;
   color: #333;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .checkout-cash-presets .checkout-cash-preset--exact {
@@ -171,9 +172,11 @@
 .checkout-confirm-bar {
   position: fixed;
   right: 0;
-  bottom: 74px;
+  bottom: var(--staff-bottom-nav-offset, 74px);
   left: 0;
   z-index: 44;
+  width: min(100%, 600px);
+  margin: 0 auto;
   padding: 10px 16px;
   background: #fff;
   border-top: 1px solid #eee;
@@ -181,6 +184,7 @@
 
 .checkout-confirm-bar button {
   width: 100%;
+  min-width: 0;
   padding: 15px;
   color: #fff;
   background: #222;
@@ -188,6 +192,7 @@
   border-radius: 10px;
   cursor: pointer;
   font-size: 17px;
+  overflow-wrap: anywhere;
 }
 
 .checkout-confirm-bar button:disabled {
