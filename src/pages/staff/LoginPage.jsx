@@ -10,7 +10,14 @@ const DEFAULT_LOGIN_REDIRECT = '/admin'
 const LOGIN_REDIRECT_STORAGE_KEY = 'staffLoginRedirect'
 
 function isSafeLoginRedirect(next) {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/login')) {
+  if (
+    !next ||
+    !next.startsWith('/') ||
+    next.startsWith('//') ||
+    next.startsWith('/login') ||
+    next === '/staff' ||
+    next.startsWith('/staff/')
+  ) {
     return false
   }
   return true
@@ -36,9 +43,14 @@ function getSavedLoginRedirect() {
   const sessionStorage = getSessionLoginRedirectStorage()
   const savedSessionRedirect = sessionStorage?.getItem(LOGIN_REDIRECT_STORAGE_KEY)
   if (isSafeLoginRedirect(savedSessionRedirect)) return savedSessionRedirect
+  if (savedSessionRedirect) sessionStorage?.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
 
   const persistentStorage = getPersistentLoginRedirectStorage()
-  return persistentStorage?.getItem(LOGIN_REDIRECT_STORAGE_KEY) ?? null
+  const savedPersistentRedirect = persistentStorage?.getItem(LOGIN_REDIRECT_STORAGE_KEY)
+  if (isSafeLoginRedirect(savedPersistentRedirect)) return savedPersistentRedirect
+  if (savedPersistentRedirect) persistentStorage?.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
+
+  return null
 }
 
 function rememberLoginRedirect(next) {
