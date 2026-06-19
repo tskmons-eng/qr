@@ -8,8 +8,7 @@ import TableActionBar from '../../components/staff/TableActionBar'
 import TableCancelModal from '../../components/staff/TableCancelModal'
 import TableDetailHeader from '../../components/staff/TableDetailHeader'
 import TableMoveModal from '../../components/staff/TableMoveModal'
-import TableOrderSection from '../../components/staff/TableOrderSection'
-import TableOrderSummary from '../../components/staff/TableOrderSummary'
+import TableDetailOrderContent from '../../components/staff/TableDetailOrderContent'
 import TableSeatingPanel from '../../components/staff/TableSeatingPanel'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { hasStaffPermission } from '../../lib/staffPermissions'
@@ -263,29 +262,17 @@ export default function TableDetailPage() {
           onSeat={handleSeat}
         />
       ) : (
-        <>
-          <TableOrderSection
-            title={servedWorkflowEnabled ? '準備中' : '注文'}
-            items={servedWorkflowEnabled ? orderedItems : items}
-            served={false}
-            servedWorkflowEnabled={servedWorkflowEnabled}
-            onMarkServed={markServed}
-            onMarkOrdered={markOrdered}
-            onCancel={openCancel}
-          />
-          {servedWorkflowEnabled && (
-            <TableOrderSection
-              title="提供済み"
-              items={servedItems}
-              served
-              servedWorkflowEnabled={servedWorkflowEnabled}
-              onMarkServed={markServed}
-              onMarkOrdered={markOrdered}
-              onCancel={openCancel}
-            />
-          )}
-          <TableOrderSummary total={total} guestCount={guestCount} />
-        </>
+        <TableDetailOrderContent
+          items={items}
+          orderedItems={orderedItems}
+          servedItems={servedItems}
+          servedWorkflowEnabled={servedWorkflowEnabled}
+          total={total}
+          guestCount={guestCount}
+          onMarkServed={markServed}
+          onMarkOrdered={markOrdered}
+          onCancel={openCancel}
+        />
       )}
 
       <TableActionBar

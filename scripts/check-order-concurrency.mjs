@@ -335,10 +335,10 @@ function runTableMoveConsistencyCheck() {
 }
 
 await Promise.all([
-  assertSourceContains('src/services/orderCommandService.js', [
+  assertSourceContains('src/services/orderClientCommandService.js', [
     'return runTransaction(db, async transaction =>',
     'if (table.currentOrderId) return table.currentOrderId',
-    'if (firstItemSnap.exists()) return { ok: true, deduped: true, clientRequestId: requestId }',
+    'if (firstItemSnap.exists()) return { ok: true, deduped: true, clientRequestId }',
     'assertOpenOrder(orderSnap.exists() ? orderSnap.data() : null, { storeId, tableId })',
     'transaction.update(tableRef, { pendingCount: increment(normalizedItems.length), updatedAt: now })',
   ]),
