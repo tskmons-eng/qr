@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { createCartItemId } from '../src/lib/cartItemId.js'
 import {
   buildCustomerOrderItemPayload,
   calculateCartItemPricing,
@@ -31,6 +32,10 @@ assert.equal(formatCartOptions([{ choice: 'Large' }, { choice: 'Ice' }]), 'Large
 assert.equal(normalizeCartQuantity('abc'), 0)
 assert.equal(normalizeCartQuantity('-2'), 0)
 assert.equal(normalizeCartQuantity('120'), 99)
+
+const generatedCartIds = Array.from({ length: 20 }, () => createCartItemId('product-1'))
+assert.equal(new Set(generatedCartIds).size, generatedCartIds.length, 'cart item ids should not collide during same-tick multi option adds')
+assert.ok(generatedCartIds.every(id => id.startsWith('product-1_')), 'cart item ids should keep a product prefix for debugging')
 
 const product = {
   id: 'p1',

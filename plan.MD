@@ -90,6 +90,31 @@
 - `npm run check`
 - Commit and push the planning docs.
 
+## 2026-06-20 Staff option cart quantity identity fix
+
+### Purpose
+
+- ユーザー様の指摘: 詳細画面でタレ3個・塩5個のように複数オプション数量を追加した後、片方を調整すると両方の数量が同期してしまう。
+
+### Current Confirmation
+
+- `StaffMenuPage.addToCart()` と customer cart の `CartProvider.addItem()` は新規 cart item id に `product.id + Date.now()` を使っている。
+- 複数オプションを同じ確定操作で連続追加すると同じ millisecond の id になり、数量更新が同じ id の全行に当たる。
+
+### Change Policy
+
+- cart item id の生成を小さな共通 helper に切り出し、同一商品を同時に複数行追加しても必ず別 id になるようにする。
+- 既存の product + optionSelections による同一オプションの加算ロジックは維持する。
+- スタッフ画面だけでなく、同じ multi option 追加を持つ顧客 cart 側にも同じ helper を使う。
+
+### Verification
+
+- `npm run check:staff-menu`
+- `npm run check:customer-cart`
+- `npm run check:option-modal`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-19 Production deployment
 
 ### Scope

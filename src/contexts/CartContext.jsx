@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react'
+import { createCartItemId } from '../lib/cartItemId'
 import { getDiscountedProductPrice } from '../lib/discounts'
 
 const CartContext = createContext(null)
@@ -28,7 +29,7 @@ export function CartProvider({ children }) {
           return next
         }
       }
-      return [...prev, { id: `${product.id}_${Date.now()}`, product, quantity: addQuantity, optionSelections }]
+      return [...prev, { id: createCartItemId(product.id), product, quantity: addQuantity, optionSelections }]
     })
   }
 

@@ -8,6 +8,7 @@ import StaffMenuHeader from '../../components/staff/StaffMenuHeader'
 import StaffMenuProductList from '../../components/staff/StaffMenuProductList'
 import StaffMenuSubmitBar from '../../components/staff/StaffMenuSubmitBar'
 import StaffOrderCompleteScreen from '../../components/staff/StaffOrderCompleteScreen'
+import { createCartItemId } from '../../lib/cartItemId'
 import { getDiscountedProductPrice } from '../../lib/discounts'
 import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
@@ -63,7 +64,7 @@ export default function StaffMenuPage() {
         return next
       }
 
-      return [...prev, { id: `${product.id}_${Date.now()}`, product, quantity: addQuantity, optionSelections }]
+      return [...prev, { id: createCartItemId(product.id), product, quantity: addQuantity, optionSelections }]
     })
   }
 
