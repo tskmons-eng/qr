@@ -3,6 +3,16 @@ function formatOptions(optionSelections) {
   return optionSelections.map(option => option.choice).join(' · ')
 }
 
+function QuantityControl({ quantity, compact = false, label, onDecrease, onIncrease }) {
+  return (
+    <div className={`staff-menu-product__quantity${compact ? ' staff-menu-product__quantity--compact' : ''}`}>
+      <button type="button" aria-label={`${label}を減らす`} onClick={onDecrease}>−</button>
+      <span>{quantity}</span>
+      <button type="button" className="is-plus" aria-label={`${label}を増やす`} onClick={onIncrease}>+</button>
+    </div>
+  )
+}
+
 export default function StaffMenuProductList({
   products,
   cart,
@@ -14,6 +24,7 @@ export default function StaffMenuProductList({
       {products.map(product => {
         const cartItems = cart.filter(item => item.product.id === product.id)
         const simpleItem = cartItems.find(item => item.optionSelections.length === 0)
+        const optionCartItems = cartItems.filter(item => item.optionSelections.length > 0)
         const hasOptions = (product.options ?? []).length > 0
 
         return (
@@ -25,19 +36,34 @@ export default function StaffMenuProductList({
                 <div className="staff-menu-product__hint">選択あり</div>
               )}
               {product.isSoldOut && <div className="staff-menu-product__sold-out">売り切れ</div>}
-              {cartItems.map(cartItem => cartItem.optionSelections.length > 0 && (
-                <div key={cartItem.id} className="staff-menu-product__options">
-                  {formatOptions(cartItem.optionSelections)} × {cartItem.quantity}
+              {optionCartItems.length > 0 && (
+                <div className="staff-menu-product__option-list">
+                  {optionCartItems.map(cartItem => {
+                    const optionLabel = formatOptions(cartItem.optionSelections) ?? 'オプション'
+                    return (
+                      <div key={cartItem.id} className="staff-menu-product__option-row">
+                        <span className="staff-menu-product__option-label">{optionLabel}</span>
+                        <QuantityControl
+                          compact
+                          label={`${product.name} ${optionLabel}`}
+                          quantity={cartItem.quantity}
+                          onDecrease={() => onUpdateQuantity(cartItem.id, cartItem.quantity - 1)}
+                          onIncrease={() => onUpdateQuantity(cartItem.id, cartItem.quantity + 1)}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
+              )}
             </div>
 
             {!hasOptions && simpleItem ? (
-              <div className="staff-menu-product__quantity">
-                <button type="button" onClick={() => onUpdateQuantity(simpleItem.id, simpleItem.quantity - 1)}>−</button>
-                <span>{simpleItem.quantity}</span>
-                <button type="button" className="is-plus" onClick={() => onUpdateQuantity(simpleItem.id, simpleItem.quantity + 1)}>+</button>
-              </div>
+              <QuantityControl
+                label={product.name}
+                quantity={simpleItem.quantity}
+                onDecrease={() => onUpdateQuantity(simpleItem.id, simpleItem.quantity - 1)}
+                onIncrease={() => onUpdateQuantity(simpleItem.id, simpleItem.quantity + 1)}
+              />
             ) : (
               <button
                 type="button"

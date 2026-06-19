@@ -66,7 +66,7 @@
 
 .staff-menu-product {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 13px 16px;
   background: #fff;
@@ -75,6 +75,7 @@
 
 .staff-menu-product__body {
   flex: 1;
+  min-width: 0;
 }
 
 .staff-menu-product__name {
@@ -103,16 +104,37 @@
   font-size: 12px;
 }
 
-.staff-menu-product__options {
-  margin-top: 2px;
+.staff-menu-product__option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.staff-menu-product__option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #e6edf7;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.staff-menu-product__option-label {
+  min-width: 0;
   color: #1d4ed8;
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .staff-menu-product__quantity {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .staff-menu-product__quantity button,
@@ -145,6 +167,21 @@
   text-align: center;
   font-size: 16px;
   font-weight: 700;
+}
+
+.staff-menu-product__quantity--compact {
+  gap: 6px;
+}
+
+.staff-menu-product__quantity--compact button {
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+}
+
+.staff-menu-product__quantity--compact span {
+  min-width: 18px;
+  font-size: 14px;
 }
 
 .staff-menu-product__add {

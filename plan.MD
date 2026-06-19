@@ -32,6 +32,30 @@
 - rules 締め込みが deploy 順と新旧クライアント混在を考慮していること。
 - データ削除やメニュー移行なしで、監査/修復手順が dry-run first であること。
 
+## 2026-06-19 Staff add-order option quantity fix
+
+### Purpose
+
+- 注文追加画面で、焼き鳥の「タレ」「塩」のようなオプション付き商品を追加した後でも個数を変更できるようにする。
+- オプションが多くても、数量操作が埋もれず現場で素早く修正できる状態にする。
+
+### Current State
+
+- 通常商品は商品行の右側に数量の `- / +` 操作が出る。
+- オプション付き商品は選択済みオプションと数量がテキスト表示だけになり、同じ画面上で数量を変更できない。
+
+### Change Plan
+
+- `StaffMenuProductList` のオプション付きカート行にも既存の `onUpdateQuantity` を渡す数量操作を出す。
+- 商品追加の `+` ボタンは残し、別オプションの追加導線は維持する。
+- CSSは既存のスタッフ注文追加UIに合わせ、オプション行が複数あっても折り返しと操作領域が崩れないようにする。
+
+### Verification
+
+- `npm run check:staff-menu`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-19 Live order observability
 
 ### Purpose
