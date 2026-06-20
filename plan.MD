@@ -40,6 +40,14 @@
 - `npm run check`
 - `npm run build`
 
+### Verification Results
+
+- `git diff --check`, `npm run check:owner-dashboard`, `npm run check:store-admin-assignment`, `npm run check:owner-access`, `npm run check:staff-entry`, `npm run check:owner-settings-sync-release-gate`, `npm run check`, and `npm run build` passed.
+- Commit `de1b6db` was pushed to `origin/codex/staff-entry-session-recovery`.
+- Hosting only was deployed to `qrproduct-3340b`; live assets are `assets/index-DGYLo6IW.js` and `assets/index-DZyFSCOK.css`.
+- `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token` returned HTTP 200.
+- Functions / Firestore rules / indexes / storage were not deployed because this change only affected client UI, context state, checks, styles, and docs.
+
 ## 2026-06-20 Owner Settings Sync Round 1
 
 ### Purpose
