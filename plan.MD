@@ -27,6 +27,14 @@
 - `npm run check`
 - `npm run build`
 
+### Verification Results
+
+- `git diff --check`, `npm run check:checkout`, `npm run check:staff-table-detail`, `npm run check`, and `npm run build` passed.
+- Commit `9f88f7b` was pushed to `origin/codex/staff-entry-session-recovery`.
+- Hosting only was deployed to Firebase project `qrproduct-3340b`; Functions, Firestore rules, indexes, and Storage rules were not deployed.
+- Live Hosting assets are `assets/index-Dm8k8zYH.js` and `assets/index-DcmINQBY.css`.
+- Route checks returned 200 for `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token`.
+
 ## 2026-06-21 Google Login Redirect Recovery Hotfix
 
 ### Purpose
