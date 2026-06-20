@@ -14,8 +14,10 @@ export default function OwnerStoreDashboard({
   dashboard,
   error,
   loading,
+  ownerActiveStoreId,
   ownerEmailSavingStoreId,
   storeNameSavingStoreId,
+  onManageStore,
   onOwnerEmailSave,
   onStoreNameSave,
   onRefresh,
@@ -49,9 +51,11 @@ export default function OwnerStoreDashboard({
           </div>
 
           <OwnerStoreTable
+            ownerActiveStoreId={ownerActiveStoreId}
             ownerEmailSavingStoreId={ownerEmailSavingStoreId}
             storeNameSavingStoreId={storeNameSavingStoreId}
             stores={dashboard.stores}
+            onManageStore={onManageStore}
             onOwnerEmailSave={onOwnerEmailSave}
             onStoreNameSave={onStoreNameSave}
           />
@@ -62,9 +66,11 @@ export default function OwnerStoreDashboard({
 }
 
 function OwnerStoreTable({
+  ownerActiveStoreId,
   ownerEmailSavingStoreId,
   storeNameSavingStoreId,
   stores,
+  onManageStore,
   onOwnerEmailSave,
   onStoreNameSave,
 }) {
@@ -94,6 +100,7 @@ function OwnerStoreTable({
             <th>未会計</th>
             <th>累計売上</th>
             <th>最終利用</th>
+            <th>詳細</th>
           </tr>
         </thead>
         <tbody>
@@ -166,6 +173,15 @@ function OwnerStoreTable({
               <td className="owner-store-table__number">{store.openOrderCount}件</td>
               <td className="owner-store-table__amount">{formatOwnerCurrency(store.allTimeSales)}</td>
               <td className="owner-store-table__date">{formatOwnerDateTime(store.lastActivityAt) || '-'}</td>
+              <td>
+                <button
+                  type="button"
+                  onClick={() => onManageStore(store)}
+                  className={`owner-store-manage-button${ownerActiveStoreId === store.id ? ' is-active' : ''}`}
+                >
+                  {ownerActiveStoreId === store.id ? '管理中' : '詳細・管理'}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>

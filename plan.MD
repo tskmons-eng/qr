@@ -1,5 +1,45 @@
 # QR System Plan
 
+## 2026-06-21 Owner Store Detail And Super Admin Management
+
+### Purpose
+
+- `/owner` の店舗一覧から、その店舗の詳細を把握し、スーパー管理者が対象店舗のオーナーと同じ管理画面権限で入れるようにする。
+- 権限付与はユーザー様のスーパー管理者アカウントに限定し、通常オーナー・店舗管理者・スタッフの導線は変えない。
+
+### Current Confirmation
+
+- Firestore rules は `isSuper()` を `canManageStore(storeId)` に含めており、Firebase権限上はスーパー管理者が全店舗を管理できる。
+- 現在の `StoreContext` は Googleユーザーの `storeId` を `storeAdminEmails/{email}` または自分の `uid` に決めるため、`/owner` で見ている任意店舗を管理画面の対象店舗にする導線がない。
+- `/owner` の店舗一覧は店舗名、店舗コード、名義メール、売上、未会計、最終利用を表示しているが、対象店舗として管理画面へ入る操作がない。
+
+### Change Policy
+
+- スーパー管理者だけが `ownerActiveStoreId` を選べるようにし、通常ユーザーが localStorage を触っても無視する。
+- 選択した `storeId` は `stores/{storeId}` が存在する場合だけ管理対象にする。存在しない場合は解除する。
+- 管理画面では選択中の店舗が分かるバナーを表示し、`/owner` に戻る導線を置く。
+- `stores`, `orders`, `orderItems`, `checks`, `tables`, `products`, `staffMembers` のデータ移行や削除はしない。Firestore rules は既存の `isSuper()` 境界を使い、広げない。
+
+### Impact Scope
+
+- `src/contexts/StoreContext.jsx`
+- `src/pages/owner/OwnerPage.jsx`
+- `src/components/owner/OwnerStoreDashboard.jsx`
+- `src/pages/admin/AdminLayout.jsx`
+- `src/styles/owner-dashboard.css`
+- `src/styles/admin-layout.css`
+- `scripts/check-owner-dashboard.mjs`
+- `scripts/check-store-admin-assignment.mjs`
+
+### Verification
+
+- `git diff --check`
+- `npm run check:owner-dashboard`
+- `npm run check:store-admin-assignment`
+- `npm run check:owner-access`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-20 Owner Settings Sync Round 1
 
 ### Purpose

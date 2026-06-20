@@ -113,7 +113,7 @@
 
 .owner-store-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 1180px;
   border-collapse: collapse;
 }
 
@@ -259,6 +259,24 @@
 .owner-store-status.is-paused {
   color: #991b1b;
   background: #fee2e2;
+}
+
+.owner-store-manage-button {
+  padding: 7px 10px;
+  color: #ffffff;
+  background: #1f2937;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: var(--font-weight-label);
+  white-space: nowrap;
+}
+
+.owner-store-manage-button.is-active {
+  color: #14532d;
+  background: #dcfce7;
+  cursor: default;
 }
 
 @media (max-width: 760px) {

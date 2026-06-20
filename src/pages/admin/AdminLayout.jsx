@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStore } from '../../contexts/StoreContext'
+import { isSuperAdminEmail } from '../../lib/ownerIdentity'
 import { signOutCurrentUser } from '../../services/authSessionService'
-import { loadStoreCode } from '../../services/settingsService'
+import { loadStoreIdentity } from '../../services/settingsService'
 import CategoryPage from './CategoryPage'
 import HistoryPage from './HistoryPage'
 import ProductPage from './ProductPage'
@@ -25,18 +26,24 @@ const tabs = [
 
 export default function AdminLayout() {
   const navigate = useNavigate()
-  const { storeId } = useStore()
+  const { clearOwnerStore, ownerActiveStoreId, storeId } = useStore()
   const { user } = useAuth()
-  const [storeCode, setStoreCode] = useState('')
+  const [storeIdentity, setStoreIdentity] = useState({ storeCode: '', storeName: '' })
+  const isOwnerManagedStore = Boolean(ownerActiveStoreId) && isSuperAdminEmail(user?.email?.trim().toLowerCase())
 
   useEffect(() => {
     if (!storeId || !user || user.isAnonymous) return
-    loadStoreCode(storeId).then(setStoreCode)
+    loadStoreIdentity(storeId).then(setStoreIdentity)
   }, [storeId, user])
 
   async function handleLogout() {
     await signOutCurrentUser()
     navigate('/login')
+  }
+
+  function handleBackToOwner() {
+    clearOwnerStore()
+    navigate('/owner')
   }
 
   return (
@@ -45,11 +52,21 @@ export default function AdminLayout() {
         <div className="admin-layout__header-main">
           <h1 className="admin-layout__title">管理画面</h1>
           <NavLink to="/staff" className="admin-layout__staff-link">← スタッフ画面</NavLink>
+          {isOwnerManagedStore && (
+            <button type="button" onClick={handleBackToOwner} className="admin-layout__owner-return">
+              ← オーナー一覧
+            </button>
+          )}
         </div>
         <div className="admin-layout__header-actions">
-          {storeCode && (
+          {isOwnerManagedStore && storeIdentity.storeName && (
+            <span className="admin-layout__owner-store">
+              代理管理: <span className="admin-layout__owner-store-name">{storeIdentity.storeName}</span>
+            </span>
+          )}
+          {storeIdentity.storeCode && (
             <span className="admin-layout__store-code">
-              店舗コード: <span className="admin-layout__store-code-value">{storeCode}</span>
+              店舗コード: <span className="admin-layout__store-code-value">{storeIdentity.storeCode}</span>
             </span>
           )}
           <button type="button" onClick={handleLogout} className="admin-layout__logout">

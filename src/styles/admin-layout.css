@@ -38,6 +38,26 @@
   text-decoration: none;
 }
 
+.admin-layout__owner-return {
+  padding: 4px 9px;
+  color: #ffffff;
+  background: #3b3b3b;
+  border: 1px solid #666666;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.admin-layout__owner-store {
+  color: #fef3c7;
+  font-size: 13px;
+}
+
+.admin-layout__owner-store-name {
+  color: #ffffff;
+  font-weight: var(--font-weight-label);
+}
+
 .admin-layout__store-code {
   color: #aaaaaa;
   font-size: 13px;

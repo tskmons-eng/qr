@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { isSuperAdminEmail } from '../lib/ownerIdentity'
 import { useAuth } from './AuthContext'
 
 const StoreContext = createContext(null)
+const OWNER_ACTIVE_STORE_ID_KEY = 'ownerActiveStoreId'
 
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -13,6 +15,7 @@ function generateCode() {
 export function StoreProvider({ children }) {
   const { user } = useAuth()
   const [storeId, setStoreId] = useState(null)
+  const [ownerActiveStoreId, setOwnerActiveStoreId] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -20,7 +23,9 @@ export function StoreProvider({ children }) {
     setLoading(true)
 
     if (!user) {
+      localStorage.removeItem(OWNER_ACTIVE_STORE_ID_KEY)
       setStoreId(null)
+      setOwnerActiveStoreId(null)
       setLoading(false)
       return
     }
@@ -60,6 +65,21 @@ export function StoreProvider({ children }) {
     // Googleユーザー: stores/{uid} を初期化
     async function initStore() {
       const normalizedEmail = user.email?.trim().toLowerCase()
+      if (isSuperAdminEmail(normalizedEmail)) {
+        const selectedStoreId = localStorage.getItem(OWNER_ACTIVE_STORE_ID_KEY)
+        if (selectedStoreId) {
+          const selectedStoreSnap = await getDoc(doc(db, 'stores', selectedStoreId))
+          if (selectedStoreSnap.exists()) {
+            setStoreId(selectedStoreId)
+            setOwnerActiveStoreId(selectedStoreId)
+            setLoading(false)
+            return
+          }
+          localStorage.removeItem(OWNER_ACTIVE_STORE_ID_KEY)
+          setOwnerActiveStoreId(null)
+        }
+      }
+
       if (normalizedEmail) {
         const assignmentSnap = await getDoc(doc(db, 'storeAdminEmails', normalizedEmail))
         const assignedStoreId = assignmentSnap.exists() ? assignmentSnap.data().storeId : null
@@ -94,6 +114,7 @@ export function StoreProvider({ children }) {
         createdAt: serverTimestamp(),
       }, { merge: true })
       setStoreId(user.uid)
+      setOwnerActiveStoreId(null)
       setLoading(false)
     }
 
@@ -115,8 +136,34 @@ export function StoreProvider({ children }) {
     setStoreId(id)
   }
 
+  function activateOwnerStore(id) {
+    if (!user || user.isAnonymous || !isSuperAdminEmail(user.email?.trim().toLowerCase())) return false
+    localStorage.setItem(OWNER_ACTIVE_STORE_ID_KEY, id)
+    setOwnerActiveStoreId(id)
+    setStoreId(id)
+    return true
+  }
+
+  function clearOwnerStore() {
+    localStorage.removeItem(OWNER_ACTIVE_STORE_ID_KEY)
+    setOwnerActiveStoreId(null)
+    if (user && !user.isAnonymous && isSuperAdminEmail(user.email?.trim().toLowerCase())) {
+      setStoreId(user.uid)
+    }
+  }
+
   return (
-    <StoreContext.Provider value={{ storeId, loading, clearDeviceStore, setDeviceStore }}>
+    <StoreContext.Provider
+      value={{
+        storeId,
+        loading,
+        ownerActiveStoreId,
+        activateOwnerStore,
+        clearDeviceStore,
+        clearOwnerStore,
+        setDeviceStore,
+      }}
+    >
       {children}
     </StoreContext.Provider>
   )

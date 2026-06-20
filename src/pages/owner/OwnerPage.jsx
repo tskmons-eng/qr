@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import OwnerAllowedEmailForm from '../../components/owner/OwnerAllowedEmailForm'
 import OwnerAllowedEmailList from '../../components/owner/OwnerAllowedEmailList'
 import OwnerHeader from '../../components/owner/OwnerHeader'
 import OwnerStoreDashboard from '../../components/owner/OwnerStoreDashboard'
 import { useAuth } from '../../contexts/AuthContext'
+import { useStore } from '../../contexts/StoreContext'
 import { normalizeOwnerEmail, validateOwnerEmail } from '../../lib/ownerAccess'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { loadOwnerDashboardData, updateStoreAdminEmail, updateStoreName } from '../../services/ownerDashboardService'
@@ -14,7 +16,9 @@ import {
 } from '../../services/ownerAccessService'
 
 export default function OwnerPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
+  const { activateOwnerStore, ownerActiveStoreId } = useStore()
   const [activeTab, setActiveTab] = useState('stores')
   const [allowed, setAllowed] = useState([])
   const [dashboard, setDashboard] = useState(null)
@@ -104,6 +108,15 @@ export default function OwnerPage() {
     }
   }
 
+  function handleManageStore(store) {
+    const activated = activateOwnerStore(store.id)
+    if (!activated) {
+      setDashboardError('この操作はスーパー管理者だけが利用できます')
+      return
+    }
+    navigate('/admin/settings')
+  }
+
   return (
     <div className="owner-page">
       <OwnerHeader onSignOut={signOutCurrentUser} />
@@ -131,7 +144,9 @@ export default function OwnerPage() {
             error={dashboardError}
             loading={dashboardLoading}
             ownerEmailSavingStoreId={ownerEmailSavingStoreId}
+            ownerActiveStoreId={ownerActiveStoreId}
             storeNameSavingStoreId={storeNameSavingStoreId}
+            onManageStore={handleManageStore}
             onOwnerEmailSave={handleStoreAdminEmailSave}
             onStoreNameSave={handleStoreNameSave}
             onRefresh={loadDashboard}
