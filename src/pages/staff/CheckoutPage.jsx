@@ -206,20 +206,21 @@ export default function CheckoutPage() {
             total={totals.total}
             taxAmount={totals.taxAmount}
             taxRate={taxRate}
-            receivedCash={receivedCash}
-            received={totals.received}
-            change={totals.change}
             onDiscountTypeChange={changeDiscountType}
             onDiscountValueChange={setDiscountValue}
             onDiscountNoteChange={setDiscountNote}
-            onReceivedCashChange={setReceivedCash}
           />
         </div>
       </div>
       <CheckoutConfirmBar
+        change={totals.change}
         disabled={totals.change === null}
         errorMessage={checkoutError}
+        onReceivedCashChange={setReceivedCash}
+        received={totals.received}
+        receivedCash={receivedCash}
         submitting={submitting}
+        total={totals.total}
         onConfirm={handleConfirm}
       />
       <StaffBottomNav

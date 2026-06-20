@@ -22,10 +22,6 @@
   background: #fff;
 }
 
-.checkout-panel.is-payment {
-  margin-top: 12px;
-}
-
 .checkout-panel__title {
   margin-bottom: 10px;
   color: #555;
@@ -119,7 +115,7 @@
 
 .checkout-cash-presets {
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .checkout-cash-presets button {
@@ -144,25 +140,25 @@
 }
 
 .checkout-cash-input {
-  padding: 12px;
-  font-size: 22px;
+  padding: 10px 12px;
+  font-size: 20px;
   text-align: right;
 }
 
 .checkout-change {
   display: flex;
   justify-content: space-between;
-  margin-top: 1px;
-  padding: 16px;
+  padding: 9px 10px;
+  border-radius: 8px;
   color: #16a34a;
   background: #f0fdf4;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
 }
 
 .checkout-shortage {
-  margin-top: 1px;
-  padding: 12px 16px;
+  padding: 8px 10px;
+  border-radius: 8px;
   color: #dc2626;
   background: #fef2f2;
   font-size: 14px;
@@ -180,9 +176,25 @@
   padding: 10px 16px;
   background: #fff;
   border-top: 1px solid #eee;
+  box-shadow: 0 -8px 20px rgb(17 24 39 / 8%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.checkout-confirm-bar button {
+.checkout-confirm-bar__cash {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-confirm-bar__cash-title {
+  margin-bottom: 6px;
+  color: #555555;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.checkout-confirm-bar__submit {
   width: 100%;
   min-width: 0;
   padding: 15px;
@@ -195,7 +207,7 @@
   overflow-wrap: anywhere;
 }
 
-.checkout-confirm-bar button:disabled {
+.checkout-confirm-bar__submit:disabled {
   background: #ccc;
   cursor: not-allowed;
 }

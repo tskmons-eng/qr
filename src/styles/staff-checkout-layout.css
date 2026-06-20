@@ -52,7 +52,7 @@
   min-height: 0;
   overflow: hidden;
   overscroll-behavior: contain;
-  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 88px);
+  padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 270px);
 }
 
 .checkout-page__items-scroll {

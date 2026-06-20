@@ -1,5 +1,32 @@
 # QR System Plan
 
+## 2026-06-21 Checkout Cash Input Fixed Action Area
+
+### Purpose
+
+- 会計画面で、注文明細や割引・合計の確認は必要に応じてスクロールしても、`お預かり金額` の入力フォームと `会計を確定する` 操作はスクロール領域へ入れない。
+- 現場で会計時に入力欄を探す状態を避け、下部の操作エリアで金額入力から確定まで完結させる。
+
+### Current Confirmation
+
+- `CheckoutPage` は `CheckoutPaymentPanel` を `.checkout-page__payment` に置いている。
+- `.checkout-page__payment` は `overflow-y: auto` のため、`CheckoutPaymentPanel` 内の `お預かり金額` 入力欄までスクロール対象になっている。
+- `CheckoutConfirmBar` は固定配置だが、現状は確定ボタンとエラー表示だけを持つ。
+
+### Change Policy
+
+- `CheckoutPaymentPanel` は商品小計、割引、合計表示までに限定する。
+- `お預かり金額` のプリセット、入力欄、不足/お釣り表示は固定の `CheckoutConfirmBar` 側へ移す。
+- 会計計算、会計確定command、注文/会計データ構造、Firestore rules、Functions、indexes、storage は変更しない。
+
+### Verification
+
+- `git diff --check`
+- `npm run check:checkout`
+- `npm run check:staff-table-detail`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-21 Google Login Redirect Recovery Hotfix
 
 ### Purpose
