@@ -1,5 +1,50 @@
 # QR System Plan
 
+## 2026-06-20 Owner Settings Sync Round 1
+
+### Purpose
+
+- スーパー管理者、店舗オーナー、スタッフ設定の境界を壊さず、許可メール、店舗名、管理者メール名義を同期して扱えるようにする。
+- 注文パネルのフード/ドリンク表示は、各項目に `ドリンク` / `フード` と文字を付けるのではなく、枠色などの無駄のないUIで見分ける。
+
+### Current Confirmation
+
+- `/owner` の許可メールは `ownerAccessService`、管理画面の `管理者・キッチン アクセス許可` は `settingsService` から同じ `allowedEmails` を扱っているが、購読方式と保存ドキュメント形状がそろっていない。
+- `/owner` の店舗一覧は `storeAdminEmails/{email}` と `stores/{storeId}.ownerEmail` を更新する管理者メール変更UIを既に持っている。
+- `StoreContext` は `stores/{storeId}.storeName` を作成し、`ownerDashboard` は同じ店舗名を表示しているが、管理画面の店舗コードカードには店舗名表示・編集がない。
+- 顧客カテゴリタブは現在、各カテゴリに `ドリンク` / `フード` の文字バッジを表示している。
+
+### User UI Preference
+
+- ユーザー様は、フード/ドリンクの分類を各項目の文字ラベルで増やすより、枠色や控えめな視覚差で処理する無駄のないUIを重視している。
+- 店舗名は店舗コードより上に表示し、店舗名設定は管理者・キッチンアクセス許可の近くへ整理する。
+
+### Parallel Work Documents
+
+- `docs/owner-settings-sync-round1/README.md`
+- `docs/owner-settings-sync-round1/01-owner-allowed-email-sync.md`
+- `docs/owner-settings-sync-round1/02-order-category-visual-treatment.md`
+- `docs/owner-settings-sync-round1/03-store-name-settings-sync.md`
+- `docs/owner-settings-sync-round1/04-owner-admin-email-transfer.md`
+- `docs/owner-settings-sync-round1/05-integration-release-gate.md`
+
+### Change Policy
+
+- `allowedEmails` はGoogleログイン許可、`storeAdminEmails` は既存店舗への管理者割当として責務を分けたままにする。
+- 店舗名変更や管理者メール名義変更で `storeId` を作り直さない。注文、会計、商品、席、スタッフデータは移行しない。
+- 各担当MD単体では Firebase deploy をしない。最終deploy判断は `05-integration-release-gate.md` に集約する。
+
+### Verification
+
+- `git diff --check`
+- `npm run check:owner-access`
+- `npm run check:owner-dashboard`
+- `npm run check:store-admin-assignment`
+- `npm run check:settings`
+- `npm run check:customer-cart`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-20 Restaurant UX Round 4
 
 ### Purpose
