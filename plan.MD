@@ -84,6 +84,7 @@
 - Change policy: `check:owner-settings-sync-release-gate` を追加し、通常モードで配線と責務分離、`--final` で clean git、push済み、最終チェック実行を強制する。deploy対象はHostingのみ候補とし、Functions/rules/indexes/storageは差分がないためdeployしない。
 - Impact scope: `scripts/check-owner-settings-sync-release-gate.mjs`, `package.json`, `docs/owner-settings-sync-round1/05-integration-release-gate.md`, `docs/owner-settings-sync-round1/README.md` if needed, and this plan.
 - Verification: `npm run check:owner-settings-sync-release-gate`, `git diff --check`, listed owner/customer checks, `npm run check`, `npm run build`, commit/push後に `npm run check:owner-settings-sync-release-gate -- --final`。
+- Verification results: final gate passed after commit/push. Hosting only was deployed to `qrproduct-3340b`; live assets were `assets/index-DD8bA5mZ.js` and `assets/index-B9Fvv4Sa.css`; `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token` returned HTTP 200. Functions / Firestore rules / indexes / storage were not deployed.
 
 ## 2026-06-20 Restaurant UX Round 4
 

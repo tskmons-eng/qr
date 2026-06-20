@@ -60,8 +60,8 @@
 
 ## Completion Notes
 
-- Final gate status:
-- Checks:
-- Firebase deploy:
-- Live verification:
-- Remaining risk:
+- Final gate status: passed after commit/push. `npm run check:owner-settings-sync-release-gate -- --final` confirmed clean git, pushed commits, owner-settings integration wiring, and local verification commands.
+- Checks: `git diff --check`, `npm run check:owner-settings-sync-release-gate`, `npm run check:owner-access`, `npm run check:owner-dashboard`, `npm run check:store-admin-assignment`, `npm run check:settings`, `npm run check:customer-cart`, `npm run check`, and `npm run build` passed.
+- Firebase deploy: Hosting only was deployed to `qrproduct-3340b`. Functions / Firestore rules / indexes / storage were not deployed because this round had no such diffs.
+- Live verification: live HTML references `assets/index-DD8bA5mZ.js` and `assets/index-B9Fvv4Sa.css`. `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token` returned HTTP 200.
+- Remaining risk: no production data write audit was run; this gate verified source, build, Hosting release, and route availability only.
