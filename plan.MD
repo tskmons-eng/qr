@@ -29,6 +29,15 @@
 - `npm run build`
 - Live Hosting asset に `auth/popup-closed-by-user` fallback が含まれることを確認する。
 
+### Verification Results
+
+- `git diff --check`, `npm run check:staff-entry`, `npm run check`, and `npm run build` passed.
+- Commit `1107004` was pushed to `origin/codex/staff-entry-session-recovery`.
+- Hosting only was deployed to Firebase project `qrproduct-3340b`; Functions, Firestore rules, indexes, and Storage rules were not deployed.
+- Live Hosting assets are `assets/index-sn8uPldh.js` and `assets/index-Dv_FLdsB.css`.
+- Route checks returned 200 for `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token`.
+- The live JS asset contains `auth/popup-closed-by-user` fallback and the new user-facing Firebase Auth failure hints.
+
 ## 2026-06-21 Google Login Button No-Action Hotfix
 
 ### Purpose
