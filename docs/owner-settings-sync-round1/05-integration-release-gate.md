@@ -21,9 +21,17 @@
 - フード/ドリンク表示が文字ラベルの重複ではなく、枠色などの省スペースな視覚差になっていること。
 - 03と04が同じ `/owner` 店舗テーブルを触った場合、列幅・入力幅・保存ボタン・モバイル横スクロールが破綻していないこと。
 
+## Gate Tooling
+
+- 通常確認は `npm run check:owner-settings-sync-release-gate` で行う。
+- commit / push 後の最終確認は `npm run check:owner-settings-sync-release-gate -- --final` で行う。
+- `--final` は clean git、upstreamへpush済み、下記 Final Verification の実行を強制する。
+- `package.json` の `npm run check` に通常ゲートを組み込み、今後の通常チェックでも owner設定同期の統合条件を確認する。
+
 ## Final Verification
 
 - `git diff --check`
+- `npm run check:owner-settings-sync-release-gate`
 - `npm run check:owner-access`
 - `npm run check:owner-dashboard`
 - `npm run check:store-admin-assignment`
@@ -31,14 +39,24 @@
 - `npm run check:customer-cart`
 - `npm run check`
 - `npm run build`
+- `npm run check:owner-settings-sync-release-gate -- --final`
 
 ## Deploy Decision
 
 - 各担当MDでは Firebase deploy をしない。
+- project が `qrproduct-3340b` であることを確認してから判断する。
 - UIのみの変更なら Hosting deploy を候補にする。
+- 今回の統合で Functions 差分がない場合、Functions はdeployしない。
+- 今回の統合で Firestore rules / indexes / storage 差分がない場合、Firestore rules / indexes / storage はdeployしない。
 - Firestore rules を変えた場合は、差分と検証結果を明記して rules deploy を別途判断する。
 - Functions 差分がない限り Functions はdeployしない。
-- deploy後は Hosting asset hash、主要ルートHTTP 200、必要なら `functions:list` を確認する。
+- deploy後は live HTML asset hash、主要ルートHTTP 200、必要なら `functions:list` を確認する。
+
+## Live Verification Targets
+
+- Hosting deploy 後の `/` HTMLが新しい `assets/index-*.js` と `assets/index-*.css` を返すこと。
+- `/`, `/login`, `/admin`, `/owner`, `/staff`, `/order/test-token` が主要ルートHTTP 200を返すこと。
+- Functions / Firestore rules / indexes / storage をdeployしなかった場合は、その未deploy理由を Completion Notes に明記する。
 
 ## Completion Notes
 

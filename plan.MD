@@ -77,6 +77,14 @@
 - Impact scope: `src/lib/storeIdentity.js`, `src/services/settingsService.js`, `src/pages/admin/SettingsPage.jsx`, `src/components/admin/StoreCodeCard.jsx`, `src/services/ownerDashboardService.js`, `src/components/owner/OwnerStoreDashboard.jsx`, admin/owner CSS, `scripts/check-settings-config.mjs`, `scripts/check-owner-dashboard.mjs`, and `docs/owner-settings-sync-round1/03-store-name-settings-sync.md`.
 - Verification: `npm run check:settings`, `npm run check:owner-dashboard`, `npm run check:store-admin-assignment`, `npm run check`, `npm run build`, and `git diff --check`.
 
+### 05 Integration Release Gate Responsibility
+
+- Purpose: 01〜04の完了メモ、衝突、権限境界、UI表示、Firebase deploy対象をまとめて確認し、本番反映可否を判断できるゲートを固定する。
+- Current confirmation: 01〜04の担当MDは Completion Notes を持ち、差分はフロントエンド、チェック、ドキュメント中心で、Functions / Firestore rules / indexes / storage は変更していない。
+- Change policy: `check:owner-settings-sync-release-gate` を追加し、通常モードで配線と責務分離、`--final` で clean git、push済み、最終チェック実行を強制する。deploy対象はHostingのみ候補とし、Functions/rules/indexes/storageは差分がないためdeployしない。
+- Impact scope: `scripts/check-owner-settings-sync-release-gate.mjs`, `package.json`, `docs/owner-settings-sync-round1/05-integration-release-gate.md`, `docs/owner-settings-sync-round1/README.md` if needed, and this plan.
+- Verification: `npm run check:owner-settings-sync-release-gate`, `git diff --check`, listed owner/customer checks, `npm run check`, `npm run build`, commit/push後に `npm run check:owner-settings-sync-release-gate -- --final`。
+
 ## 2026-06-20 Restaurant UX Round 4
 
 ### Purpose
