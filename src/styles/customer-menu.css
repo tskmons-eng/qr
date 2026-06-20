@@ -62,8 +62,12 @@
 }
 
 .customer-category-tabs__button {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
-  padding: 11px 14px;
+  gap: 6px;
+  min-height: 44px;
+  padding: 9px 12px;
   color: #888;
   background: none;
   border: 0;
@@ -71,6 +75,30 @@
   cursor: pointer;
   font-size: 14px;
   white-space: nowrap;
+}
+
+.customer-category-tabs__name {
+  line-height: 1.2;
+}
+
+.customer-category-tabs__group {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.customer-category-tabs__group--drink {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.customer-category-tabs__group--food {
+  background: #fff7ed;
+  color: #c2410c;
 }
 
 .customer-category-tabs__button.is-active {

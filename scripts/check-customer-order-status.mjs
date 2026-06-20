@@ -94,7 +94,7 @@ assert.match(completePageSource, /checkoutPreview/)
 assert.match(completePageSource, /showItemPrice \|\| isCheckoutPreview/)
 assert.match(completePageSource, /会計確認/)
 assert.match(completePageSource, /カートに未注文の商品/)
-assert.match(completePageSource, /checkoutLabel=\{checkoutStep === 'confirming' \? '依頼する' : '確認'\}/)
+assert.match(completePageSource, /checkoutLabel=\{checkoutStep === 'confirming' \? '会計依頼' : '注文確認'\}/)
 
 const cartPageSource = readFileSync(new URL('../src/pages/order/CartPage.jsx', import.meta.url), 'utf8')
 assert.match(cartPageSource, /clientRequestId:\s*completedRequestId/)

@@ -253,7 +253,7 @@ export default function OrderCompletePage() {
         menuDisabled={!allowAdditionalOrders}
         onCheckout={checkoutStep === 'confirming' ? handleCheckout : undefined}
         checkoutDisabled={checkoutStep === 'sent'}
-        checkoutLabel={checkoutStep === 'confirming' ? '依頼する' : '確認'}
+        checkoutLabel={checkoutStep === 'confirming' ? '会計依頼' : '注文確認'}
         checkoutConfirmMessage={getCheckoutConfirmMessage(summary.total)}
       />
     </div>

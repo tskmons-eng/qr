@@ -65,6 +65,8 @@ export default function CustomerBottomNav({
   }
 
   const currentConfirm = confirming ? actionConfig[confirming] : null
+  const checkoutNavLabel = checkoutDisabled ? '送信済' : checkoutLabel ?? '注文確認'
+  const checkoutNavIcon = checkoutDisabled || onCheckout ? '会計' : '確認'
 
   return (
     <>
@@ -104,8 +106,8 @@ export default function CustomerBottomNav({
             disabled={checkoutDisabled}
             className={itemClassName({ active: current === 'checkout', disabled: checkoutDisabled, variant: 'checkout' })}
           >
-            <span className="customer-bottom-nav__icon">会計</span>
-            <span>{checkoutDisabled ? '送信済' : checkoutLabel ?? '会計'}</span>
+            <span className="customer-bottom-nav__icon">{checkoutNavIcon}</span>
+            <span>{checkoutNavLabel}</span>
           </button>
         </div>
       </nav>

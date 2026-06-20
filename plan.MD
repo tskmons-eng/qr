@@ -1340,3 +1340,25 @@
 - Run `npm run check`.
 - Run `npm run build`.
 - Commit, push, then deploy Hosting only if checks pass.
+
+## 2026-06-20 Customer order confirmation wording and category clarity
+
+### Context
+
+- User feedback: the customer-side bottom `会計` button looks like it starts checkout immediately; it should feel more like an order confirmation entrypoint first, then allow checkout from the confirmation screen.
+- User feedback: customer category tabs may be easier to scan if food/drink grouping is shown a little more clearly.
+
+### Decision
+
+- Customer bottom nav: default checkout entry label becomes `注文確認`, and the icon label becomes `確認` until the customer is on the actual checkout request step.
+- Order status checkout step: when the customer is confirming checkout, the bottom action reads `会計依頼` so the real checkout action is clear after entering order confirmation.
+- Customer category tabs: show a compact `フード` / `ドリンク` badge from the existing `category.group` value. Keep the category name primary and avoid making the tabs visually heavy.
+- Do not change order submission, order history data, menu records, category records, QR URLs, Firestore rules, Functions, indexes, or storage.
+
+### Verification Plan
+
+- Run `npm run check:customer-cart`.
+- Run `npm run check:customer-order-status`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit, push, then deploy Hosting only if checks pass.
