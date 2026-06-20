@@ -19,6 +19,7 @@ function shouldFallbackToRedirect(error) {
     'auth/cancelled-popup-request',
     'auth/operation-not-supported-in-this-environment',
     'auth/popup-blocked',
+    'auth/popup-closed-by-user',
   ].includes(error?.code)
 }
 

@@ -1,5 +1,34 @@
 # QR System Plan
 
+## 2026-06-21 Google Login Popup Closed Fallback Hotfix
+
+### Purpose
+
+- Google ログインで `Googleログインに失敗しました` が表示され、認証へ進めない状態を直す。
+- Popup がブラウザ側で即閉じ扱いになった場合も、汎用エラーで止めず redirect 認証へ fallback する。
+- 失敗時は原因切り分けができるよう、ユーザー様向けの短い補足を表示する。
+
+### Current Confirmation
+
+- Live Hosting asset には Firebase project / auth domain が含まれており、Firebase 設定が丸ごと抜けた状態ではない。
+- 現在の `shouldFallbackToRedirect` は `auth/popup-blocked` などを拾うが、popup が閉じた扱いの `auth/popup-closed-by-user` は fallback 対象外。
+- そのため popup が開けても即閉じ扱いになる環境では、redirect に進まず `Googleログインに失敗しました` で止まる。
+
+### Change Policy
+
+- `auth/popup-closed-by-user` を redirect fallback 対象に追加する。
+- redirect fallback へ入る前に匿名スタッフセッションがあれば sign-out する既存方針は維持する。
+- それでも失敗した場合は、Firebase Auth の代表的な失敗理由を短く表示する。
+- 店舗、注文、会計、スタッフ権限、Firestore rules、Functions、indexes、storage は変更しない。
+
+### Verification
+
+- `git diff --check`
+- `npm run check:staff-entry`
+- `npm run check`
+- `npm run build`
+- Live Hosting asset に `auth/popup-closed-by-user` fallback が含まれることを確認する。
+
 ## 2026-06-21 Google Login Button No-Action Hotfix
 
 ### Purpose

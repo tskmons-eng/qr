@@ -66,6 +66,19 @@ function clearLoginRedirect() {
   getPersistentLoginRedirectStorage()?.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
 }
 
+function getGoogleLoginErrorMessage(error) {
+  if (error?.code === 'auth/unauthorized-domain') {
+    return 'Googleログインに失敗しました。Firebase Authの承認済みドメイン設定を確認してください。'
+  }
+  if (error?.code === 'auth/operation-not-allowed') {
+    return 'Googleログインに失敗しました。Firebase AuthでGoogleログインが有効か確認してください。'
+  }
+  if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user') {
+    return 'Googleログインに失敗しました。ポップアップが閉じられたため、もう一度押してください。'
+  }
+  return GOOGLE_LOGIN_ERROR_MESSAGE
+}
+
 function getSafeLoginRedirect(search) {
   const next = new URLSearchParams(search).get('next')
   if (isSafeLoginRedirect(next)) return next
@@ -98,7 +111,7 @@ export default function LoginPage() {
         navigate(redirect, { replace: true })
       })
       .catch(event => {
-        if (active) setError(GOOGLE_LOGIN_ERROR_MESSAGE)
+        if (active) setError(getGoogleLoginErrorMessage(event))
         console.error('Google redirect sign-in failed:', event)
       })
     return () => { active = false }
@@ -143,7 +156,7 @@ export default function LoginPage() {
     } catch (event) {
       console.error('Google sign-in failed:', event)
       setGoogleStatus('')
-      setError(GOOGLE_LOGIN_ERROR_MESSAGE)
+      setError(getGoogleLoginErrorMessage(event))
     } finally {
       setGoogleLoading(false)
     }
