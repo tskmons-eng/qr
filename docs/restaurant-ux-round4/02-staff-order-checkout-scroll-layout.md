@@ -72,3 +72,10 @@
 - Fix: Made the staff table detail page a viewport-height shell with only the order/seating content scrolling internally, while the bottom action area remains reachable. Checkout now separates the item-list scroll area from the payment/confirmation scroll area so long lists do not push the final action out of reach.
 - Data impact: Layout/CSS only for staff table detail and checkout. No order, checkout, menu, history, rules, indexes, storage, or Functions data changes.
 - Verification target: `npm run check:staff-table-detail`, `npm run check:checkout`, `npm run check:staff-menu`, `npm run check`, `npm run build`, and final release gate.
+
+## 2026-06-20 Order Menu Scroll Hardening
+
+- Finding: The order-add screen still depended on fragile viewport sizing around fixed bars, so some devices did not behave like a proper internal scroll surface.
+- Fix: Hardened the staff order-add shell with viewport max-height, mobile momentum scrolling, and explicit vertical touch handling for the product list.
+- Data impact: Staff order-add UI/CSS only. Order submission, menu data, order history, QR URLs, rules, indexes, storage, and Functions are unchanged.
+- Verification target: `npm run check:staff-menu`, `npm run check`, `npm run build`, and Hosting-only deploy verification.

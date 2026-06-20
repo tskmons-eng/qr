@@ -25,6 +25,9 @@ assert.ok(styles.includes('grid-template-columns: minmax(0, 1fr) auto'), 'option
 assert.ok(styles.includes('overflow-wrap: anywhere'), 'long option labels should wrap without covering controls')
 assert.ok(styles.includes('.staff-menu__scroll'), 'staff menu should define the bounded product scroll area')
 assert.ok(styles.includes('overscroll-behavior: contain'), 'staff menu scroll area should not fight the staff shell pull gesture')
+assert.ok(styles.includes('-webkit-overflow-scrolling: touch'), 'staff menu should use mobile momentum scrolling inside the bounded area')
+assert.ok(styles.includes('touch-action: pan-y'), 'staff menu scroll area should keep vertical touch gestures on the list')
+assert.ok(styles.includes('max-height: calc(100dvh - 56px)'), 'staff menu should cap the shell to the visible viewport')
 assert.ok(styles.includes('bottom: var(--staff-bottom-nav-offset, 74px)'), 'staff menu submit bar should avoid the staff bottom nav')
 assert.ok(styles.includes('.staff-menu.has-cart .staff-menu__scroll'), 'staff menu should leave room for the submit bar when cart has items')
 

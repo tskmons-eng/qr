@@ -125,18 +125,20 @@ export default function MenuPage() {
       )}
 
       <CustomerMenuHeader tableName={table.tableName} />
-      <CustomerCategoryTabs
-        categories={categories}
-        activeCategoryId={activeCat}
-        onSelect={setActiveCat}
-      />
-      <CustomerMenuProductList
-        products={filteredProducts}
-        cartItems={items}
-        customerMenuTapToAddEnabled={storeConfig.customerMenuTapToAddEnabled !== false}
-        onAddProduct={handleAddProduct}
-        onSetSimpleProductQuantity={setSimpleProductQuantity}
-      />
+      <div className="customer-menu__scroll">
+        <CustomerCategoryTabs
+          categories={categories}
+          activeCategoryId={activeCat}
+          onSelect={setActiveCat}
+        />
+        <CustomerMenuProductList
+          products={filteredProducts}
+          cartItems={items}
+          customerMenuTapToAddEnabled={storeConfig.customerMenuTapToAddEnabled !== false}
+          onAddProduct={handleAddProduct}
+          onSetSimpleProductQuantity={setSimpleProductQuantity}
+        />
+      </div>
 
       <CustomerBottomNav
         current="menu"

@@ -76,3 +76,10 @@
 - Fix: Moved the tap/click/keyboard handler and focus style to the root `.customer-product` row. Quantity buttons, inputs, and option controls still stop propagation and keep their existing behavior.
 - Data impact: Customer menu UI only. Cart command IDs, option selection, order submission, order history, menu data, QR URL, rules, indexes, storage, and Functions are unchanged.
 - Verification target: `npm run check:customer-cart`, `npm run check`, `npm run build`, and final release gate.
+
+## 2026-06-20 Customer Menu Scroll Hardening
+
+- Finding: The customer order menu did not have a bounded internal scroll container, so it relied on page-level scrolling instead of keeping the header and bottom nav stable.
+- Fix: Added `customer-menu__scroll` around the category tabs and product list, made the page a viewport-height shell, and kept the category tabs sticky inside that scroll area.
+- Data impact: Customer menu UI/CSS only. Cart commands, option selection, order submission, menu data, order history, QR URL, rules, indexes, storage, and Functions are unchanged.
+- Verification target: `npm run check:customer-cart`, `npm run check`, `npm run build`, and Hosting-only deploy verification.

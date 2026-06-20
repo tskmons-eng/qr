@@ -1,6 +1,10 @@
 .staff-menu {
   display: flex;
+  box-sizing: border-box;
+  height: calc(100vh - 56px);
   height: calc(100dvh - 56px);
+  max-height: calc(100vh - 56px);
+  max-height: calc(100dvh - 56px);
   min-height: 420px;
   flex-direction: column;
   max-width: 600px;
@@ -43,10 +47,14 @@
 .staff-menu__scroll {
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 16px);
   background: #ffffff;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
 }
 
 .staff-menu.has-cart .staff-menu__scroll {

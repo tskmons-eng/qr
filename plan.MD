@@ -1319,3 +1319,24 @@
 - Run `npm run check`.
 - Run `npm run build`.
 - Commit, push, deploy Hosting and `functions:submitStaffOrderItemsCommand`, then verify live assets and Functions list.
+
+## 2026-06-20 Order menu internal scroll hardening
+
+### Context
+
+- User feedback: the order screen still does not behave like a proper scrollable screen.
+- Local confirmation: the customer menu page has no bounded internal scroll container, and the staff order-add page relies on a weak viewport calculation around fixed bars.
+
+### Decision
+
+- Customer menu: make the page a viewport-height shell and put category tabs plus product rows in `customer-menu__scroll`.
+- Staff order-add: keep the existing bounded scroll region but harden viewport height, max-height, mobile momentum scrolling, and bottom fixed-bar spacing.
+- Keep product row behavior, cart behavior, option modal, order submission, menu data, order history, QR URLs, Firestore rules, Functions, indexes, and storage unchanged.
+
+### Verification Plan
+
+- Run `npm run check:staff-menu`.
+- Run `npm run check:customer-cart`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit, push, then deploy Hosting only if checks pass.
