@@ -28,6 +28,16 @@
 - `npm run build`
 - Live `/login` Google ボタンのクリック後に Google 認証画面または popup が開くことを確認する。
 
+### Verification Results
+
+- `git diff --check`, `npm run check:staff-entry`, `npm run check`, and `npm run build` passed.
+- Commit `9590c92` was pushed to `origin/codex/staff-entry-session-recovery`.
+- Hosting only was deployed to Firebase project `qrproduct-3340b`; Functions, Firestore rules, indexes, and Storage rules were not deployed.
+- Live Hosting assets are `assets/index-B8tp9KPB.js` and `assets/index-Dv_FLdsB.css`.
+- Route checks returned 200 for `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token`.
+- Live `/login` DOM shows the Google button as `disabled=false`, `pointer-events=auto`, and the hit-test target is the button itself.
+- The in-app browser automation could not conclusively verify popup creation, so the final Google account sign-in step was not completed by automation.
+
 ## 2026-06-21 Checkout Cash Input Fixed Action Area
 
 ### Purpose
