@@ -40,7 +40,7 @@ export async function submitCustomerOrderItems({ items, orderId, storeId, tableI
   })
 }
 
-export async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRequestId }) {
+export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }) {
   const requestId = clientRequestId || createOrderCommandRequestId('staff-order')
   return withOrderCommandFailureLog({
     commandType: 'staff_submit_items',
@@ -50,7 +50,7 @@ export async function submitStaffOrderItems({ cart, orderId, storeId, tableId, c
     orderId,
     clientRequestId: requestId,
   }, () => {
-    const payload = { cart, orderId, storeId, tableId, clientRequestId: requestId }
+    const payload = { activeStaff, cart, orderId, storeId, tableId, clientRequestId: requestId }
     return shouldUseOrderCommandFunctions()
       ? callOrderCommandFunction('submitStaffOrderItemsCommand', payload)
       : submitStaffOrderItemsClient(payload)

@@ -401,7 +401,7 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
   })
 }
 
-async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRequestId }, request) {
+async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }, request) {
   if (!orderId || !storeId || !tableId) throw commandError('invalid-argument', 'Order, store, and table are required.')
   const db = getFirestore()
   await assertStoreAccess(db, request, storeId)
@@ -426,6 +426,7 @@ async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRe
     }
     itemsWithProducts.forEach((cartItem, index) => {
       transaction.set(itemRefs[index], withCommandFields(buildStaffOrderItemPayload({
+        activeStaff,
         cartItem,
         orderId,
         storeId,

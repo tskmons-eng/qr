@@ -27,8 +27,28 @@ const sourceAssertions = [
   },
   {
     file: 'src/pages/staff/StaffMenuPage.jsx',
-    required: ['formatOrderCommandError(error, { context: \'staffSubmit\' })', 'errorMessage={submitError}', 'operation: \'staff_submit_order\''],
+    required: ['formatOrderCommandError(error, { context: \'staffSubmit\' })', 'errorMessage={submitError}', 'operation: \'staff_submit_order\'', 'useStaffMember()', 'activeStaff,'],
     forbidden: ['alert(\'送信に失敗しました\')'],
+  },
+  {
+    file: 'src/services/orderCommandService.js',
+    required: ['export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId })', 'const payload = { activeStaff, cart, orderId, storeId, tableId, clientRequestId: requestId }'],
+    forbidden: [],
+  },
+  {
+    file: 'src/lib/orderCommandPayloads.js',
+    required: ['orderedByStaffId: activeStaff?.id ?? null', 'orderedByStaffName: activeStaff?.name ?? null'],
+    forbidden: [],
+  },
+  {
+    file: 'functions/orderCommandShared.js',
+    required: ['function buildStaffOrderItemPayload({ activeStaff, cartItem, orderId, storeId, tableId, timestamp })', 'orderedByStaffId: activeStaff?.id ?? null', 'orderedByStaffName: activeStaff?.name ?? null'],
+    forbidden: [],
+  },
+  {
+    file: 'functions/orderCommandHandlers.js',
+    required: ['async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }, request)', 'activeStaff,'],
+    forbidden: [],
   },
   {
     file: 'src/pages/staff/TableDetailPage.jsx',

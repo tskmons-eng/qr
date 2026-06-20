@@ -1292,3 +1292,30 @@
 - Run `npm run check`.
 - Run `npm run build`.
 - Commit, push, then deploy Hosting only if checks pass.
+
+## 2026-06-20 Kitchen item attribution and compact option display
+
+### Context
+
+- User feedback: kitchen item details show `〇分前 ・ スタッフ`, but the actual staff member name is not shown.
+- Local confirmation: staff order item payloads currently store only `orderedBy: 'staff'`; `activeStaff.name` is not passed through `StaffMenuPage -> submitStaffOrderItems -> orderItems`.
+- User feedback: elapsed time is too close to the dark background and needs slightly better contrast.
+- User feedback: option labels such as sauce/salt should sit next to the product name instead of occupying a separate row that makes the item taller.
+
+### Decision
+
+- For new staff-added order items, store `orderedByStaffId` and `orderedByStaffName` from the current active staff.
+- Show `orderedByStaffName` on the kitchen panel when present, with `スタッフ` as a fallback for older items.
+- Make the elapsed time a small higher-contrast chip, without making the row visually heavy.
+- Move option text into the title line beside the product name/quantity and keep wrapping compact.
+- Existing order history/menu/QR URLs remain untouched. Firestore rules/indexes/storage remain untouched. Deploy target is Hosting plus only `functions:submitStaffOrderItemsCommand`.
+
+### Verification Plan
+
+- Run `npm run check:kitchen-display`.
+- Run `npm run check:order-command-ui`.
+- Run `npm run check:order-functions-mainline`.
+- Run `npm run check:order-functions-emulator`.
+- Run `npm run check`.
+- Run `npm run build`.
+- Commit, push, deploy Hosting and `functions:submitStaffOrderItemsCommand`, then verify live assets and Functions list.

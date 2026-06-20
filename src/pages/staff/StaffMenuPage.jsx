@@ -14,6 +14,7 @@ import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { productMatchesCategory } from '../../lib/productTags'
+import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { loadCustomerMenuData } from '../../services/customerMenuService'
 import { submitStaffMenuOrder } from '../../services/staffMenuService'
 
@@ -21,6 +22,7 @@ export default function StaffMenuPage() {
   const { tableId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const { activeStaff } = useStaffMember()
   const { orderId, storeId, guestCount } = location.state || {}
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
@@ -124,6 +126,7 @@ export default function StaffMenuPage() {
         orderId,
         storeId,
         tableId,
+        activeStaff,
         clientRequestId: submitRequestIdRef.current,
       })
       setCart([])

@@ -20,7 +20,7 @@ export function withCommandFields(payload, { clientRequestId, commandType }) {
   return { ...payload, clientRequestId, orderCommandType: commandType, orderCommandVersion: ORDER_COMMAND_VERSION }
 }
 
-export function buildStaffOrderItemPayload({ cartItem, orderId, storeId, tableId, timestamp }) {
+export function buildStaffOrderItemPayload({ activeStaff, cartItem, orderId, storeId, tableId, timestamp }) {
   const { product, quantity, optionSelections = [] } = cartItem
   const extra = optionSelections.reduce((sum, option) => sum + (option.extraPrice ?? 0), 0)
   const { originalPrice, discountAmount, discountedPrice } = getDiscountedProductPrice(product)
@@ -38,6 +38,8 @@ export function buildStaffOrderItemPayload({ cartItem, orderId, storeId, tableId
     quantity,
     lineTotal: (discountedPrice + extra) * quantity,
     orderedBy: 'staff',
+    orderedByStaffId: activeStaff?.id ?? null,
+    orderedByStaffName: activeStaff?.name ?? null,
     itemStatus: 'ordered',
     optionSelections,
     orderedAt: timestamp,

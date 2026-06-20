@@ -177,15 +177,19 @@ function buildCustomerOrderItemPayload({ cartItem, orderId, storeId, tableId, ti
   })
 }
 
-function buildStaffOrderItemPayload({ cartItem, orderId, storeId, tableId, timestamp }) {
-  return buildBaseOrderItemPayload({
-    cartItem,
-    orderedBy: 'staff',
-    orderId,
-    storeId,
-    tableId,
-    timestamp,
-  })
+function buildStaffOrderItemPayload({ activeStaff, cartItem, orderId, storeId, tableId, timestamp }) {
+  return {
+    ...buildBaseOrderItemPayload({
+      cartItem,
+      orderedBy: 'staff',
+      orderId,
+      storeId,
+      tableId,
+      timestamp,
+    }),
+    orderedByStaffId: activeStaff?.id ?? null,
+    orderedByStaffName: activeStaff?.name ?? null,
+  }
 }
 
 function assertOpenOrder(order, { storeId, tableId }) {

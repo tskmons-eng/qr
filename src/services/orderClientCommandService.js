@@ -167,7 +167,7 @@ export async function submitCustomerOrderItemsClient({ items, orderId, storeId, 
   })
 }
 
-export async function submitStaffOrderItemsClient({ cart, orderId, storeId, tableId, clientRequestId }) {
+export async function submitStaffOrderItemsClient({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }) {
   const normalizedItems = normalizeOrderCommandItems(cart)
   if (normalizedItems.length === 0) throw commandError('empty-order', 'No order items were provided.')
   const orderRef = doc(db, 'orders', orderId)
@@ -187,6 +187,7 @@ export async function submitStaffOrderItemsClient({ cart, orderId, storeId, tabl
     }
     normalizedItems.forEach((cartItem, index) => {
       transaction.set(itemRefs[index], withCommandFields(buildStaffOrderItemPayload({
+        activeStaff,
         cartItem,
         orderId,
         storeId,

@@ -1,7 +1,20 @@
 import { formatKitchenElapsed, formatKitchenOrderOptions } from '../../lib/kitchenDisplay'
 
+function getKitchenOrderActorLabel(item) {
+  if (item.orderedBy === 'staff') {
+    return item.orderedByStaffName?.trim()
+      || item.staffName?.trim()
+      || item.actorStaffName?.trim()
+      || item.orderedByName?.trim()
+      || 'スタッフ'
+  }
+  if (item.orderedBy === 'customer') return 'お客様'
+  return item.orderedBy ?? '不明'
+}
+
 export default function KitchenItemRow({ item, nowMs, servedWorkflowEnabled, onCancel, onServed }) {
   const optionsText = formatKitchenOrderOptions(item.optionSelections)
+  const actorLabel = getKitchenOrderActorLabel(item)
 
   return (
     <div className="staff-kitchen-item">
@@ -9,13 +22,15 @@ export default function KitchenItemRow({ item, nowMs, servedWorkflowEnabled, onC
         <div className="staff-kitchen-item__title">
           <span className="staff-kitchen-item__name">{item.productNameSnapshot}</span>
           <span className="staff-kitchen-item__quantity">× {item.quantity}</span>
+          {optionsText && (
+            <span className="staff-kitchen-item__options">{optionsText}</span>
+          )}
         </div>
-        {optionsText && (
-          <div className="staff-kitchen-item__options">{optionsText}</div>
-        )}
         <div className="staff-kitchen-item__meta">
-          {servedWorkflowEnabled && `${formatKitchenElapsed(item.orderedAt, nowMs)}前 ・ `}
-          {item.orderedBy === 'staff' ? 'スタッフ' : 'お客様'}
+          {servedWorkflowEnabled && (
+            <span className="staff-kitchen-item__elapsed">{formatKitchenElapsed(item.orderedAt, nowMs)}前</span>
+          )}
+          <span className="staff-kitchen-item__actor">{actorLabel}</span>
         </div>
       </div>
       <div className="staff-kitchen-item__actions">

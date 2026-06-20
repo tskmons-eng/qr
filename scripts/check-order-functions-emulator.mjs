@@ -486,6 +486,7 @@ async function runStaffSubmitDedup(db, staffFunctions, productId, drinkProductId
   })
 
   const payload = {
+    activeStaff: staff,
     cart: [cartItem(productId), cartItem(drinkProductId), cartItem(productId, 2)],
     orderId,
     storeId,
@@ -498,6 +499,8 @@ async function runStaffSubmitDedup(db, staffFunctions, productId, drinkProductId
 
   const items = await queryBy(db, 'orderItems', 'clientRequestId', requestId)
   assert.equal(items.length, payload.cart.length, 'duplicate staff submit should create one set of item docs')
+  assert.ok(items.every(item => item.orderedByStaffId === staff.id), 'staff submit should store staff id on order items')
+  assert.ok(items.every(item => item.orderedByStaffName === staff.name), 'staff submit should store staff name on order items')
   assert.equal((await tableData(db, tableId)).pendingCount, payload.cart.length, 'duplicate staff submit should increment pendingCount once')
   return { itemIds: items.map(item => item.id), orderId, tableId }
 }
@@ -512,6 +515,7 @@ async function runItemStatusCounterChecks(db, staffFunctions, productId) {
     activeStaff: staff,
   })
   await call(staffFunctions, 'submitStaffOrderItemsCommand', {
+    activeStaff: staff,
     cart: [cartItem(productId), cartItem(productId), cartItem(productId)],
     orderId,
     storeId,
@@ -687,6 +691,7 @@ async function runTableMoveConsistency(db, staffFunctions, productId) {
     activeStaff: staff,
   })
   await call(staffFunctions, 'submitStaffOrderItemsCommand', {
+    activeStaff: staff,
     cart: [cartItem(productId), cartItem(productId), cartItem(productId)],
     orderId,
     storeId,

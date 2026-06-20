@@ -75,3 +75,11 @@
 - Fix: Kitchen table cards now cap their height, keep the table header visible, and scroll only the item list inside the card. Crowded tables also span two columns on wider screens and render items in two columns to show more at once.
 - Data impact: Kitchen UI only. Served/cancel commands, order data, menu data, order history, QR URL, Firestore rules, indexes, storage, and Functions are unchanged.
 - Verification target: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check`, `npm run build`, and Hosting-only deploy verification.
+
+## 2026-06-20 Kitchen Item Detail Attribution
+
+- Finding: Kitchen rows showed the generic label `スタッフ` because staff-added order items stored only `orderedBy: staff`; the active staff name was not passed into `orderItems`.
+- Fix: New staff-added order items store `orderedByStaffId` and `orderedByStaffName`; kitchen rows prefer that name and fall back to `スタッフ` for older rows. Elapsed time is now a small higher-contrast chip, and option text is inline beside the product name/quantity instead of a separate row.
+- Data impact: New order item metadata only. Existing order history, menu data, QR URLs, Firestore rules, indexes, and storage are unchanged.
+- Deploy target: Hosting plus only `functions:submitStaffOrderItemsCommand`.
+- Verification target: `npm run check:kitchen-display`, `npm run check:order-command-ui`, `npm run check:order-functions-mainline`, `npm run check:order-functions-emulator`, `npm run check`, and `npm run build`.
