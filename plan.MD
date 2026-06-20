@@ -27,6 +27,16 @@
 - `npm run check`
 - `npm run build`
 
+### Verification Results
+
+- Confirmed the live Hosting asset contains Firebase `apiKey` / `authDomain`; this was not an API config omission.
+- `git diff --check`, `npm run check:staff-entry`, `npm run check`, and `npm run build` passed.
+- Commit `2dd4c83` was pushed to `origin/codex/staff-entry-session-recovery`.
+- Hosting only was deployed to `qrproduct-3340b`; live assets are `assets/index-DnG5Np_Z.js` and `assets/index-DZyFSCOK.css`.
+- `/`, `/login`, `/admin`, `/owner`, `/staff`, and `/order/test-token` returned HTTP 200.
+- Live `/login?next=%2Fadmin` shows the Google button enabled, `pointer-events: auto`, and no browser console errors on initial load.
+- Functions / Firestore rules / indexes / storage were not deployed because this hotfix only changed login client code, a check script, and docs.
+
 ## 2026-06-21 Owner Store Detail And Super Admin Management
 
 ### Purpose
