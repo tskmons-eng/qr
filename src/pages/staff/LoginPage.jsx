@@ -124,26 +124,19 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setError('')
-    setLoading(true)
     try {
       rememberLoginRedirect(loginRedirect)
-      const result = await signInStaffWithGoogle()
-      if (result?.user && !result.user.isAnonymous) {
-        clearLoginRedirect()
-        navigate(loginRedirect, { replace: true })
-      }
+      await signInStaffWithGoogle()
     } catch (event) {
       console.error('Google sign-in failed:', event)
       setError(GOOGLE_LOGIN_ERROR_MESSAGE)
-    } finally {
-      setLoading(false)
     }
   }
 
   return (
     <div className="staff-auth-login">
       <h1 className="staff-auth-login__title">スタッフログイン</h1>
-      <StaffGoogleLoginButton disabled={loading} onClick={handleGoogle} />
+      <StaffGoogleLoginButton disabled={false} onClick={handleGoogle} />
       <div className="staff-auth-login__divider">
         <span className="staff-auth-login__divider-text">またはメールで</span>
       </div>

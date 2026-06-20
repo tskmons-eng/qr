@@ -1,5 +1,32 @@
 # QR System Plan
 
+## 2026-06-21 Google Login Redirect Recovery Hotfix
+
+### Purpose
+
+- Google認証後に `/login` へ戻ったまま、元の管理画面へ遷移しない再発を止める。
+- 以前の安定策どおり、Googleログインはredirect本線に戻し、Googleボタンをメールログイン用の共有loadingで無効化しない。
+
+### Current Confirmation
+
+- Live Hosting assetには Firebase `apiKey` / `authDomain` が入っており、API設定が丸ごと抜けた状態ではない。
+- 現在の `staffLoginService` は `signInWithPopup()` を優先し、失敗時だけ `signInWithRedirect()` へfallbackしている。
+- 現在の `LoginPage` はGoogleボタンにも `loading` を渡しており、redirectが滞った場合にGoogleボタンが無効化される再発リスクがある。
+
+### Change Policy
+
+- Googleログインは `signInWithRedirect()` のみに戻す。
+- redirect前に `staffLoginRedirect` を sessionStorage/localStorage に保存し、復帰後に `getRedirectResult()` または `onAuthStateChanged` から安全な `next` へ戻す。
+- Googleボタンはメールログインの `loading` でdisabledにしない。
+- 店舗、注文、会計、スタッフ、Firestore rules、Functions、indexes、storage は変更しない。
+
+### Verification
+
+- `git diff --check`
+- `npm run check:staff-entry`
+- `npm run check`
+- `npm run build`
+
 ## 2026-06-21 Owner Store Detail And Super Admin Management
 
 ### Purpose
