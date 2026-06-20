@@ -54,6 +54,10 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
+- Result: 顧客カテゴリタブの `ドリンク` / `フード` 可視文字バッジを外し、既存の `category.group` から付けるボタンクラス、左ライン、小さな点、薄い背景差で分類を見分ける表示に変更した。スタッフ席詳細とキッチンフィルタは操作意味のある別表示のため、この担当では変更していない。
 - Checks:
-- Remaining risk:
+  - `git diff --check` passed.
+  - `npm run check:customer-cart` passed.
+  - `npm run check` passed.
+  - `npm run build` passed.
+- Remaining risk: 実店舗データのカテゴリ名が長い場合の横スクロール見え方は最終統合ゲートで実画面確認する。Firebase Hosting deploy は05の統合判断まで未実行。

@@ -45,6 +45,14 @@
 - `npm run check`
 - `npm run build`
 
+### 02 Order Category Visual Treatment Responsibility
+
+- Purpose: 顧客注文パネルのカテゴリタブで、`ドリンク` / `フード` の可視文字バッジを増やさず、省スペースな視覚差で分類を残す。
+- Current confirmation: 対象は `CustomerCategoryTabs` の顧客カテゴリタブ。スタッフ席詳細とキッチンフィルタは操作意味を持つ別表示のため、この担当では触らない。
+- Change policy: category group は既存の `category.group` を使い、ボタン自体のクラス、左ライン、控えめな点、薄い背景差で表現する。画面上の常時表示テキストはカテゴリ名を主役にする。
+- Impact scope: `src/components/order/CustomerCategoryTabs.jsx`, `src/styles/customer-menu.css`, `scripts/check-customer-cart.mjs`, and `docs/owner-settings-sync-round1/02-order-category-visual-treatment.md`.
+- Verification: `git diff --check`, `npm run check:customer-cart`, `npm run check`, and `npm run build`.
+
 ## 2026-06-20 Restaurant UX Round 4
 
 ### Purpose
