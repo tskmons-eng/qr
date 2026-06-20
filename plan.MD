@@ -1,5 +1,33 @@
 # QR System Plan
 
+## 2026-06-21 Google Login Button No-Action Hotfix
+
+### Purpose
+
+- `/login` の Google ログインボタンを押しても、Google 認証画面へ遷移せず、画面上の反応も出ない状態を直す。
+- Google ログイン中はユーザー様が「押せたかどうか」を判断できる表示を出し、メールログインの loading と Google ボタンを同じ状態で潰さない。
+
+### Current Confirmation
+
+- Live `/login` で Google ボタンは `disabled=false`、`pointer-events=auto`、`elementFromPoint` でもボタン自身を指している。
+- クリックイベントは発火しているが、`signInWithRedirect` 固定の現在実装では、公開ページ上でトップレベルURLが Google 認証画面へ移らず `/login` のまま残る。
+- Console error は出ていないため、UI上は「何も起きない」見え方になる。
+
+### Change Policy
+
+- Google ログインはクリック直後のユーザー操作に強い `signInWithPopup` を先に試す。
+- Popup がブロックされた、または popup 非対応環境の場合だけ `signInWithRedirect` へ fallback する。
+- Google ログイン用の進行表示を `googleLoading` として分離し、メールログインの `loading` では Google ボタンを無効化しない。
+- 店舗、注文、会計、スタッフ権限、Firestore rules、Functions、indexes、storage は変更しない。
+
+### Verification
+
+- `git diff --check`
+- `npm run check:staff-entry`
+- `npm run check`
+- `npm run build`
+- Live `/login` Google ボタンのクリック後に Google 認証画面または popup が開くことを確認する。
+
 ## 2026-06-21 Checkout Cash Input Fixed Action Area
 
 ### Purpose

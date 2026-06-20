@@ -6,6 +6,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { consumeStaffGoogleRedirectResult, signInStaffWithEmail, signInStaffWithGoogle } from '../../services/staffLoginService'
 
 const GOOGLE_LOGIN_ERROR_MESSAGE = 'Googleログインに失敗しました'
+const GOOGLE_LOGIN_START_MESSAGE = 'Google認証画面を開いています'
+const GOOGLE_LOGIN_REDIRECT_MESSAGE = 'Google認証画面へ移動しています。切り替わらない場合はもう一度押してください'
 const DEFAULT_LOGIN_REDIRECT = '/admin'
 const LOGIN_REDIRECT_STORAGE_KEY = 'staffLoginRedirect'
 
@@ -78,6 +80,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [googleStatus, setGoogleStatus] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
@@ -110,6 +114,7 @@ export default function LoginPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+    setGoogleStatus('')
     setLoading(true)
     try {
       await signInStaffWithEmail(email, password)
@@ -124,19 +129,31 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setError('')
+    setGoogleStatus(GOOGLE_LOGIN_START_MESSAGE)
+    setGoogleLoading(true)
     try {
       rememberLoginRedirect(loginRedirect)
-      await signInStaffWithGoogle()
+      const result = await signInStaffWithGoogle()
+      if (result?.user && !result.user.isAnonymous) {
+        clearLoginRedirect()
+        navigate(loginRedirect, { replace: true })
+        return
+      }
+      setGoogleStatus(GOOGLE_LOGIN_REDIRECT_MESSAGE)
     } catch (event) {
       console.error('Google sign-in failed:', event)
+      setGoogleStatus('')
       setError(GOOGLE_LOGIN_ERROR_MESSAGE)
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
   return (
     <div className="staff-auth-login">
       <h1 className="staff-auth-login__title">スタッフログイン</h1>
-      <StaffGoogleLoginButton disabled={false} onClick={handleGoogle} />
+      <StaffGoogleLoginButton disabled={googleLoading} loading={googleLoading} onClick={handleGoogle} />
+      {googleStatus && <p className="staff-auth-login__google-status">{googleStatus}</p>}
       <div className="staff-auth-login__divider">
         <span className="staff-auth-login__divider-text">またはメールで</span>
       </div>

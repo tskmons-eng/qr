@@ -229,6 +229,18 @@
   font-size: 15px;
 }
 
+.staff-auth-login__google:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.staff-auth-login__google-status {
+  margin: -8px 0 16px;
+  color: #4b5563;
+  font-size: 12px;
+  text-align: center;
+}
+
 .staff-auth-login__divider {
   display: flex;
   align-items: center;
