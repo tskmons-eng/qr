@@ -1,5 +1,5 @@
-export function normalizeOwnerEmail(value) {
-  return value.trim().toLowerCase()
+export function normalizeOwnerEmail(value = '') {
+  return String(value ?? '').trim().toLowerCase()
 }
 
 export function validateOwnerEmail(email) {
@@ -7,8 +7,22 @@ export function validateOwnerEmail(email) {
   return ''
 }
 
+export function normalizeAllowedEmailEntry(id, data = {}) {
+  const email = normalizeOwnerEmail(data.email || id)
+  return {
+    id: id || email,
+    ...data,
+    email,
+    addedBy: data.addedBy ?? null,
+  }
+}
+
 export function sortAllowedEmailEntries(entries) {
-  return [...entries].sort((a, b) => (a.addedAt?.seconds ?? 0) - (b.addedAt?.seconds ?? 0))
+  return [...entries].sort((a, b) => {
+    const timeDiff = (a.addedAt?.seconds ?? 0) - (b.addedAt?.seconds ?? 0)
+    if (timeDiff !== 0) return timeDiff
+    return (a.email ?? '').localeCompare(b.email ?? '')
+  })
 }
 
 export function formatAllowedEmailAddedAt(entry) {

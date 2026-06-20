@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   formatAllowedEmailAddedAt,
+  normalizeAllowedEmailEntry,
   normalizeOwnerEmail,
   sortAllowedEmailEntries,
   validateOwnerEmail,
@@ -12,6 +13,11 @@ assert.equal(normalizeOwnerEmail('  USER@Example.COM '), 'user@example.com')
 assert.equal(validateOwnerEmail(''), '正しいメールアドレスを入力してください')
 assert.equal(validateOwnerEmail('invalid'), '正しいメールアドレスを入力してください')
 assert.equal(validateOwnerEmail('user@example.com'), '')
+assert.deepEqual(normalizeAllowedEmailEntry('USER@Example.COM', { addedBy: undefined }), {
+  id: 'USER@Example.COM',
+  email: 'user@example.com',
+  addedBy: null,
+})
 
 const entries = [
   { email: 'new@example.com', addedAt: { seconds: 20 } },
@@ -35,5 +41,12 @@ assert.equal(isSuperAdminEmail('manager@example.com'), false)
 const firestoreRules = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8')
 assert.match(firestoreRules, /match \/allowedEmails\/\{email\}\s*\{[\s\S]*allow write: if isSuper\(\);/)
 assert.doesNotMatch(firestoreRules, /match \/allowedEmails\/\{email\}\s*\{[\s\S]*allow write: if isGoogle\(\);/)
+
+const ownerAccessService = readFileSync(new URL('../src/services/ownerAccessService.js', import.meta.url), 'utf8')
+assert.match(ownerAccessService, /export function subscribeAllowedEmailEntries/)
+assert.match(ownerAccessService, /export async function loadAllowedEmailEntries/)
+assert.match(ownerAccessService, /export function saveAllowedEmail/)
+assert.match(ownerAccessService, /email: normalizeOwnerEmail\(email\)/)
+assert.match(ownerAccessService, /addedBy: addedBy \?\? null/)
 
 console.log('owner access checks passed')

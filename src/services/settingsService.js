@@ -1,6 +1,12 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { normalizeStoreConfig } from '../lib/settingsConfig'
+import {
+  deleteAllowedEmail,
+  loadAllowedEmailEntries,
+  saveAllowedEmail,
+  subscribeAllowedEmailEntries,
+} from './ownerAccessService'
 
 export async function loadStoreCode(storeId) {
   const snap = await getDoc(doc(db, 'stores', storeId))
@@ -28,14 +34,20 @@ export function saveStoreConfig(storeId, config) {
 }
 
 export async function loadAllowedEmails() {
-  const snap = await getDocs(collection(db, 'allowedEmails'))
-  return snap.docs.map(docSnap => docSnap.id)
+  const entries = await loadAllowedEmailEntries()
+  return entries.map(entry => entry.email)
 }
 
-export function addAllowedEmail(email) {
-  return setDoc(doc(db, 'allowedEmails', email), { addedAt: serverTimestamp() })
+export function subscribeAllowedEmails(onNext) {
+  return subscribeAllowedEmailEntries(entries => {
+    onNext(entries.map(entry => entry.email))
+  })
+}
+
+export function addAllowedEmail(email, addedBy = null) {
+  return saveAllowedEmail({ email, addedBy })
 }
 
 export function removeAllowedEmail(email) {
-  return deleteDoc(doc(db, 'allowedEmails', email))
+  return deleteAllowedEmail(email)
 }

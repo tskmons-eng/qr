@@ -34,6 +34,14 @@
 - 店舗名変更や管理者メール名義変更で `storeId` を作り直さない。注文、会計、商品、席、スタッフデータは移行しない。
 - 各担当MD単体では Firebase deploy をしない。最終deploy判断は `05-integration-release-gate.md` に集約する。
 
+### 04 Owner Admin Email Transfer Responsibility
+
+- Purpose: `/owner` の店舗一覧で、既存店舗データを保持したまま管理者の名義メールだけを変更できることを固定する。
+- Current confirmation: `OwnerStoreDashboard` は店舗ごとの管理者メール入力を持ち、`updateStoreAdminEmail()` は `storeAdminEmails/{email}` と `stores/{storeId}.ownerEmail` を `writeBatch()` で更新している。
+- Change policy: UI表記はデータ引き継ぎが分かる `名義メール` 表現へ寄せ、メール変更で `storeId` や注文、会計、商品、席、スタッフデータを作り直さないことをチェックで固定する。
+- Impact scope: `src/components/owner/OwnerStoreDashboard.jsx`, `src/services/ownerDashboardService.js`, `scripts/check-store-admin-assignment.mjs`, `docs/owner-settings-sync-round1/04-owner-admin-email-transfer.md`, and this plan.
+- Verification: `npm run check:store-admin-assignment`, `npm run check:owner-dashboard`, `npm run check:owner-access`, `npm run check`, `npm run build`, and `git diff --check`.
+
 ### Verification
 
 - `git diff --check`

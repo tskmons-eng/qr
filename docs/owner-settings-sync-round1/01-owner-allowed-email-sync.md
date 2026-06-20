@@ -49,6 +49,6 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
-- Checks:
-- Remaining risk:
+- Result: `allowedEmails` のFirestore読み書きを `ownerAccessService` の共通境界へ寄せ、管理画面は `settingsService` 経由で同じ `{ email, addedAt, addedBy }` 形状を保存するようにした。管理画面の許可メール一覧は一回読み込みではなく購読で同期する。
+- Checks: `npm run check:owner-access`, `npm run check:settings`, `git diff --check`, `npm run check`, `npm run build`
+- Remaining risk: `/owner` と管理画面の表示同期はコードとチェックで確認済み。Firebase deploy は05の統合ゲート判断に委ねる。

@@ -1,3 +1,5 @@
+import { normalizeOwnerEmail, validateOwnerEmail } from './ownerAccess.js'
+
 export const CUSTOMER_SETTING_TOGGLES = [
   { key: 'showServedStatus', label: '提供済み表示', description: 'お客様の注文確認画面に「提供済み」ラベルを表示する' },
   { key: 'showItemPrice', label: '商品ごとの金額表示', description: 'お客様の注文確認画面に各商品の金額を表示する' },
@@ -46,11 +48,12 @@ export function normalizeStoreConfig(data = {}) {
 }
 
 export function normalizeAllowedEmail(email) {
-  return email.trim().toLowerCase()
+  return normalizeOwnerEmail(email)
 }
 
 export function validateAllowedEmail(email, allowedEmails) {
-  if (!email.includes('@')) return '正しいメールアドレスを入力してください'
+  const validationError = validateOwnerEmail(email)
+  if (validationError) return validationError
   if (allowedEmails.includes(email)) return 'すでに追加されています'
   return ''
 }

@@ -18,12 +18,12 @@ import {
 import { isSuperAdminEmail } from '../../lib/ownerIdentity'
 import {
   addAllowedEmail,
-  loadAllowedEmails,
   loadStoreCode,
   loadStoreConfig,
   loadStoreConfigProducts,
   removeAllowedEmail,
   saveStoreConfig,
+  subscribeAllowedEmails,
 } from '../../services/settingsService'
 
 export default function SettingsPage({ notificationControls = null, onConfigSaved }) {
@@ -48,8 +48,11 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
   }, [storeId, user])
 
   useEffect(() => {
-    if (!canManageAllowedEmails) return
-    loadAllowedEmails().then(setAllowedEmails)
+    if (!canManageAllowedEmails) {
+      setAllowedEmails([])
+      return undefined
+    }
+    return subscribeAllowedEmails(setAllowedEmails)
   }, [canManageAllowedEmails])
 
   useEffect(() => {
@@ -79,8 +82,7 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
 
     setEmailAdding(true)
     try {
-      await addAllowedEmail(email)
-      setAllowedEmails(prev => [...prev, email])
+      await addAllowedEmail(email, user?.email ?? null)
       setNewEmail('')
     } catch (error) {
       setEmailError(`保存失敗: ${error.message}`)
@@ -93,7 +95,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
     if (!confirm(`${email} を削除しますか？`)) return
     try {
       await removeAllowedEmail(email)
-      setAllowedEmails(prev => prev.filter(existingEmail => existingEmail !== email))
     } catch (error) {
       alert(`削除失敗: ${error.message}`)
     }
