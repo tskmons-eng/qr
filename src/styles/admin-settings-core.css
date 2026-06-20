@@ -27,11 +27,82 @@
 
 .admin-settings__store-code-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
   padding: 16px;
+}
+
+.admin-settings__store-identity-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-settings__store-name-label,
+.admin-settings__store-code-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-settings__store-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-settings__store-name-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  color: #222;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-settings__store-name-save {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-settings__store-name-save:disabled {
+  background: #ccc;
+  cursor: default;
+}
+
+.admin-settings__store-name-save.is-saved {
+  background: #16a34a;
+}
+
+.admin-settings__store-name-help {
+  margin-top: 6px;
+  color: #888;
+  font-size: 12px;
+}
+
+.admin-settings__store-name-error {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.admin-settings__store-code-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .admin-settings__store-code {
@@ -360,6 +431,17 @@
 }
 
 @media (max-width: 560px) {
+  .admin-settings__store-code-card,
+  .admin-settings__store-name-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-settings__copy-button,
+  .admin-settings__store-name-save {
+    width: 100%;
+  }
+
   .admin-settings__sound-control-row {
     align-items: stretch;
     flex-direction: column;

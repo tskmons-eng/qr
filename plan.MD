@@ -53,6 +53,14 @@
 - `npm run check`
 - `npm run build`
 
+### 01 Owner Allowed Email Sync Responsibility
+
+- Purpose: `/owner` と管理画面の `管理者・キッチン アクセス許可` を、同じ `allowedEmails/{email}` の形と同期方式で扱う。
+- Current confirmation: `/owner` はリアルタイム購読で `{ email, addedAt, addedBy }` を保存し、管理画面は一回読み込みで `{ addedAt }` のみ保存している。
+- Change policy: `allowedEmails` のFirestore読み書きは `ownerAccessService` の共通境界へ寄せ、管理画面は `settingsService` 経由で同じ境界を使う。`storeAdminEmails` には触れない。
+- Impact scope: `src/lib/ownerAccess.js`, `src/lib/settingsConfig.js`, `src/services/ownerAccessService.js`, `src/services/settingsService.js`, `src/pages/admin/SettingsPage.jsx`, `scripts/check-owner-access.mjs`, `scripts/check-settings-config.mjs`, and `docs/owner-settings-sync-round1/01-owner-allowed-email-sync.md`.
+- Verification: `git diff --check`, `npm run check:owner-access`, `npm run check:settings`, `npm run check`, and `npm run build`.
+
 ### 02 Order Category Visual Treatment Responsibility
 
 - Purpose: 顧客注文パネルのカテゴリタブで、`ドリンク` / `フード` の可視文字バッジを増やさず、省スペースな視覚差で分類を残す。
@@ -60,6 +68,14 @@
 - Change policy: category group は既存の `category.group` を使い、ボタン自体のクラス、左ライン、控えめな点、薄い背景差で表現する。画面上の常時表示テキストはカテゴリ名を主役にする。
 - Impact scope: `src/components/order/CustomerCategoryTabs.jsx`, `src/styles/customer-menu.css`, `scripts/check-customer-cart.mjs`, and `docs/owner-settings-sync-round1/02-order-category-visual-treatment.md`.
 - Verification: `git diff --check`, `npm run check:customer-cart`, `npm run check`, and `npm run build`.
+
+### 03 Store Name Settings Sync Responsibility
+
+- Purpose: 店舗コード設定の上に店舗名を表示し、管理画面と `/owner` の店舗名編集を同じ `stores/{storeId}.storeName` に集約する。
+- Current confirmation: `StoreContext` は新規店舗に `storeName` を作り、`ownerDashboard` は表示済みだが、管理画面の `StoreCodeCard` は店舗コードのみ、`SettingsPage` は店舗名の読み込み/保存を持っていない。
+- Change policy: `settingsService` と `ownerDashboardService` は `stores/{storeId}.storeName` だけを更新し、`storeId`、店舗コード、QR URL、注文、会計、商品、席、スタッフデータは変更しない。空白名は `店舗名未設定` に正規化し、長い名称は上限で崩れを防ぐ。
+- Impact scope: `src/lib/storeIdentity.js`, `src/services/settingsService.js`, `src/pages/admin/SettingsPage.jsx`, `src/components/admin/StoreCodeCard.jsx`, `src/services/ownerDashboardService.js`, `src/components/owner/OwnerStoreDashboard.jsx`, admin/owner CSS, `scripts/check-settings-config.mjs`, `scripts/check-owner-dashboard.mjs`, and `docs/owner-settings-sync-round1/03-store-name-settings-sync.md`.
+- Verification: `npm run check:settings`, `npm run check:owner-dashboard`, `npm run check:store-admin-assignment`, `npm run check`, `npm run build`, and `git diff --check`.
 
 ## 2026-06-20 Restaurant UX Round 4
 

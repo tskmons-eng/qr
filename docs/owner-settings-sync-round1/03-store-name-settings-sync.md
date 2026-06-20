@@ -59,6 +59,6 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
-- Checks:
-- Remaining risk:
+- Result: 管理画面の店舗情報カードで `stores/{storeId}.storeName` を編集・保存できるようにし、店舗名を店舗コードより上へ表示した。`/owner` の店舗一覧にも同じ `storeName` の編集導線を追加した。店舗コード、QR URL、注文、商品、スタッフデータは変更しない。
+- Checks: `git diff --check`, `npm run check:settings`, `npm run check:owner-dashboard`, `npm run check:store-admin-assignment`, `npm run check`, and `npm run build` passed.
+- Remaining risk: 05統合ゲートで 01/04 と `/owner` 行UIの横幅・保存導線が衝突していないか最終確認する。

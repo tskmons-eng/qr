@@ -52,6 +52,6 @@
 ## Completion Notes
 
 - Production deploy: not run in this task.
-- Result:
-- Checks:
-- Remaining risk:
+- Result: `/owner` 店舗一覧の管理者メール列を、既存店舗データを引き継ぐ `名義メール` 表現へ整理した。保存処理は既存の `storeId` を維持し、`storeAdminEmails/{email}` と `stores/{storeId}.ownerEmail` の batch 更新を使う前提をチェックで固定した。
+- Checks: `git diff --check`, `npm run check:store-admin-assignment`, `npm run check:owner-dashboard`, `npm run check:owner-access`, `npm run check`, and `npm run build` passed.
+- Remaining risk: 01〜03との最終UI衝突確認と Production deploy 判断は `05-integration-release-gate.md` で行う。

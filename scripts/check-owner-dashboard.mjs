@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   buildOwnerDashboardSnapshot,
   formatOwnerCurrency,
@@ -7,6 +8,7 @@ import {
   isOwnerSameBusinessDay,
   ownerDateFromTimestamp,
 } from '../src/lib/ownerDashboard.js'
+import { STORE_NAME_FALLBACK } from '../src/lib/storeIdentity.js'
 
 const date = new Date(2026, 5, 1, 12, 0, 0)
 const todayTimestamp = { seconds: new Date(2026, 5, 1, 10, 30, 0).getTime() / 1000 }
@@ -43,6 +45,14 @@ assert.equal(dashboard.summary.todayCheckCount, 2)
 assert.equal(dashboard.summary.openOrderCount, 1)
 assert.equal(dashboard.stores.find(store => store.id === 'store-a').allTimeSales, 2000)
 assert.equal(dashboard.stores.find(store => store.id === 'store-a').ownerEmail, 'owner-a@example.com')
-assert.equal(dashboard.stores.find(store => store.id === 'store-b').storeName, '店舗名未設定')
+assert.equal(dashboard.stores.find(store => store.id === 'store-b').storeName, STORE_NAME_FALLBACK)
+
+const ownerStoreDashboard = readFileSync(new URL('../src/components/owner/OwnerStoreDashboard.jsx', import.meta.url), 'utf8')
+const ownerDashboardService = readFileSync(new URL('../src/services/ownerDashboardService.js', import.meta.url), 'utf8')
+assert.match(ownerStoreDashboard, /onStoreNameSave/)
+assert.match(ownerStoreDashboard, /owner-store-name-edit__input/)
+assert.match(ownerStoreDashboard, /maxLength=\{STORE_NAME_MAX_LENGTH\}/)
+assert.match(ownerDashboardService, /export async function updateStoreName/)
+assert.match(ownerDashboardService, /updateDoc\(doc\(db, 'stores', storeId\)/)
 
 console.log('owner dashboard checks passed')

@@ -1,3 +1,5 @@
+import { normalizeStoreName } from './storeIdentity.js'
+
 export function ownerDateFromTimestamp(value) {
   if (!value) return null
   if (value instanceof Date) return value
@@ -71,7 +73,7 @@ export function buildOwnerDashboardSnapshot({ stores, checks, orders }, date = n
 
     return {
       id: store.id,
-      storeName: store.storeName || '店舗名未設定',
+      storeName: normalizeStoreName(store.storeName),
       storeCode: store.storeCode || '',
       ownerEmail: store.ownerEmail || '',
       status: store.isOpen === false ? '停止中' : '稼働中',

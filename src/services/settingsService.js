@@ -1,6 +1,7 @@
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { normalizeStoreConfig } from '../lib/settingsConfig'
+import { STORE_NAME_FALLBACK, normalizeStoreName, validateStoreName } from '../lib/storeIdentity'
 import {
   deleteAllowedEmail,
   loadAllowedEmailEntries,
@@ -9,8 +10,37 @@ import {
 } from './ownerAccessService'
 
 export async function loadStoreCode(storeId) {
+  const identity = await loadStoreIdentity(storeId)
+  return identity.storeCode
+}
+
+export async function loadStoreIdentity(storeId) {
   const snap = await getDoc(doc(db, 'stores', storeId))
-  return snap.exists() ? (snap.data().storeCode ?? '') : ''
+  if (!snap.exists()) {
+    return {
+      storeCode: '',
+      storeName: STORE_NAME_FALLBACK,
+    }
+  }
+
+  const data = snap.data()
+  return {
+    storeCode: data.storeCode ?? '',
+    storeName: normalizeStoreName(data.storeName),
+  }
+}
+
+export async function saveStoreName(storeId, storeName, updatedBy) {
+  const validationError = validateStoreName(storeName)
+  if (validationError) throw new Error(validationError)
+
+  const normalizedName = normalizeStoreName(storeName)
+  await updateDoc(doc(db, 'stores', storeId), {
+    storeName: normalizedName,
+    storeNameUpdatedAt: serverTimestamp(),
+    storeNameUpdatedBy: updatedBy ?? null,
+  })
+  return normalizedName
 }
 
 export async function loadStoreConfig(storeId) {

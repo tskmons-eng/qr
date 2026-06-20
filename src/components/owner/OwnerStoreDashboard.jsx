@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatOwnerCurrency, formatOwnerDateTime } from '../../lib/ownerDashboard'
+import { STORE_NAME_MAX_LENGTH, normalizeStoreName } from '../../lib/storeIdentity'
 
 const summaryCards = [
   { key: 'storeCount', label: '登録店舗', format: value => `${value}件` },
@@ -14,7 +15,9 @@ export default function OwnerStoreDashboard({
   error,
   loading,
   ownerEmailSavingStoreId,
+  storeNameSavingStoreId,
   onOwnerEmailSave,
+  onStoreNameSave,
   onRefresh,
 }) {
   return (
@@ -47,8 +50,10 @@ export default function OwnerStoreDashboard({
 
           <OwnerStoreTable
             ownerEmailSavingStoreId={ownerEmailSavingStoreId}
+            storeNameSavingStoreId={storeNameSavingStoreId}
             stores={dashboard.stores}
             onOwnerEmailSave={onOwnerEmailSave}
+            onStoreNameSave={onStoreNameSave}
           />
         </>
       )}
@@ -56,11 +61,19 @@ export default function OwnerStoreDashboard({
   )
 }
 
-function OwnerStoreTable({ ownerEmailSavingStoreId, stores, onOwnerEmailSave }) {
+function OwnerStoreTable({
+  ownerEmailSavingStoreId,
+  storeNameSavingStoreId,
+  stores,
+  onOwnerEmailSave,
+  onStoreNameSave,
+}) {
   const [emailDrafts, setEmailDrafts] = useState({})
+  const [storeNameDrafts, setStoreNameDrafts] = useState({})
 
   useEffect(() => {
     setEmailDrafts(Object.fromEntries(stores.map(store => [store.id, store.ownerEmail || ''])))
+    setStoreNameDrafts(Object.fromEntries(stores.map(store => [store.id, store.storeName || ''])))
   }, [stores])
 
   if (stores.length === 0) {
@@ -75,7 +88,7 @@ function OwnerStoreTable({ ownerEmailSavingStoreId, stores, onOwnerEmailSave }) 
             <th>店舗</th>
             <th>店舗コード</th>
             <th>状態</th>
-            <th>管理者メール</th>
+            <th>名義メール</th>
             <th>本日売上</th>
             <th>本日会計</th>
             <th>未会計</th>
@@ -87,7 +100,29 @@ function OwnerStoreTable({ ownerEmailSavingStoreId, stores, onOwnerEmailSave }) 
           {stores.map(store => (
             <tr key={store.id}>
               <td>
-                <div className="owner-store-table__name">{store.storeName}</div>
+                <div className="owner-store-name-edit">
+                  <input
+                    value={storeNameDrafts[store.id] ?? store.storeName}
+                    onChange={event => setStoreNameDrafts(prev => ({ ...prev, [store.id]: event.target.value }))}
+                    maxLength={STORE_NAME_MAX_LENGTH}
+                    aria-label={`${store.id}の店舗名`}
+                    className="owner-store-name-edit__input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onStoreNameSave({
+                      storeId: store.id,
+                      storeName: storeNameDrafts[store.id] ?? store.storeName,
+                    })}
+                    disabled={
+                      storeNameSavingStoreId === store.id ||
+                      normalizeStoreName(storeNameDrafts[store.id] ?? store.storeName) === store.storeName
+                    }
+                    className="owner-store-name-edit__button"
+                  >
+                    {storeNameSavingStoreId === store.id ? '保存中' : '保存'}
+                  </button>
+                </div>
                 <div className="owner-store-table__id">{store.id}</div>
               </td>
               <td className="owner-store-table__code">{store.storeCode || '-'}</td>
@@ -98,13 +133,17 @@ function OwnerStoreTable({ ownerEmailSavingStoreId, stores, onOwnerEmailSave }) 
               </td>
               <td>
                 <div className="owner-store-admin-email">
-                  <input
-                    value={emailDrafts[store.id] ?? ''}
-                    onChange={event => setEmailDrafts(prev => ({ ...prev, [store.id]: event.target.value }))}
-                    placeholder="owner@example.com"
-                    type="email"
-                    className="owner-store-admin-email__input"
-                  />
+                  <div className="owner-store-admin-email__field">
+                    <input
+                      value={emailDrafts[store.id] ?? ''}
+                      onChange={event => setEmailDrafts(prev => ({ ...prev, [store.id]: event.target.value }))}
+                      placeholder="owner@example.com"
+                      type="email"
+                      aria-label={`${store.storeName}の名義メール`}
+                      className="owner-store-admin-email__input"
+                    />
+                    <span className="owner-store-admin-email__hint">店舗ID・履歴はそのまま</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => onOwnerEmailSave({
@@ -112,7 +151,10 @@ function OwnerStoreTable({ ownerEmailSavingStoreId, stores, onOwnerEmailSave }) 
                       currentEmail: store.ownerEmail,
                       nextEmail: emailDrafts[store.id] ?? '',
                     })}
-                    disabled={ownerEmailSavingStoreId === store.id || (emailDrafts[store.id] ?? '') === (store.ownerEmail || '')}
+                    disabled={
+                      ownerEmailSavingStoreId === store.id ||
+                      (emailDrafts[store.id] ?? '').trim().toLowerCase() === (store.ownerEmail || '').trim().toLowerCase()
+                    }
                     className="owner-store-admin-email__button"
                   >
                     {ownerEmailSavingStoreId === store.id ? '保存中' : '保存'}

@@ -143,6 +143,41 @@
   font-weight: var(--font-weight-label);
 }
 
+.owner-store-name-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.owner-store-name-edit__input {
+  width: 160px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: var(--font-weight-label);
+}
+
+.owner-store-name-edit__button {
+  padding: 7px 10px;
+  color: #ffffff;
+  background: #222222;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: var(--font-weight-label);
+  white-space: nowrap;
+}
+
+.owner-store-name-edit__button:disabled {
+  background: #cccccc;
+  cursor: default;
+}
+
 .owner-store-table__id {
   margin-top: 2px;
   color: #bbbbbb;
@@ -162,9 +197,15 @@
 
 .owner-store-admin-email {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 250px;
+}
+
+.owner-store-admin-email__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .owner-store-admin-email__input {
@@ -174,6 +215,13 @@
   border: 1px solid #dddddd;
   border-radius: 6px;
   font-size: 12px;
+}
+
+.owner-store-admin-email__hint {
+  color: #777777;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .owner-store-admin-email__button {

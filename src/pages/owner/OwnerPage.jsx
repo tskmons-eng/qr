@@ -6,7 +6,7 @@ import OwnerStoreDashboard from '../../components/owner/OwnerStoreDashboard'
 import { useAuth } from '../../contexts/AuthContext'
 import { normalizeOwnerEmail, validateOwnerEmail } from '../../lib/ownerAccess'
 import { signOutCurrentUser } from '../../services/authSessionService'
-import { loadOwnerDashboardData, updateStoreAdminEmail } from '../../services/ownerDashboardService'
+import { loadOwnerDashboardData, updateStoreAdminEmail, updateStoreName } from '../../services/ownerDashboardService'
 import {
   addOwnerAllowedEmail,
   removeOwnerAllowedEmail,
@@ -21,6 +21,7 @@ export default function OwnerPage() {
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [dashboardError, setDashboardError] = useState('')
   const [ownerEmailSavingStoreId, setOwnerEmailSavingStoreId] = useState('')
+  const [storeNameSavingStoreId, setStoreNameSavingStoreId] = useState('')
   const [emailInput, setEmailInput] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
@@ -86,6 +87,23 @@ export default function OwnerPage() {
     }
   }
 
+  async function handleStoreNameSave({ storeId, storeName }) {
+    setStoreNameSavingStoreId(storeId)
+    setDashboardError('')
+    try {
+      await updateStoreName({
+        storeId,
+        storeName,
+        updatedBy: user?.email ?? null,
+      })
+      await loadDashboard()
+    } catch (saveError) {
+      setDashboardError(saveError.message || '店舗名の保存に失敗しました')
+    } finally {
+      setStoreNameSavingStoreId('')
+    }
+  }
+
   return (
     <div className="owner-page">
       <OwnerHeader onSignOut={signOutCurrentUser} />
@@ -113,7 +131,9 @@ export default function OwnerPage() {
             error={dashboardError}
             loading={dashboardLoading}
             ownerEmailSavingStoreId={ownerEmailSavingStoreId}
+            storeNameSavingStoreId={storeNameSavingStoreId}
             onOwnerEmailSave={handleStoreAdminEmailSave}
+            onStoreNameSave={handleStoreNameSave}
             onRefresh={loadDashboard}
           />
         ) : (

@@ -1,7 +1,8 @@
-import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { buildOwnerDashboardSnapshot } from '../lib/ownerDashboard'
 import { db } from '../lib/firebase'
 import { normalizeOwnerEmail, validateOwnerEmail } from '../lib/ownerAccess'
+import { normalizeStoreName, validateStoreName } from '../lib/storeIdentity'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
@@ -52,4 +53,17 @@ export async function updateStoreAdminEmail({ storeId, currentEmail, nextEmail, 
     ownerEmailUpdatedBy: updatedBy ?? null,
   })
   await batch.commit()
+}
+
+export async function updateStoreName({ storeId, storeName, updatedBy }) {
+  const validationError = validateStoreName(storeName)
+  if (validationError) throw new Error(validationError)
+
+  const normalizedName = normalizeStoreName(storeName)
+  await updateDoc(doc(db, 'stores', storeId), {
+    storeName: normalizedName,
+    storeNameUpdatedAt: serverTimestamp(),
+    storeNameUpdatedBy: updatedBy ?? null,
+  })
+  return normalizedName
 }

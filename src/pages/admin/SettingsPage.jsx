@@ -16,12 +16,14 @@ import {
   validateAllowedEmail,
 } from '../../lib/settingsConfig'
 import { isSuperAdminEmail } from '../../lib/ownerIdentity'
+import { normalizeStoreName } from '../../lib/storeIdentity'
 import {
   addAllowedEmail,
-  loadStoreCode,
+  loadStoreIdentity,
   loadStoreConfig,
   loadStoreConfigProducts,
   removeAllowedEmail,
+  saveStoreName,
   saveStoreConfig,
   subscribeAllowedEmails,
 } from '../../services/settingsService'
@@ -30,6 +32,11 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
   const { storeId } = useStore()
   const { user } = useAuth()
   const [storeCode, setStoreCode] = useState('')
+  const [storeIdentity, setStoreIdentity] = useState(null)
+  const [storeNameInput, setStoreNameInput] = useState('')
+  const [storeNameSaving, setStoreNameSaving] = useState(false)
+  const [storeNameSaved, setStoreNameSaved] = useState(false)
+  const [storeNameError, setStoreNameError] = useState('')
   const [codeCopied, setCodeCopied] = useState(false)
   const [config, setConfig] = useState(null)
   const [taxInput, setTaxInput] = useState('')
@@ -41,10 +48,35 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
   const [emailAdding, setEmailAdding] = useState(false)
   const [emailError, setEmailError] = useState('')
   const canManageAllowedEmails = isSuperAdminEmail(user?.email)
+  const storeNameChanged = storeIdentity
+    ? normalizeStoreName(storeNameInput) !== storeIdentity.storeName
+    : false
 
   useEffect(() => {
-    if (!storeId || !user || user.isAnonymous) return
-    loadStoreCode(storeId).then(setStoreCode)
+    if (!storeId || !user || user.isAnonymous) {
+      setStoreIdentity(null)
+      setStoreNameInput('')
+      setStoreCode('')
+      return
+    }
+
+    let active = true
+    setStoreNameError('')
+    loadStoreIdentity(storeId)
+      .then(identity => {
+        if (!active) return
+        setStoreIdentity(identity)
+        setStoreNameInput(identity.storeName)
+        setStoreCode(identity.storeCode)
+      })
+      .catch(() => {
+        if (!active) return
+        setStoreNameError('店舗情報の読み込みに失敗しました')
+      })
+
+    return () => {
+      active = false
+    }
   }, [storeId, user])
 
   useEffect(() => {
@@ -69,6 +101,26 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
       setCodeCopied(true)
       setTimeout(() => setCodeCopied(false), 2000)
     })
+  }
+
+  async function handleStoreNameSave() {
+    setStoreNameSaving(true)
+    setStoreNameSaved(false)
+    setStoreNameError('')
+    try {
+      const savedName = await saveStoreName(storeId, storeNameInput, user?.email ?? null)
+      setStoreIdentity(prev => ({
+        storeCode: prev?.storeCode ?? storeCode,
+        storeName: savedName,
+      }))
+      setStoreNameInput(savedName)
+      setStoreNameSaved(true)
+      setTimeout(() => setStoreNameSaved(false), 2000)
+    } catch (error) {
+      setStoreNameError(error.message || '店舗名の保存に失敗しました')
+    } finally {
+      setStoreNameSaving(false)
+    }
   }
 
   async function handleAddEmail() {
@@ -144,11 +196,38 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
 
   return (
     <div className="admin-settings">
-      <StoreCodeCard
-        storeCode={storeCode}
-        copied={codeCopied}
-        onCopy={handleCopyCode}
-      />
+      {storeIdentity && (
+        <StoreCodeCard
+          storeCode={storeCode}
+          storeNameInput={storeNameInput}
+          storeNameChanged={storeNameChanged}
+          storeNameSaving={storeNameSaving}
+          storeNameSaved={storeNameSaved}
+          storeNameError={storeNameError}
+          onStoreNameChange={value => {
+            setStoreNameInput(value)
+            setStoreNameSaved(false)
+            setStoreNameError('')
+          }}
+          onStoreNameSave={handleStoreNameSave}
+          copied={codeCopied}
+          onCopy={handleCopyCode}
+        />
+      )}
+      {canManageAllowedEmails && (
+        <AllowedEmailSettings
+          allowedEmails={allowedEmails}
+          newEmail={newEmail}
+          emailAdding={emailAdding}
+          emailError={emailError}
+          onNewEmailChange={value => {
+            setNewEmail(value)
+            setEmailError('')
+          }}
+          onAddEmail={handleAddEmail}
+          onRemoveEmail={handleRemoveEmail}
+        />
+      )}
       <CustomerDisplaySettings
         toggles={CUSTOMER_SETTING_TOGGLES}
         config={config}
@@ -174,21 +253,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
         saved={saved}
         onSave={handleSave}
       />
-
-      {canManageAllowedEmails && (
-        <AllowedEmailSettings
-          allowedEmails={allowedEmails}
-          newEmail={newEmail}
-          emailAdding={emailAdding}
-          emailError={emailError}
-          onNewEmailChange={value => {
-            setNewEmail(value)
-            setEmailError('')
-          }}
-          onAddEmail={handleAddEmail}
-          onRemoveEmail={handleRemoveEmail}
-        />
-      )}
     </div>
   )
 }
