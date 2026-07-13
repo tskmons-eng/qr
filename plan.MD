@@ -1,5 +1,51 @@
 # QR System Plan
 
+## 2026-07-13 注文送信レイテンシ無料改善 Phase 1
+
+### 目的
+
+- 月額の常駐費用を増やさず、顧客・スタッフの注文送信にかかる実時間を短縮する。
+- Functions本線、Firestore transaction、`clientRequestId`冪等性、送信復旧を維持し、速度目的で安全性を下げない。
+- 成功注文の処理時間を匿名の区間ログで測定し、改善前後を推測ではなくp50 / p95で判断できるようにする。
+
+### 現状確認
+
+- 本番Firestoreは`asia-northeast1`、注文Callable Functionsは`us-central1`で、商品確認とtransactionが地域間通信になっている。
+- 過去7日の`submitCustomerOrderItemsCommand`成功81件は、Cloud Run request latencyがp50約2.0秒、p95約3.2秒。7日間にcontainer startup 24回があり、startup latencyはp50約1.33秒。
+- 商品確認はカート行ごとにproduct、必要時categoryを読み、その後customerはdedupe item→order、staffはdedupe item→order→tableをtransaction内で逐次取得する。
+- 成功時はCloud Run全体時間しかなく、商品確認とtransactionの区間時間が記録されていない。
+- 会計履歴branch `codex/sales-history-attribution` のcommit `27541bb`はRules / Hosting公開済みで、Functionsは未変更。今回のbranchは同commitから分離している。
+
+### 変更方針
+
+- `asia-northeast1`に顧客注文送信・スタッフ注文送信の別名Callableを追加し、既存`us-central1` Functionsは削除・変更せずrollback先として残す。
+- クライアントは東京Callableを優先し、到達不能・一時障害に限り同一`clientRequestId`のまま既存米国Callableへfallbackする。業務エラー・権限エラーではfallbackしない。
+- 商品IDをrequest内で重複排除してAdmin SDK `getAll()`で取得し、必要categoryも一括取得する。transactionの独立したdocument readも`getAll()`へまとめる。
+- Callable全体、商品確認、transactionのdurationを、店舗・席・注文・request IDを含めない構造化ログへ出す。
+- `minInstances`、有料サービス、新規依存、クライアント直接Firestore書込への復帰は行わない。
+
+### 影響範囲
+
+- 注文Callable factory / exports、顧客・スタッフ注文handler、Functions呼出しservice。
+- Functions mainline / migration / observabilityの静的check、Functions emulator検証、注文信頼性ドキュメント、本計画書。
+- Firestore rules / indexes / Storage、既存データ、会計・席移動・提供済みcommand、会計履歴UIは変更しない。
+
+### 検証・公開方法
+
+- `node --check`、注文command関連check、`npm.cmd run check`、`npm.cmd run build`、`git diff --check`を通す。
+- Auth / Firestore / Functions Emulatorで東京別名Callableの顧客・スタッフ正常系、同一request再送、権限拒否、同時実行を確認する。
+- 東京Callable 2本だけを先にdeployし、`functions:list`でregionを確認する。旧米国Callableは残す。
+- その後Hostingをdeployし、公開assetが東京別名とregion指定、米国fallbackを含むことを確認する。本番へのダミー注文は送らない。
+- 公開後はCloud Run成功latencyと失敗監査を読み取り専用で比較する。即時の利用件数が少ない場合は、測定待ちを未達ではなく継続観測として明記する。
+
+### 検証結果
+
+- `npm.cmd run check`、`npm.cmd run build`、`git diff --check` は成功した。
+- Auth / Firestore / Functions Emulatorで東京別名Callable 2本の正常送信、同一requestの同時再送・完了後再送、スタッフ権限拒否、`pendingCount`重複防止を確認した。
+- 東京別名Callable 2本がEmulator上で`asia-northeast1`として初期化され、既存米国Callableも残ることを確認した。
+- 一時障害だけを米国fallback対象とし、入力・権限・業務エラーを対象外にするfixture、および`minInstances`未設定を静的checkで固定した。
+- 本番Functions / Hostingの公開結果、公開asset、本番ログの読み取り専用確認は公開後に追記する。
+
 ## 2026-07-13 会計履歴・担当別売上と管理画面UI改善
 
 ### 目的
@@ -46,7 +92,11 @@
 - Auth / Firestore Emulator のRESTテストで、権限別の正常系、自己権限昇格、監査ログなし、他店舗、actor偽装、ID差し替え、無効担当、更新・物理削除の拒否を確認した。
 - 公開直前の本番確認では当日の会計は0件だった。スタッフ画面に残る使用中表示は約569時間前の状態で、現在進行中の利用ではないことを読み取り専用で確認した。
 - 本番データへの担当マスタ・担当割当のダミー書き込みは行わない。
-- Rules / Hosting の公開結果と実画面確認は、公開後に本節へ追記する。
+- Firebase project `qrproduct-3340b` へ Firestore Rules を先に公開し、警告がないことを確認した後で Hosting を公開した。Functions は変更・公開していない。
+- 本番 `https://qrproduct-3340b.web.app` を認証済みChromeで読み取り専用確認した。390×844では全管理ルートの本文に横スクロールがなく、管理タブだけが意図どおり横スクロールする。
+- 820×1180では会計詳細が幅680px、上下24pxの中央ダイアログになり、背景スクロール停止、Escで閉じる、元の会計カードへのフォーカス復帰を確認した。1280×900でも本文と管理ナビの横はみ出しはない。
+- 会計履歴は前月移動後のURL条件が再読込で維持され、過去会計の保存済み明細、支払情報、担当選択欄を表示できた。保存操作は行っていない。
+- 操作ログの空状態、新しい担当変更／担当者管理フィルター、CSV無効状態を本番で確認した。本番データへの担当マスタ・担当割当を含む書き込みは一切行っていない。
 
 ## 2026-06-21 Google Login Popup Closed Fallback Hotfix
 

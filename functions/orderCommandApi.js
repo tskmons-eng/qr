@@ -1,10 +1,12 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const { info } = require('firebase-functions/logger')
 const {
   buildOrderCommandFailureContext,
   recordOrderCommandFailure,
 } = require('./orderCommandFailures')
 
 const ORDER_COMMAND_REGION = 'us-central1'
+const FUNCTION_REGION_PATTERN = /^[a-z]+(?:-[a-z0-9]+)+[0-9]$/
 
 const COMMAND_HTTP_ERROR_CODES = new Map([
   ['invalid-argument', 'invalid-argument'],
@@ -76,10 +78,35 @@ function toHttpsError(error, commandContext = {}) {
   )
 }
 
-function createOrderCommandCallable(handler, commandContext = {}) {
-  return onCall({ cors: true, region: ORDER_COMMAND_REGION }, async request => {
+function normalizeCallableRegion(region) {
+  if (region !== undefined && typeof region !== 'string') {
+    throw new TypeError('Order command region must be a string.')
+  }
+  const normalizedRegion = (region ?? ORDER_COMMAND_REGION).trim()
+  if (!FUNCTION_REGION_PATTERN.test(normalizedRegion)) {
+    throw new TypeError(`Invalid order command region: ${normalizedRegion || '(empty)'}`)
+  }
+  return normalizedRegion
+}
+
+function createOrderCommandCallable(handler, commandContext = {}, options = {}) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TypeError('Order command callable options must be an object.')
+  }
+  const region = normalizeCallableRegion(options.region)
+  return onCall({ cors: true, region }, async request => {
+    const startedAt = Date.now()
     try {
-      return await handler(request.data ?? {}, request)
+      const result = await handler(request.data ?? {}, request)
+      info('Order command completed.', {
+        event: 'order_command_completed',
+        commandType: commandContext.commandType ?? 'unknown',
+        actorType: commandContext.actorType ?? 'unknown',
+        region,
+        durationMs: Date.now() - startedAt,
+        deduped: result?.deduped === true,
+      })
+      return result
     } catch (error) {
       await recordOrderCommandFailure(
         buildOrderCommandFailureContext({

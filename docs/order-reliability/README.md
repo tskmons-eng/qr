@@ -66,6 +66,12 @@ Round 2 の完了条件:
 6. [11-integration-release.md](11-integration-release.md)
    - 06〜10 の統合、検証、deploy順、rollback を担当する最終ゲート。
 
+## 2026-07-13 無料レイテンシ改善
+
+- [12-free-order-submit-latency.md](12-free-order-submit-latency.md)
+  - 注文送信だけを `asia-northeast1` 優先にし、既存米国Callableを限定fallbackとして維持する。
+  - `db.getAll()` / transaction `getAll()`、無料のscale-to-zero、匿名の区間時間ログ、公開順を固定する。
+
 ## 現在の到達点
 
 - 注文開始、お客様注文、スタッフ注文、スタッフ着席、会計、キャンセル、提供済み、提供済み戻し、席移動は command/transaction 境界へ寄せた。
@@ -76,3 +82,4 @@ Round 2 の完了条件:
 - ここからは「Functions を用意した」ではなく「Functions を本番注文経路にする」ことを完了条件にする。
 - `07-functions-emulator-concurrency.md` では `npm run check:order-functions-emulator` を追加し、callable Functions の emulator 同時実行検証を通過済み。
 - 08では rules lockdown 用の stage helper を追加済み。現行rulesは Compatibility stage のままで、公開注文writeはまだ閉じていない。
+- 2026-07-13の無料レイテンシ改善では、東京別名Callable、お客様・スタッフ送信の限定fallback、一括読込、成功時の匿名durationログを追加した。既存米国Callableと`clientRequestId`冪等性は維持する。

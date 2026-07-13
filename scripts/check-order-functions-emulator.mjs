@@ -12,6 +12,7 @@ import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/
 const PROJECT_ID = 'demo-qr-functions-concurrency'
 const FUNCTIONS_HOST = '127.0.0.1'
 const FUNCTIONS_PORT = 5001
+const ASIA_FUNCTIONS_REGION = 'asia-northeast1'
 const AUTH_HOST = '127.0.0.1'
 const AUTH_PORT = 9099
 const INSIDE_ENV = 'QR_ORDER_FUNCTIONS_EMULATOR_INSIDE'
@@ -135,17 +136,21 @@ function firebaseConfig(name) {
 function createFunctionsFor(name) {
   const app = initializeApp(firebaseConfig(name), name)
   const functions = getFunctions(app)
+  const asiaFunctions = getFunctions(app, ASIA_FUNCTIONS_REGION)
   connectFunctionsEmulator(functions, FUNCTIONS_HOST, FUNCTIONS_PORT)
-  return { app, functions }
+  connectFunctionsEmulator(asiaFunctions, FUNCTIONS_HOST, FUNCTIONS_PORT)
+  return { app, asiaFunctions, functions }
 }
 
 function createStaffClient(name) {
   const app = initializeApp(firebaseConfig(name), name)
   const functions = getFunctions(app)
+  const asiaFunctions = getFunctions(app, ASIA_FUNCTIONS_REGION)
   const auth = getAuth(app)
   connectFunctionsEmulator(functions, FUNCTIONS_HOST, FUNCTIONS_PORT)
+  connectFunctionsEmulator(asiaFunctions, FUNCTIONS_HOST, FUNCTIONS_PORT)
   connectAuthEmulator(auth, `http://${AUTH_HOST}:${AUTH_PORT}`, { disableWarnings: true })
-  return { app, auth, functions }
+  return { app, asiaFunctions, auth, functions }
 }
 
 function adminDb() {
@@ -426,6 +431,36 @@ async function runCustomerSubmitDedup(db, publicFunctions, productId) {
   assert.equal(retryItems.length, payload.items.length, 'timeout-style retry should not create extra item docs')
 }
 
+async function runAsiaCustomerSubmitDedup(db, publicFunctions, asiaFunctions, productId) {
+  const tableId = `${runId}_asia_customer_submit_table`
+  const requestId = `${runId}_same_asia_customer_request`
+  await seedTable(db, tableId)
+  const orderId = await call(publicFunctions, 'startCustomerOrderSessionCommand', {
+    guestAutoAdd: { enabled: false },
+    guestCount: 2,
+    storeId,
+    tableId,
+  })
+  const payload = {
+    items: [cartItem(productId), cartItem(productId, 2)],
+    orderId,
+    storeId,
+    tableId,
+    clientRequestId: requestId,
+  }
+
+  const results = await Promise.all(Array.from({ length: 12 }, () => (
+    call(asiaFunctions, 'submitCustomerOrderItemsCommandAsia', payload)
+  )))
+  const retryResult = await call(asiaFunctions, 'submitCustomerOrderItemsCommandAsia', payload)
+  const items = await queryBy(db, 'orderItems', 'clientRequestId', requestId)
+
+  assert.ok(results.every(result => result.ok === true), 'Asia customer submit should return ok results')
+  assert.ok(results.some(result => result.deduped === true), 'Asia customer submit should dedupe concurrent retries')
+  assert.equal(retryResult.deduped, true, 'Asia customer timeout-style retry should dedupe')
+  assert.equal(items.length, payload.items.length, 'Asia customer retries should create one set of item docs')
+}
+
 async function runCustomerDistinctSubmitRequests(db, publicFunctions, productId) {
   const tableId = `${runId}_customer_distinct_submit_table`
   await seedTable(db, tableId)
@@ -503,6 +538,37 @@ async function runStaffSubmitDedup(db, staffFunctions, productId, drinkProductId
   assert.ok(items.every(item => item.orderedByStaffName === staff.name), 'staff submit should store staff name on order items')
   assert.equal((await tableData(db, tableId)).pendingCount, payload.cart.length, 'duplicate staff submit should increment pendingCount once')
   return { itemIds: items.map(item => item.id), orderId, tableId }
+}
+
+async function runAsiaStaffSubmitDedup(db, staffFunctions, asiaFunctions, productId, drinkProductId) {
+  const tableId = `${runId}_asia_staff_submit_table`
+  const requestId = `${runId}_same_asia_staff_request`
+  await seedTable(db, tableId)
+  const orderId = await call(staffFunctions, 'seatStaffOrderSessionCommand', {
+    tableId,
+    seatCount: 3,
+    activeStaff: staff,
+  })
+  const payload = {
+    activeStaff: staff,
+    cart: [cartItem(productId), cartItem(drinkProductId), cartItem(productId, 2)],
+    orderId,
+    storeId,
+    tableId,
+    clientRequestId: requestId,
+  }
+
+  const results = await Promise.all(Array.from({ length: 12 }, () => (
+    call(asiaFunctions, 'submitStaffOrderItemsCommandAsia', payload)
+  )))
+  const retryResult = await call(asiaFunctions, 'submitStaffOrderItemsCommandAsia', payload)
+  const items = await queryBy(db, 'orderItems', 'clientRequestId', requestId)
+
+  assert.ok(results.every(result => result.ok === true), 'Asia staff submit should return ok results')
+  assert.ok(results.some(result => result.deduped === true), 'Asia staff submit should dedupe concurrent retries')
+  assert.equal(retryResult.deduped, true, 'Asia staff timeout-style retry should dedupe')
+  assert.equal(items.length, payload.cart.length, 'Asia staff retries should create one set of item docs')
+  assert.equal((await tableData(db, tableId)).pendingCount, payload.cart.length, 'Asia staff retries should increment pendingCount once')
 }
 
 async function runItemStatusCounterChecks(db, staffFunctions, productId) {
@@ -861,10 +927,12 @@ const products = await seedBaseData(db)
 
 await runCustomerStartRace(db, publicClient.functions, products.productId)
 await runCustomerSubmitDedup(db, publicClient.functions, products.productId)
+await runAsiaCustomerSubmitDedup(db, publicClient.functions, publicClient.asiaFunctions, products.productId)
 await runCustomerDistinctSubmitRequests(db, publicClient.functions, products.productId)
 await runUnauthorizedStaffReject(db, staffClient.functions)
 await createStaffSession(db, staffCredential.user.uid)
 await runStaffSubmitDedup(db, staffClient.functions, products.productId, products.drinkProductId)
+await runAsiaStaffSubmitDedup(db, staffClient.functions, staffClient.asiaFunctions, products.productId, products.drinkProductId)
 await runItemStatusCounterChecks(db, staffClient.functions, products.productId)
 await runLateSubmitAfterCheckout(db, publicClient.functions, staffClient.functions, products.productId)
 await runDoubleCheckoutIdempotency(db, publicClient.functions, staffClient.functions)

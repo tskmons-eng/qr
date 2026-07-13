@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 const [
   functionsIndex,
   api,
+  handlers,
   failureRecorder,
   shared,
   auditScript,
@@ -15,6 +16,7 @@ const [
 ] = await Promise.all([
   readFile('functions/index.js', 'utf8'),
   readFile('functions/orderCommandApi.js', 'utf8'),
+  readFile('functions/orderCommandHandlers.js', 'utf8'),
   readFile('functions/orderCommandFailures.js', 'utf8'),
   readFile('functions/orderCommandShared.js', 'utf8'),
   readFile('scripts/audit-order-command-failures.mjs', 'utf8'),
@@ -31,6 +33,25 @@ for (const token of [
   'throw toHttpsError(error',
 ]) {
   assert.ok(api.includes(token), `functions/orderCommandApi.js should include ${token}`)
+}
+
+for (const token of [
+  "event: 'order_command_completed'",
+  'commandType:',
+  'actorType:',
+  'region,',
+  'durationMs:',
+  'deduped:',
+]) {
+  assert.ok(api.includes(token), `Functions success log should include ${token}`)
+}
+for (const token of [
+  "event: 'order_command_stage_completed'",
+  "'product_verification'",
+  "'transaction'",
+  'itemCount,',
+]) {
+  assert.ok(handlers.includes(token), `Functions stage log should include ${token}`)
 }
 
 for (const token of [
@@ -88,6 +109,8 @@ assert.ok(docs.includes('--minutes 15'), '09 doc should include 15 minute failur
 assert.ok(docs.includes('--minutes 60'), '09 doc should include 60 minute failure audit command')
 assert.ok(docs.includes('npm run audit:pending-counts -- --json'), '09 doc should include pending drift audit command')
 assert.ok(docs.includes('live-failure-monitoring-runbook.md'), '09 doc should link the live failure runbook')
+assert.ok(docs.includes('order_command_completed'), '09 doc should document anonymous total duration logs')
+assert.ok(docs.includes('order_command_stage_completed'), '09 doc should document anonymous stage duration logs')
 assert.ok(readme.includes('orderCommandFailures'), 'README should mention orderCommandFailures observability')
 
 for (const token of [

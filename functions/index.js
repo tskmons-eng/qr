@@ -21,10 +21,18 @@ exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderComman
   commandType: 'customer_submit_items',
   actorType: 'customer',
 })
+exports.submitCustomerOrderItemsCommandAsia = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
+  commandType: 'customer_submit_items',
+  actorType: 'customer',
+}, { region: ASIA_NORTHEAST_FUNCTION_REGION })
 exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems, {
   commandType: 'staff_submit_items',
   actorType: 'staff',
 })
+exports.submitStaffOrderItemsCommandAsia = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems, {
+  commandType: 'staff_submit_items',
+  actorType: 'staff',
+}, { region: ASIA_NORTHEAST_FUNCTION_REGION })
 exports.seatStaffOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.seatStaffOrderSession, {
   commandType: 'seat_staff_order_session',
   actorType: 'staff',

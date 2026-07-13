@@ -4,7 +4,9 @@ import { readFile } from 'node:fs/promises'
 const functionExports = [
   'startCustomerOrderSessionCommand',
   'submitCustomerOrderItemsCommand',
+  'submitCustomerOrderItemsCommandAsia',
   'submitStaffOrderItemsCommand',
+  'submitStaffOrderItemsCommandAsia',
   'seatStaffOrderSessionCommand',
   'completeCheckoutCommand',
   'markOrderItemServedCommand',
@@ -70,6 +72,7 @@ for (const token of [
 
 assert.ok(api.includes("new HttpsError("), 'Functions command API should map command errors to callable errors')
 assert.ok(api.includes("ORDER_COMMAND_REGION = 'us-central1'"), 'Functions command API should pin order callables to us-central1')
+assert.ok(api.includes('options.region'), 'Functions command API should allow an explicit regional alias')
 assert.ok(api.includes('category-scope-mismatch'), 'Functions command API should map category scope errors')
 assert.ok(handlers.includes('category-scope-mismatch') && handlers.includes('category.storeId'), 'Functions handlers should reject cross-store categories')
 assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME"), 'client command runtime should read VITE_ORDER_COMMAND_RUNTIME')
@@ -103,5 +106,12 @@ assert.ok(functionsIndex.includes("ASIA_NORTHEAST_FUNCTION_REGION = 'asia-northe
 assert.ok(functionsIndex.includes("US_CENTRAL_FUNCTION_REGION = 'us-central1'"), 'Functions index should pin existing us-central1 triggers')
 assert.ok(functionsIndex.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), 'Functions index should use the asia-northeast1 trigger region')
 assert.ok(functionsIndex.includes('region: US_CENTRAL_FUNCTION_REGION'), 'Functions index should use the us-central1 trigger region')
+for (const name of ['submitCustomerOrderItemsCommandAsia', 'submitStaffOrderItemsCommandAsia']) {
+  const exportStart = functionsIndex.indexOf(`exports.${name} = createOrderCommandCallable`)
+  assert.notEqual(exportStart, -1, `${name} should be exported`)
+  const exportBlock = functionsIndex.slice(exportStart, exportStart + 400)
+  assert.ok(exportBlock.includes('{ region: ASIA_NORTHEAST_FUNCTION_REGION }'), `${name} should use asia-northeast1`)
+  assert.ok(!exportBlock.includes('minInstances'), `${name} should remain scale-to-zero`)
+}
 
 console.log('functions/rules migration checks passed')
