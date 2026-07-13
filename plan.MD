@@ -51,6 +51,18 @@
 - Functions production dependency監査は更新前のcritical 0 / high 4 / moderate 13 / low 1から、critical 0 / high 0 / moderate 8 / low 0へ改善した。残る8件はFirestore / Storage経由の間接`uuid` advisoryで、互換外Admin 14への更新や`npm audit fix --force`は行わない。
 - `notifyReservationCreated`の初回Node.js 22 deploy後、SDK v7のplatform resetにより本番`maxInstances`が未設定から20へ変わることを実測した。`maxInstances: 0`で再deployしても20へ正規化されたため、外部設定を手動で残す構造にはせず、同上限をsourceへ明示して全Functionsを管理可能な状態にする。
 
+### 本番公開結果
+
+- branch `codex/functions-runtime-node22`をpushし、Firebase project `qrproduct-3340b`へ対象名を明示した段階deployだけを行った。Functions全体deploy、Hosting、Firestore Rules / indexes、Storage Rules、本番データ変更は行っていない。
+- 東京顧客注文1本をcanaryにし、東京スタッフ、米国fallback、低頻度Callable、セッション、取消、配膳、会計、予約通知、スタッフ通知、pending集計trigger、scheduleの順に更新した。各段階でruntime / state / scale設定、Cloud Run ERROR、注文失敗を確認した。
+- 全19本がNode.js 22 / ACTIVE。asia-northeast1 6本、us-central1 13本、全本256MiB / concurrency 80 / `minInstances`未設定 / `maxInstances: 20`である。
+- `notifyReservationCreated`と`processReservationArrivals`だけはSDK v7更新前の上限未設定から`maxInstances: 20`へ変更した。1関数あたり最大1,600並列を確保したまま、従量課金の暴走を抑えるsource管理上限として採用した。
+- 全Functionsの直近75分Cloud Run ERRORは0件、`orderCommandFailures`も直近75分0件だった。本番ダミー注文・通知は作成していない。
+- pending-count監査はtrigger更新前後とも19席 / 未提供item 50件 / drift 7席 / item参照不整合0件で一致した。既存driftは今回のruntime更新と分離し、自動修復していない。
+- `processReservationArrivals`はScheduler `ENABLED` / `every 1 minutes` / `Asia/Tokyo`を維持し、Node.js 22更新後の自然実行が3回連続HTTP 200だった。
+- Hostingの公開assetは`/assets/index-DGZ0_1if.js`のままで、注文速度改善公開時のassetとSHA-256が一致した。`/`、`/order`、`/staff`、`/admin/sales`はHTTP 200だった。
+- deploy時に既存`notifyStaff`がus-central1、Firestore triggerがasia-northeast1というcross-region警告が継続した。今回のruntime更新ではregionを移動せず、別名移行が必要な将来の速度改善課題として残す。
+
 ## 2026-07-13 注文送信レイテンシ無料改善 Phase 1
 
 ### 目的
