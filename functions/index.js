@@ -10,7 +10,7 @@ initializeApp()
 
 const ASIA_NORTHEAST_FUNCTION_REGION = 'asia-northeast1'
 const US_CENTRAL_FUNCTION_REGION = 'us-central1'
-const ORDER_SUBMIT_MAX_INSTANCES = 20
+const EVENT_TRIGGER_MAX_INSTANCES = 20
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 
@@ -25,7 +25,7 @@ exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderComman
 exports.submitCustomerOrderItemsCommandAsia = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
   commandType: 'customer_submit_items',
   actorType: 'customer',
-}, { region: ASIA_NORTHEAST_FUNCTION_REGION, maxInstances: ORDER_SUBMIT_MAX_INSTANCES })
+}, { region: ASIA_NORTHEAST_FUNCTION_REGION })
 exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems, {
   commandType: 'staff_submit_items',
   actorType: 'staff',
@@ -33,7 +33,7 @@ exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHa
 exports.submitStaffOrderItemsCommandAsia = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems, {
   commandType: 'staff_submit_items',
   actorType: 'staff',
-}, { region: ASIA_NORTHEAST_FUNCTION_REGION, maxInstances: ORDER_SUBMIT_MAX_INSTANCES })
+}, { region: ASIA_NORTHEAST_FUNCTION_REGION })
 exports.seatStaffOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.seatStaffOrderSession, {
   commandType: 'seat_staff_order_session',
   actorType: 'staff',
@@ -188,6 +188,7 @@ async function sendStaffNotification({ storeId, title, body, link = '/staff', ta
 exports.syncTablePendingAggregateOnCreate = onDocumentCreated({
   document: 'orderItems/{itemId}',
   region: ASIA_NORTHEAST_FUNCTION_REGION,
+  maxInstances: EVENT_TRIGGER_MAX_INSTANCES,
 }, async (event) => {
   await applyPendingAggregateDeltas([
     { entry: getPendingAggregateCounts(event.data.data()), direction: 1 },
@@ -197,6 +198,7 @@ exports.syncTablePendingAggregateOnCreate = onDocumentCreated({
 exports.syncTablePendingAggregateOnUpdate = onDocumentUpdated({
   document: 'orderItems/{itemId}',
   region: ASIA_NORTHEAST_FUNCTION_REGION,
+  maxInstances: EVENT_TRIGGER_MAX_INSTANCES,
 }, async (event) => {
   const before = getPendingAggregateCounts(event.data.before.data())
   const after = getPendingAggregateCounts(event.data.after.data())
@@ -217,6 +219,7 @@ exports.syncTablePendingAggregateOnUpdate = onDocumentUpdated({
 exports.syncTablePendingAggregateOnDelete = onDocumentDeleted({
   document: 'orderItems/{itemId}',
   region: ASIA_NORTHEAST_FUNCTION_REGION,
+  maxInstances: EVENT_TRIGGER_MAX_INSTANCES,
 }, async (event) => {
   await applyPendingAggregateDeltas([
     { entry: getPendingAggregateCounts(event.data.data()), direction: -1 },
@@ -226,6 +229,7 @@ exports.syncTablePendingAggregateOnDelete = onDocumentDeleted({
 exports.notifyStaff = onDocumentCreated({
   document: 'calls/{callId}',
   region: US_CENTRAL_FUNCTION_REGION,
+  maxInstances: EVENT_TRIGGER_MAX_INSTANCES,
 }, async (event) => {
   const call = event.data.data()
   if (!call) return

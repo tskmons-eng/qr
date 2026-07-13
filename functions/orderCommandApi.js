@@ -6,6 +6,7 @@ const {
 } = require('./orderCommandFailures')
 
 const ORDER_COMMAND_REGION = 'us-central1'
+const ORDER_COMMAND_MAX_INSTANCES = 20
 const FUNCTION_REGION_PATTERN = /^[a-z]+(?:-[a-z0-9]+)+[0-9]$/
 
 const COMMAND_HTTP_ERROR_CODES = new Map([
@@ -102,9 +103,10 @@ function createOrderCommandCallable(handler, commandContext = {}, options = {}) 
     throw new TypeError('Order command callable options must be an object.')
   }
   const region = normalizeCallableRegion(options.region)
-  const maxInstances = normalizeCallableMaxInstances(options.maxInstances)
-  const callableOptions = { cors: true, region }
-  if (maxInstances !== undefined) callableOptions.maxInstances = maxInstances
+  const maxInstances = normalizeCallableMaxInstances(
+    options.maxInstances ?? ORDER_COMMAND_MAX_INSTANCES
+  )
+  const callableOptions = { cors: true, region, maxInstances }
   return onCall(callableOptions, async request => {
     const startedAt = Date.now()
     try {
@@ -134,5 +136,6 @@ function createOrderCommandCallable(handler, commandContext = {}, options = {}) 
 
 module.exports = {
   createOrderCommandCallable,
+  ORDER_COMMAND_MAX_INSTANCES,
   ORDER_COMMAND_REGION,
 }
