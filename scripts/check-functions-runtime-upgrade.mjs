@@ -136,8 +136,12 @@ for (const name of [
     `${name} should preserve its production maxInstances`,
   )
 }
+assert.ok(functionsIndex.includes('const UNLIMITED_MAX_INSTANCES = 0'), 'uncapped event functions should explicitly use the gen 2 no-limit value')
 for (const name of ['notifyReservationCreated', 'processReservationArrivals']) {
-  assert.ok(!exportBlock(functionsIndex, name).includes('maxInstances'), `${name} should preserve its uncapped production setting`)
+  assert.ok(
+    exportBlock(functionsIndex, name).includes('maxInstances: UNLIMITED_MAX_INSTANCES'),
+    `${name} should preserve its uncapped production setting across SDK resets`,
+  )
 }
 assert.doesNotMatch(functionSources, /preserveExternalChanges/, 'runtime settings should remain source-controlled')
 

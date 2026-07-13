@@ -25,7 +25,7 @@ Node.js 20のdecommission前に、全FunctionsをFirebase正式対応のNode.js 
 
 更新前の`functions:list`では19本すべてがNode.js 20 / ACTIVE、asia-northeast1が6本、us-central1が13本だった。全注文Callable 13本、pending集計trigger 3本、`notifyStaff`は`maxInstances: 20`、`notifyReservationCreated`と`processReservationArrivals`は上限未設定である。
 
-SDK更新時に外部設定を失わないよう、注文Callableのfactory既定値と上記4 triggerだけに`maxInstances: 20`を明示する。上限未設定の2本には追加しない。`minInstances`は全関数で設定せず、scale to zeroを維持する。`preserveExternalChanges`は使わずsourceを正とする。
+SDK更新時に外部設定を失わないよう、注文Callableのfactory既定値と上記4 triggerだけに`maxInstances: 20`を明示する。Functions SDK v7は未指定のreset可能optionをplatform既定値へ戻すため、上限未設定の2本はCloud Functions 2nd gen APIで上限なしを表す`maxInstances: 0`を明示する。`minInstances`は全関数で設定せず、scale to zeroを維持する。`preserveExternalChanges`は使わずsourceを正とする。
 
 ## 検証
 
@@ -73,10 +73,11 @@ Functions全体deployは禁止する。Hosting、Firestore Rules / indexes、Sto
 
 ## 検証・公開結果
 
-- Node.js 20 rollback基準: `aa996d6`。本番scale上限をsourceへ反映済みで、`93e13e5`を直接rollback元にはしない。
+- Node.js 20 rollback基準: `aa996d6`に、上限なし2本を明示したsource-only commit `937bcbc`を適用する。`93e13e5`を直接rollback元にはしない。
 - Node.js 22.23.1でclean `npm ci`、全Functions JavaScriptのsyntax check、Functions source load、runtime / migration / latency routing checkが成功した。
 - Firebase CLI 15.23.0をNode.js 22で直接起動し、Functions Emulatorの`Using node@22 from host`、test process `v22.23.1`、全19定義の読込を確認した。注文、会計、席移動、予約案内、pending集計trigger、予約通知triggerを含むEmulator検証は成功した。
 - `npm.cmd run check`、`npm.cmd run build`、`git diff --check`は成功した。
 - production dependency監査はcritical 0 / high 0 / moderate 8 / low 0。更新前のhigh 4 / moderate 13 / low 1から減少し、残る間接advisoryは既知注意点として維持する。
 - scheduleはPub/Sub Emulatorを起動していないためローカル実行対象外。`processReservationArrivals`を最後に単独deployし、schedule / timezoneと本番成功ログを確認する。
+- `notifyReservationCreated`の初回更新で、SDK v7のplatform resetにより上限未設定が`maxInstances: 20`へ変わった。次のfunctionへ進む前に`maxInstances: 0`をsourceへ追加し、同functionを再deployして上限なしへ戻す。
 - 段階公開結果は完了後に追記する。
