@@ -45,7 +45,12 @@
 - 東京別名Callable 2本がEmulator上で`asia-northeast1`として初期化され、既存米国Callableも残ることを確認した。
 - 一時障害だけを米国fallback対象とし、入力・権限・業務エラーを対象外にするfixture、および`minInstances`未設定を静的checkで固定した。
 - 初回Functions公開後の実設定確認で最大スケール上限が未設定だったため、Hosting切替前に`maxInstances: 20`を明示する安全修正を追加した。
-- 本番Functions / Hostingの公開結果、公開asset、本番ログの読み取り専用確認は公開後に追記する。
+- Firebase project `qrproduct-3340b`へ東京別名Callable 2本だけを公開した。両方とも`asia-northeast1` / ACTIVE / 256MiB / 1CPU / concurrency 80、`minInstances`未設定（scale to zero）、`maxInstances: 20`で、既存米国Callable 2本もACTIVEのまま残っている。
+- 公開直前の本番確認で注文更新が直近15分以内にあったため、既存画面に影響しないFunctions追加だけを先行し、注文・席・未提供明細の更新が15分間0件になってからHostingを公開した。
+- Hosting公開後の`/assets/index-DGZ0_1if.js`はローカルbuildとSHA-256が一致し、東京別名2本、`asia-northeast1`、`us-central1` fallbackを含む。`/`、`/order`、`/staff`、`/admin/sales`はHTTP 200だった。
+- 公開後の直近15分`orderCommandFailures`は0件、東京Callable 2本の直近30分ERRORログも0件だった。本番へのダミー注文は送っていないため、改善後latencyのp50 / p95は実利用サンプル待ちとする。
+- pending-count監査では19席中8席に既存drift、未提供item 55件、item参照不整合0件があり、今回の公開前後で件数は変わっていない。速度改善と分離し、本番データの自動修復は行っていない。
+- 公開時にNode.js 20の2026-10-30廃止予定と`firebase-functions`旧版の警告が出た。依存更新は破壊的変更を含み得るため今回の無料速度改善には混ぜず、期限前の別作業として残す。
 
 ## 2026-07-13 会計履歴・担当別売上と管理画面UI改善
 
