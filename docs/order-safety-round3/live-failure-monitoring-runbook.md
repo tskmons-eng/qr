@@ -12,6 +12,8 @@
 npm run monitor:health
 ```
 
+Windows PowerShellでnpm launcherの実行エラーが出る場合は、同じ処理を`npm.cmd run monitor:health`で実行する。
+
 - ローカル: Git状態、`npm run check`、production build、初期bundle性能予算。
 - 本番: 主要URL/asset疎通、直近60分の注文command失敗、pending count整合性。
 - `PASS` は異常なし、`KNOWN` は登録済みbaselineと同一、`WARN` は単発失敗やbaseline改善、`FAIL` は恒常エラー・権限エラー・新規不整合を表す。
