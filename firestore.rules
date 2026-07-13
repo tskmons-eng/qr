@@ -93,16 +93,16 @@ service cloud.firestore {
         && canonicalStaffPermission(currentStaffMemberData(), permission, legacyDefault) == true;
     }
 
-    function staffPreset(storeId) {
+    function staffPreset() {
       return canonicalStaffPreset(currentStaffMemberData());
     }
 
     function staffIsManager(storeId) {
-      return canonicalStaffMemberExists(storeId) && staffPreset(storeId) == 'manager';
+      return canonicalStaffMemberExists(storeId) && staffPreset() == 'manager';
     }
 
     function staffIsOperations(storeId) {
-      return canonicalStaffMemberExists(storeId) && staffPreset(storeId) == 'operations';
+      return canonicalStaffMemberExists(storeId) && staffPreset() == 'operations';
     }
 
     function canManageMenu(storeId) {
