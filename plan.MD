@@ -22,7 +22,7 @@
 - クライアントは東京Callableを優先し、到達不能・一時障害に限り同一`clientRequestId`のまま既存米国Callableへfallbackする。業務エラー・権限エラーではfallbackしない。
 - 商品IDをrequest内で重複排除してAdmin SDK `getAll()`で取得し、必要categoryも一括取得する。transactionの独立したdocument readも`getAll()`へまとめる。
 - Callable全体、商品確認、transactionのdurationを、店舗・席・注文・request IDを含めない構造化ログへ出す。
-- `minInstances`、有料サービス、新規依存、クライアント直接Firestore書込への復帰は行わない。
+- `minInstances`、有料サービス、新規依存、クライアント直接Firestore書込への復帰は行わない。新東京Callableは既存経路と同じ`maxInstances: 20`を上限にする。
 
 ### 影響範囲
 
@@ -44,6 +44,7 @@
 - Auth / Firestore / Functions Emulatorで東京別名Callable 2本の正常送信、同一requestの同時再送・完了後再送、スタッフ権限拒否、`pendingCount`重複防止を確認した。
 - 東京別名Callable 2本がEmulator上で`asia-northeast1`として初期化され、既存米国Callableも残ることを確認した。
 - 一時障害だけを米国fallback対象とし、入力・権限・業務エラーを対象外にするfixture、および`minInstances`未設定を静的checkで固定した。
+- 初回Functions公開後の実設定確認で最大スケール上限が未設定だったため、Hosting切替前に`maxInstances: 20`を明示する安全修正を追加した。
 - 本番Functions / Hostingの公開結果、公開asset、本番ログの読み取り専用確認は公開後に追記する。
 
 ## 2026-07-13 会計履歴・担当別売上と管理画面UI改善

@@ -110,8 +110,10 @@ for (const name of ['submitCustomerOrderItemsCommandAsia', 'submitStaffOrderItem
   const exportStart = functionsIndex.indexOf(`exports.${name} = createOrderCommandCallable`)
   assert.notEqual(exportStart, -1, `${name} should be exported`)
   const exportBlock = functionsIndex.slice(exportStart, exportStart + 400)
-  assert.ok(exportBlock.includes('{ region: ASIA_NORTHEAST_FUNCTION_REGION }'), `${name} should use asia-northeast1`)
+  assert.ok(exportBlock.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), `${name} should use asia-northeast1`)
+  assert.ok(exportBlock.includes('maxInstances: ORDER_SUBMIT_MAX_INSTANCES'), `${name} should cap burst scaling`)
   assert.ok(!exportBlock.includes('minInstances'), `${name} should remain scale-to-zero`)
 }
+assert.ok(functionsIndex.includes('const ORDER_SUBMIT_MAX_INSTANCES = 20'), 'Asia submit aliases should cap max instances at 20')
 
 console.log('functions/rules migration checks passed')

@@ -89,12 +89,23 @@ function normalizeCallableRegion(region) {
   return normalizedRegion
 }
 
+function normalizeCallableMaxInstances(maxInstances) {
+  if (maxInstances === undefined) return undefined
+  if (!Number.isInteger(maxInstances) || maxInstances <= 0) {
+    throw new TypeError('Order command maxInstances must be a positive integer.')
+  }
+  return maxInstances
+}
+
 function createOrderCommandCallable(handler, commandContext = {}, options = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new TypeError('Order command callable options must be an object.')
   }
   const region = normalizeCallableRegion(options.region)
-  return onCall({ cors: true, region }, async request => {
+  const maxInstances = normalizeCallableMaxInstances(options.maxInstances)
+  const callableOptions = { cors: true, region }
+  if (maxInstances !== undefined) callableOptions.maxInstances = maxInstances
+  return onCall(callableOptions, async request => {
     const startedAt = Date.now()
     try {
       const result = await handler(request.data ?? {}, request)

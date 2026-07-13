@@ -10,7 +10,7 @@
 - 既存の `submitCustomerOrderItemsCommand` と `submitStaffOrderItemsCommand` は `us-central1` に残し、限定的な退避先とrollback先にする。
 - 東京Callableが未到達または一時障害のときだけ、同じ `clientRequestId` を含む同じpayloadで既存米国Callableへfallbackする。
 - 商品不在、注文終了、入力不正、認証・権限などの業務エラー・権限エラーでは fallback しない。
-- `minInstances` は追加しない。新しい有料サービスや依存パッケージも追加しない。
+- `minInstances` は追加しない。新しい有料サービスや依存パッケージも追加しない。異常な集中時の従量費を抑えるため、東京Callable 2本は既存米国経路と同じ`maxInstances: 20`を上限にする。
 
 ## 無料の処理短縮
 

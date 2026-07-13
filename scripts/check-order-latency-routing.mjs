@@ -65,16 +65,20 @@ for (const name of [
       ? 'exports.submitStaffOrderItemsCommand = createOrderCommandCallable'
       : 'exports.seatStaffOrderSessionCommand = createOrderCommandCallable',
   )
-  assert.ok(aliasBlock.includes('{ region: ASIA_NORTHEAST_FUNCTION_REGION }'), `${name} should run in asia-northeast1`)
+  assert.ok(aliasBlock.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), `${name} should run in asia-northeast1`)
+  assert.ok(aliasBlock.includes('maxInstances: ORDER_SUBMIT_MAX_INSTANCES'), `${name} should cap burst scaling`)
   assert.ok(!aliasBlock.includes('minInstances'), `${name} should not add paid warm instances`)
 }
+assert.ok(functionsIndex.includes('const ORDER_SUBMIT_MAX_INSTANCES = 20'), 'Asia submit aliases should match the existing max instance safety cap')
 
 assert.ok(
   functionsApi.includes('function createOrderCommandCallable(handler, commandContext = {}, options = {})'),
   'callable factory should accept a narrow region option',
 )
 assert.ok(functionsApi.includes('const region = normalizeCallableRegion(options.region)'), 'callable region should be validated')
-assert.ok(functionsApi.includes('return onCall({ cors: true, region }'), 'callable factory should apply its selected region')
+assert.ok(functionsApi.includes('normalizeCallableMaxInstances(options.maxInstances)'), 'callable maxInstances should be validated')
+assert.ok(functionsApi.includes('callableOptions.maxInstances = maxInstances'), 'callable factory should apply the optional scale cap')
+assert.ok(functionsApi.includes('return onCall(callableOptions'), 'callable factory should apply its selected options')
 assert.ok(!functionsApi.includes('minInstances'), 'order callable factory should remain scale-to-zero')
 
 const productLoader = sliceBetween(
@@ -186,6 +190,7 @@ for (const token of [
   '同じ `clientRequestId`',
   '業務エラー・権限エラーでは fallback しない',
   '`minInstances` は追加しない',
+  '`maxInstances: 20`',
   'order_command_completed',
   'order_command_stage_completed',
 ]) {
