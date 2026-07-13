@@ -11,8 +11,6 @@ initializeApp()
 const ASIA_NORTHEAST_FUNCTION_REGION = 'asia-northeast1'
 const US_CENTRAL_FUNCTION_REGION = 'us-central1'
 const EVENT_TRIGGER_MAX_INSTANCES = 20
-// Cloud Functions 2nd gen represents 0 as no maximum instance limit.
-const UNLIMITED_MAX_INSTANCES = 0
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 
@@ -254,7 +252,7 @@ exports.notifyStaff = onDocumentCreated({
 exports.notifyReservationCreated = onDocumentCreated({
   document: 'reservations/{reservationId}',
   region: ASIA_NORTHEAST_FUNCTION_REGION,
-  maxInstances: UNLIMITED_MAX_INSTANCES,
+  maxInstances: EVENT_TRIGGER_MAX_INSTANCES,
 }, async (event) => {
   const reservation = event.data.data()
   if (!reservation || reservation.status !== 'confirmed') return
@@ -379,7 +377,7 @@ exports.processReservationArrivals = onSchedule({
   schedule: 'every 1 minutes',
   timeZone: 'Asia/Tokyo',
   region: US_CENTRAL_FUNCTION_REGION,
-  maxInstances: UNLIMITED_MAX_INSTANCES,
+  maxInstances: EVENT_TRIGGER_MAX_INSTANCES,
 }, async () => {
   const db = getFirestore()
   const snap = await db.collection('reservations')
