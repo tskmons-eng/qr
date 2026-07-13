@@ -1,5 +1,54 @@
 # QR System Plan
 
+## 2026-07-14 Cloud Functions Node.js 22 / SDK更新
+
+### 目的
+
+- 2026-10-30に廃止予定のNode.js 20から、Firebaseが正式対応するNode.js 22へFunctions runtimeを移行する。
+- `firebase-functions` / `firebase-admin`を現行コードと互換な安定版へ更新し、既知の不具合・脆弱性修正を取り込む。
+- 注文、集計、通知、予約到着処理の動作と既存リージョン、scale設定、権限境界を維持し、一括更新による本番影響を避ける。
+
+### 現状確認
+
+- 本番FunctionsはNode.js 20で稼働中。Google Cloudの公開日程ではNode.js 20は2026-04-30にdeprecated、2026-10-30にdecommission予定。
+- `firebase.json`は`nodejs20`、`functions/package.json`はengine `20`。lock済み実体は`firebase-functions 5.1.1` / `firebase-admin 12.7.0`。
+- 更新前のFunctions production dependency監査はcritical 0 / high 4 / moderate 13 / low 1。
+- Firebase CLIは15.23.0でNode.js 22のdeploy要件を満たす。Functionsコードはv2の明示importとAdmin SDK modular importを使い、v7で削除された`functions.config()`やAdmin v13で削除された旧Messaging APIを使っていない。
+- 最新`firebase-admin 14.1.0`はNode.js 22対応だが、安定版`firebase-functions 7.2.5`のpeer範囲はAdmin 13まで。今回は互換範囲内の`firebase-admin 13.10.0`を選ぶ。
+- 本番19関数はasia-northeast1が6本、us-central1が13本で、すべてNode.js 20 / ACTIVE。`minInstances`は全関数で未設定、memory 256MiB、concurrency 80を維持している。
+- 本番では全注文Callable 13本、pending集計trigger 3本、`notifyStaff`に`maxInstances: 20`が設定済みだが、現sourceは東京注文Callable 2本以外の上限を明示していない。SDK更新deployで既存上限を失わないよう、runtime更新前にsourceと本番設定を一致させる。
+
+### 変更方針
+
+- runtime指定を`nodejs22` / engine `22`へそろえる。
+- 既存依存だけを`firebase-functions 7.2.5`、`firebase-admin 13.10.0`へ更新し、lockfileを再生成する。新しい依存パッケージは追加しない。
+- package / lock / import / runtime / emulator初期化を固定する専用checkを追加し、今後Node.js 20や互換外Adminへ戻らないようにする。
+- 全注文Callableのfactory既定値を`maxInstances: 20`にし、pending集計trigger 3本と`notifyStaff`にも同じ本番上限をsourceへ明示する。個別overrideを維持し、上限未設定で稼働中の`notifyReservationCreated`と`processReservationArrivals`には追加しない。
+- CommonJS、既存trigger名、region、`minInstances`、本番の`maxInstances`、メモリ、concurrency、Firestore transaction、認証検証は変更しない。
+- Hosting、Firestore Rules / indexes、Storage Rules、クライアントasset、既存データは変更しない。
+
+### 段階公開
+
+- 先に東京注文Callableをcanary更新する。クライアントは一時障害時に同一`clientRequestId`で既存米国Callableへfallbackできるため、runtime問題を注文重複なしで退避できる。
+- canaryのruntime・scale設定・ERRORログを確認後、注文Callable、Firestore trigger、通知・scheduleを10本以下の明示groupに分けて更新する。Functions全体deployは行わない。
+- 公開前後に直近の注文失敗、pending-count drift、Functions ERRORログを読み取り専用で比較する。本番ダミー注文や通知は作らない。
+- 問題時は本番scale上限をsourceへ反映したNode.js 20 rollback基準から、対象functionだけを再deployする。上限未反映の`93e13e5`をそのままrollback元にはせず、HostingやRulesは戻さない。
+
+### 検証方法
+
+- Node.js 22実体でclean `npm ci`、`node --check`、Functions source load、専用runtime checkとFunctions Emulatorを実行する。その後`npm.cmd run check`、`npm.cmd run build`、`git diff --check`を実行する。
+- Auth / Firestore / Functions Emulatorで注文の正常系、同時再送、権限拒否、会計、席移動、集計triggerを確認する。
+- `npm.cmd audit --omit=dev`で更新前後を比較し、残る脆弱性はpackage名と到達可能性を確認する。
+- 各deploy後に`functions:list`とCloud Run実設定でNode.js 22、region、scale上限を確認し、ERRORログと注文失敗監査が増えていないことを確認する。
+
+### ローカル検証結果
+
+- 本番scale上限をsourceへ固定したNode.js 20 rollback基準をcommit `aa996d6`として先に作成した。
+- Node.js 22.23.1実体でFunctions dependencyのclean `npm ci`、全Functions JavaScriptのsyntax check、`functions/index.js`読込、runtime / migration / latency routing checkが成功した。
+- Firebase CLI 15.23.0自体をNode.js 22で起動し、Functions Emulatorが`Using node@22 from host`と認識した状態で注文・会計・席移動・予約案内・pending集計trigger・予約通知triggerの検証が成功した。全19定義を読み込み、test processもNode.js 22.23.1だった。
+- `npm.cmd run check`、`npm.cmd run build`、`git diff --check`は成功した。scheduleはPub/Sub Emulator未起動のためローカル実行対象外で、最後に単独deployして本番の毎分成功ログを確認する。
+- Functions production dependency監査は更新前のcritical 0 / high 4 / moderate 13 / low 1から、critical 0 / high 0 / moderate 8 / low 0へ改善した。残る8件はFirestore / Storage経由の間接`uuid` advisoryで、互換外Admin 14への更新や`npm audit fix --force`は行わない。
+
 ## 2026-07-13 注文送信レイテンシ無料改善 Phase 1
 
 ### 目的

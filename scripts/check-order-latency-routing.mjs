@@ -66,18 +66,17 @@ for (const name of [
       : 'exports.seatStaffOrderSessionCommand = createOrderCommandCallable',
   )
   assert.ok(aliasBlock.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), `${name} should run in asia-northeast1`)
-  assert.ok(aliasBlock.includes('maxInstances: ORDER_SUBMIT_MAX_INSTANCES'), `${name} should cap burst scaling`)
   assert.ok(!aliasBlock.includes('minInstances'), `${name} should not add paid warm instances`)
 }
-assert.ok(functionsIndex.includes('const ORDER_SUBMIT_MAX_INSTANCES = 20'), 'Asia submit aliases should match the existing max instance safety cap')
 
 assert.ok(
   functionsApi.includes('function createOrderCommandCallable(handler, commandContext = {}, options = {})'),
   'callable factory should accept a narrow region option',
 )
 assert.ok(functionsApi.includes('const region = normalizeCallableRegion(options.region)'), 'callable region should be validated')
-assert.ok(functionsApi.includes('normalizeCallableMaxInstances(options.maxInstances)'), 'callable maxInstances should be validated')
-assert.ok(functionsApi.includes('callableOptions.maxInstances = maxInstances'), 'callable factory should apply the optional scale cap')
+assert.ok(functionsApi.includes('const ORDER_COMMAND_MAX_INSTANCES = 20'), 'all order callables should preserve the production scale cap')
+assert.ok(functionsApi.includes('options.maxInstances ?? ORDER_COMMAND_MAX_INSTANCES'), 'callable maxInstances should default to the production cap')
+assert.ok(functionsApi.includes('const callableOptions = { cors: true, region, maxInstances }'), 'callable factory should always apply the scale cap')
 assert.ok(functionsApi.includes('return onCall(callableOptions'), 'callable factory should apply its selected options')
 assert.ok(!functionsApi.includes('minInstances'), 'order callable factory should remain scale-to-zero')
 

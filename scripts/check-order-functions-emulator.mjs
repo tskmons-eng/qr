@@ -16,7 +16,16 @@ const ASIA_FUNCTIONS_REGION = 'asia-northeast1'
 const AUTH_HOST = '127.0.0.1'
 const AUTH_PORT = 9099
 const INSIDE_ENV = 'QR_ORDER_FUNCTIONS_EMULATOR_INSIDE'
+const EXPECTED_NODE_MAJOR_ENV = 'QR_EXPECT_NODE_MAJOR'
 const JAVA_EXE = process.platform === 'win32' ? 'java.exe' : 'java'
+
+if (process.env[EXPECTED_NODE_MAJOR_ENV]) {
+  assert.equal(
+    process.versions.node.split('.')[0],
+    process.env[EXPECTED_NODE_MAJOR_ENV],
+    `Functions Emulator check should execute on Node.js ${process.env[EXPECTED_NODE_MAJOR_ENV]}`,
+  )
+}
 
 function javaMajorVersion(javaBin) {
   const javaPath = join(javaBin, JAVA_EXE)
@@ -178,6 +187,21 @@ async function expectCallableError(expectedCode, action, label) {
 
 function callableErrorCode(error) {
   return error?.details?.code ?? String(error?.code ?? '').replace(/^functions\//, '')
+}
+
+function sleep(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
+async function waitFor(label, read, predicate, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs
+  let latest
+  while (Date.now() < deadline) {
+    latest = await read()
+    if (predicate(latest)) return latest
+    await sleep(100)
+  }
+  assert.fail(`${label} did not settle before timeout: ${JSON.stringify(latest)}`)
 }
 
 function cartItem(productId, quantity = 1) {
@@ -919,6 +943,76 @@ async function runStoreScopeRejects(db, publicFunctions, productId, otherProduct
   })
 }
 
+async function runPendingAggregateTriggerChecks(db) {
+  const tableId = `${runId}_aggregate_trigger_table`
+  const itemRef = db.collection('orderItems').doc(`${runId}_aggregate_trigger_item`)
+  await seedTable(db, tableId, {
+    pendingAggregateVersion: 1,
+    pendingAggregateCount: 0,
+    pendingAggregateDrinkCount: 0,
+    pendingAggregateFoodCount: 0,
+  })
+
+  const aggregateMatches = expected => async () => {
+    const table = await tableData(db, tableId)
+    return {
+      count: table.pendingAggregateCount,
+      drink: table.pendingAggregateDrinkCount,
+      food: table.pendingAggregateFoodCount,
+      matches: table.pendingAggregateCount === expected.count &&
+        table.pendingAggregateDrinkCount === expected.drink &&
+        table.pendingAggregateFoodCount === expected.food,
+    }
+  }
+  const waitForAggregate = async (label, expected) => waitFor(
+    label,
+    aggregateMatches(expected),
+    value => value.matches,
+  )
+
+  await itemRef.set({
+    storeId,
+    tableId,
+    orderId: `${runId}_aggregate_order`,
+    itemStatus: 'ordered',
+    categoryGroup: 'food',
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  })
+  await waitForAggregate('pending aggregate create trigger', { count: 1, drink: 0, food: 1 })
+
+  await itemRef.update({ categoryGroup: 'drink', updatedAt: FieldValue.serverTimestamp() })
+  await waitForAggregate('pending aggregate update trigger', { count: 1, drink: 1, food: 0 })
+
+  await itemRef.update({ itemStatus: 'served', updatedAt: FieldValue.serverTimestamp() })
+  await waitForAggregate('pending aggregate served trigger', { count: 0, drink: 0, food: 0 })
+
+  await itemRef.update({ itemStatus: 'ordered', updatedAt: FieldValue.serverTimestamp() })
+  await waitForAggregate('pending aggregate ordered trigger', { count: 1, drink: 1, food: 0 })
+
+  await itemRef.delete()
+  await waitForAggregate('pending aggregate delete trigger', { count: 0, drink: 0, food: 0 })
+}
+
+async function runReservationNotificationTriggerCheck(db) {
+  const reservationRef = db.collection('reservations').doc(`${runId}_notification_trigger`)
+  await reservationRef.set({
+    storeId,
+    name: 'Emulator Notification',
+    time: '19:00',
+    guestCount: 2,
+    status: 'confirmed',
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  })
+
+  await waitFor(
+    'reservation notification trigger',
+    async () => (await reservationRef.get()).data(),
+    reservation => Boolean(reservation?.createdNoticeSentAt),
+  )
+}
+
 const db = adminDb()
 const publicClient = createFunctionsFor(`public-${runId}`)
 const staffClient = createStaffClient(`staff-${runId}`)
@@ -941,5 +1035,7 @@ await runTableMoveConsistency(db, staffClient.functions, products.productId)
 await runTableMoveCustomerSubmitRace(db, publicClient.functions, staffClient.functions, products.productId)
 await runReservationGuideCommand(db, staffClient.functions)
 await runStoreScopeRejects(db, publicClient.functions, products.productId, products.otherProductId, products.categoryMismatchProductId)
+await runPendingAggregateTriggerChecks(db)
+await runReservationNotificationTriggerCheck(db)
 
-console.log('order Functions emulator concurrency checks passed')
+console.log(`order Functions emulator concurrency and trigger checks passed on Node ${process.version}`)

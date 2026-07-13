@@ -72,6 +72,12 @@ Round 2 の完了条件:
   - 注文送信だけを `asia-northeast1` 優先にし、既存米国Callableを限定fallbackとして維持する。
   - `db.getAll()` / transaction `getAll()`、無料のscale-to-zero、匿名の区間時間ログ、公開順を固定する。
 
+## 2026-07-14 Functions runtime更新
+
+- [13-functions-node22-upgrade.md](13-functions-node22-upgrade.md)
+  - Node.js 20から22、Functions SDK 7.2.5、Admin SDK 13.10.0への互換更新を管理する。
+  - canaryから10本以下の明示groupで公開し、Functions全体deployを禁止する。
+
 ## 現在の到達点
 
 - 注文開始、お客様注文、スタッフ注文、スタッフ着席、会計、キャンセル、提供済み、提供済み戻し、席移動は command/transaction 境界へ寄せた。
