@@ -54,7 +54,13 @@ export default function ProductListItem({
             <button type="button" onClick={() => onMove(product, 1)} disabled={isLast} className="sort-move-button">▼</button>
           </div>
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt="" className="product-list-image" />
+            <img
+              src={product.imageUrl}
+              alt=""
+              className="product-list-image"
+              loading="lazy"
+              decoding="async"
+            />
           ) : (
             <div className="product-list-image-placeholder" />
           )}

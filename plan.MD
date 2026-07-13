@@ -1,5 +1,50 @@
 # QR System Plan
 
+## 2026-07-13 手動ヘルス監視と初回読込性能改善
+
+### 目的
+
+- バグ監視を本番データ非破壊のワンコマンドでいつでも実行できるようにする。
+- 顧客、スタッフ、管理画面の既存UI・権限・注文処理を変えず、初回読込の待ち時間を短縮する。
+- 将来Codexの定期実行へ載せる場合も、同じread-only監視コマンドを再利用できる構造にする。
+
+### 現状確認
+
+- `npm run check`、`npm run build`、`npm run check:order-functions-emulator` は実行可能で、計画時点では合格している。
+- 本番read-only監査では直近注文command失敗0件、pending集計ズレ7席、item reference issue 0件。既存ズレは自動修復しない。
+- トップレベルおよびStaff/Admin配下の画面が静的importされ、`/login`でも管理画面とPDF関連コードが初期依存に入る。
+- 現在の初期JavaScriptはgzip約426KBで、外部フォント、画像の即時読込、1時間の一律キャッシュも初回・再訪速度の改善余地になっている。
+
+### 変更方針
+
+- `monitor:health` と `monitor:health:deep` を追加し、ローカル検証と本番read-only監査を分けて報告する。
+- 監視は秘密値や店舗・席・注文・request IDを出力せず、repair、ファイル編集、commit/push、Firebase deployを一切行わない。
+- pending既知値は件数と匿名化fingerprintで固定し、監視自身には更新させない。
+- フォント読込、route単位のlazy load、一覧画像の遅延decode、ハッシュ付きassetのキャッシュだけを変更する。
+- Firestore query、Functions、rules、indexes、Storage、注文・会計データ、画面配置・文言は変更しない。
+
+### 影響範囲
+
+- 監視CLI、性能予算チェック、package scripts、既存live monitoring runbook。
+- アプリroute import、フォント読込、商品一覧画像属性、Vite chunk構成、Firebase Hosting headers。
+- 本計画書。並行中の会計履歴・担当別売上機能の差分は取り込まず、専用worktreeで分離する。
+
+### 検証方法
+
+- `git diff --check`、`npm run check`、`npm run build`、性能予算、`npm run monitor:health` を通す。
+- `npm run monitor:health:deep` でAuth / Firestore / Functions Emulatorの同時注文シナリオを通す。
+- `/login`、`/order/test-token`、`/staff`、`/staff/kitchen`、`/admin` をスマホ・デスクトップで確認し、新規console errorとUI崩れがないことを確認する。
+- 初期JavaScript gzip 300KB以下、初期依存からjsPDF / HEIC / image compressionを除外し、LCP中央値を変更前比20%以上改善する。
+- 全条件合格後のみHostingを反映し、Functions / rules / indexes / Storage / 本番データは変更しない。
+
+### 検証結果
+
+- `git diff --check`、`npm run check`、`npm run build`、性能予算は合格。初期JavaScriptはgzip 220,034 bytes、初期CSSはgzip 20,020 bytesで、PDF / HEIC / image compressionは初期依存に含まれない。
+- `npm run monitor:health -- --deep --json` は通常check、build、性能予算、注文Functionsエミュレーター、本番主要URL、直近60分の注文失敗監査を完走。注文失敗0件、既知pending差分7席はbaselineと同一、item issue 0件。未commit差分があるため総合表示のみ想定どおり`WARN`。
+- 390px幅で `/login`、`/staff`、`/staff/kitchen`、`/admin`、`/order/test-token` を確認し、横はみ出しと新規console errorなし。
+- Lighthouse mobile 3回の中央値は `/login` がscore 92 / LCP 2.564秒、`/order/test-token` がscore 92 / LCP 2.867秒。変更前の単発値score 61 / LCP 6.5秒、score 70 / LCP 4.7秒から20%以上改善。
+- Firebase Hostingの1時間preview channelで、HTMLは`Cache-Control: no-cache`、ハッシュ付きassetは`public,max-age=31536000,immutable`を確認。本番Hostingは並行作業との衝突を避け、統合可能になるまで未反映とする。
+
 ## 2026-06-21 Google Login Popup Closed Fallback Hotfix
 
 ### Purpose

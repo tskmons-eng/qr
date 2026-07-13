@@ -34,3 +34,15 @@
   font-weight: 700;
   line-height: 1.5;
 }
+.app-route-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-label);
+}
+
+.app-route-loading.is-compact {
+  min-height: 180px;
+}

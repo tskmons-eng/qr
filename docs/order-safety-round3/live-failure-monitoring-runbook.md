@@ -4,6 +4,27 @@
 
 「注文が入らなかった」と言われた時に、本番データを壊さずに原因を切り分ける。最初は read-only で確認し、pending count の修復も dry-run を先に出す。
 
+## 手動ヘルス監視
+
+通常のread-only監視は次の1コマンドで実行する。
+
+```bash
+npm run monitor:health
+```
+
+- ローカル: Git状態、`npm run check`、production build、初期bundle性能予算。
+- 本番: 主要URL/asset疎通、直近60分の注文command失敗、pending count整合性。
+- `PASS` は異常なし、`KNOWN` は登録済みbaselineと同一、`WARN` は単発失敗やbaseline改善、`FAIL` は恒常エラー・権限エラー・新規不整合を表す。
+- JSONが必要な場合は `npm run monitor:health -- --minutes 15 --json` のように実行する。
+
+注文Functionsの同時実行まで含める場合は、営業外に次を使う。
+
+```bash
+npm run monitor:health:deep
+```
+
+監視自身はbaselineを更新しない。`repair:pending-counts`、ファイル編集、commit/push、Firebase deployは実行しない。秘密値と店舗・席・注文・request IDを出力しない。baseline変更は、read-only監査結果をユーザー様が確認した後の明示的なコード変更として扱う。
+
 ## 先に集める情報
 
 - 発生時刻: JSTで何時何分か。

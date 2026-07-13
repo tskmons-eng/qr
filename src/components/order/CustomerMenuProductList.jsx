@@ -70,7 +70,13 @@ export default function CustomerMenuProductList({
               </div>
 
               {product.imageUrl && (
-                <img className="customer-product__image" src={product.imageUrl} alt={product.name} />
+                <img
+                  className="customer-product__image"
+                  src={product.imageUrl}
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                />
               )}
             </div>
 

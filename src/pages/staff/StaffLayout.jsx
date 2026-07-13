@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
@@ -12,25 +12,27 @@ import StaffShellHeader from '../../components/staff/StaffShellHeader'
 import StaffPullRefreshIndicator from '../../components/staff/StaffPullRefreshIndicator'
 import StaffEntryPage from './StaffEntryPage'
 import StaffLoginScreen from '../../components/staff/StaffLoginScreen'
+import AppRouteLoading from '../../components/AppRouteLoading'
 import { useAuth } from '../../contexts/AuthContext'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { activateStaffMemberSession } from '../../services/staffAuthService'
 import { getNewCallIds, respondToStaffCall, subscribePendingCalls } from '../../services/staffCallService'
 import { loadStoreConfig } from '../../services/settingsService'
-import ProductPage from '../admin/ProductPage'
-import SalesPage from '../admin/SalesPage'
-import StaffPage from '../admin/StaffPage'
-import TablePage from '../admin/TablePage'
-import ReservationPage from '../admin/ReservationPage'
-import HistoryPage from '../admin/HistoryPage'
-import SettingsPage from '../admin/SettingsPage'
-import TableListPage from './TableListPage'
-import TableDetailPage from './TableDetailPage'
-import StaffMenuPage from './StaffMenuPage'
-import CheckoutPage from './CheckoutPage'
-import RemainingPage from './RemainingPage'
-import KitchenPage from '../kitchen/KitchenPage'
 import { usePullToRefresh } from '../../hooks/usePullToRefresh'
+
+const ProductPage = lazy(() => import('../admin/ProductPage'))
+const SalesPage = lazy(() => import('../admin/SalesPage'))
+const StaffPage = lazy(() => import('../admin/StaffPage'))
+const TablePage = lazy(() => import('../admin/TablePage'))
+const ReservationPage = lazy(() => import('../admin/ReservationPage'))
+const HistoryPage = lazy(() => import('../admin/HistoryPage'))
+const SettingsPage = lazy(() => import('../admin/SettingsPage'))
+const TableListPage = lazy(() => import('./TableListPage'))
+const TableDetailPage = lazy(() => import('./TableDetailPage'))
+const StaffMenuPage = lazy(() => import('./StaffMenuPage'))
+const CheckoutPage = lazy(() => import('./CheckoutPage'))
+const RemainingPage = lazy(() => import('./RemainingPage'))
+const KitchenPage = lazy(() => import('../kitchen/KitchenPage'))
 
 const ELEVATED_PERMISSION_DEFAULTS = {
   useKitchen: true,
@@ -227,57 +229,59 @@ export default function StaffLayout() {
             onOpenTable={tableId => navigate(`/staff/table/${tableId}`)}
           />
 
-          <Routes>
-            <Route index element={<TableListPage />} />
-            <Route path="kitchen" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
-                <KitchenPage />
-              </StaffPermissionGate>
-            } />
-            <Route path="sales" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="closeRegister" elevated>
-                <SalesPage />
-              </StaffPermissionGate>
-            } />
-            <Route path="menu-admin" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="manageMenu" elevated>
-                <ProductPage />
-              </StaffPermissionGate>
-            } />
-            <Route path="tables" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="manageTables" elevated>
-                <TablePage />
-              </StaffPermissionGate>
-            } />
-            <Route path="reservations" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="manageReservations" elevated>
-                <ReservationPage />
-              </StaffPermissionGate>
-            } />
-            <Route path="history" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="viewHistory" elevated>
-                <HistoryPage />
-              </StaffPermissionGate>
-            } />
-            <Route path="settings" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
-                <SettingsPage
-                  notificationControls={notificationControls}
-                  onConfigSaved={setStoreConfig}
-                />
-              </StaffPermissionGate>
-            } />
-            <Route path="staff-admin" element={
-              <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
-                <StaffPage />
-              </StaffPermissionGate>
-            } />
-            <Route path="table/:tableId" element={<TableDetailPage />} />
-            <Route path="table/:tableId/remaining" element={<RemainingPage />} />
-            <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
-            <Route path="table/:tableId/checkout" element={<CheckoutPage />} />
-            <Route path="*" element={<Navigate to="/staff" replace />} />
-          </Routes>
+          <Suspense fallback={<AppRouteLoading compact />}>
+            <Routes>
+              <Route index element={<TableListPage />} />
+              <Route path="kitchen" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
+                  <KitchenPage />
+                </StaffPermissionGate>
+              } />
+              <Route path="sales" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="closeRegister" elevated>
+                  <SalesPage />
+                </StaffPermissionGate>
+              } />
+              <Route path="menu-admin" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="manageMenu" elevated>
+                  <ProductPage />
+                </StaffPermissionGate>
+              } />
+              <Route path="tables" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="manageTables" elevated>
+                  <TablePage />
+                </StaffPermissionGate>
+              } />
+              <Route path="reservations" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="manageReservations" elevated>
+                  <ReservationPage />
+                </StaffPermissionGate>
+              } />
+              <Route path="history" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="viewHistory" elevated>
+                  <HistoryPage />
+                </StaffPermissionGate>
+              } />
+              <Route path="settings" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
+                  <SettingsPage
+                    notificationControls={notificationControls}
+                    onConfigSaved={setStoreConfig}
+                  />
+                </StaffPermissionGate>
+              } />
+              <Route path="staff-admin" element={
+                <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
+                  <StaffPage />
+                </StaffPermissionGate>
+              } />
+              <Route path="table/:tableId" element={<TableDetailPage />} />
+              <Route path="table/:tableId/remaining" element={<RemainingPage />} />
+              <Route path="table/:tableId/add-order" element={<StaffMenuPage />} />
+              <Route path="table/:tableId/checkout" element={<CheckoutPage />} />
+              <Route path="*" element={<Navigate to="/staff" replace />} />
+            </Routes>
+          </Suspense>
         </div>
       </div>
     </StaffMemberContext.Provider>

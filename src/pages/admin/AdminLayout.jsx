@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStore } from '../../contexts/StoreContext'
 import { isSuperAdminEmail } from '../../lib/ownerIdentity'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { loadStoreIdentity } from '../../services/settingsService'
-import CategoryPage from './CategoryPage'
-import HistoryPage from './HistoryPage'
-import ProductPage from './ProductPage'
-import ReservationPage from './ReservationPage'
-import SalesPage from './SalesPage'
-import SettingsPage from './SettingsPage'
-import StaffPage from './StaffPage'
-import TablePage from './TablePage'
+import AppRouteLoading from '../../components/AppRouteLoading'
+
+const CategoryPage = lazy(() => import('./CategoryPage'))
+const HistoryPage = lazy(() => import('./HistoryPage'))
+const ProductPage = lazy(() => import('./ProductPage'))
+const ReservationPage = lazy(() => import('./ReservationPage'))
+const SalesPage = lazy(() => import('./SalesPage'))
+const SettingsPage = lazy(() => import('./SettingsPage'))
+const StaffPage = lazy(() => import('./StaffPage'))
+const TablePage = lazy(() => import('./TablePage'))
 
 const tabs = [
   { to: '/admin/products', label: '商品・カテゴリー' },
@@ -88,17 +90,19 @@ export default function AdminLayout() {
       </nav>
 
       <main className="admin-layout__main">
-        <Routes>
-          <Route path="products" element={<ProductPage />} />
-          <Route path="tables" element={<TablePage />} />
-          <Route path="staff" element={<StaffPage />} />
-          <Route path="sales" element={<SalesPage />} />
-          <Route path="reservations" element={<ReservationPage />} />
-          <Route path="history" element={<HistoryPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="categories" element={<CategoryPage />} />
-          <Route path="*" element={<Navigate to="/admin/categories" replace />} />
-        </Routes>
+        <Suspense fallback={<AppRouteLoading compact />}>
+          <Routes>
+            <Route path="products" element={<ProductPage />} />
+            <Route path="tables" element={<TablePage />} />
+            <Route path="staff" element={<StaffPage />} />
+            <Route path="sales" element={<SalesPage />} />
+            <Route path="reservations" element={<ReservationPage />} />
+            <Route path="history" element={<HistoryPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="categories" element={<CategoryPage />} />
+            <Route path="*" element={<Navigate to="/admin/categories" replace />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   )
