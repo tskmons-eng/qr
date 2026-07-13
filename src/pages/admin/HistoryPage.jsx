@@ -16,17 +16,43 @@ export default function HistoryPage() {
   const { storeId } = useStore()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filter, setFilter] = useState('all')
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
-    if (!storeId) return
+    let active = true
+
+    if (!storeId) {
+      setItems([])
+      setLoading(false)
+      setError('')
+      return undefined
+    }
+
     async function load() {
       setLoading(true)
-      setItems(await loadAdminHistory(storeId))
-      setLoading(false)
+      setError('')
+
+      try {
+        const nextItems = await loadAdminHistory(storeId)
+        if (active) setItems(nextItems)
+      } catch (loadError) {
+        console.error('Failed to load admin history', loadError)
+        if (active) {
+          setItems([])
+          setError('操作ログを読み込めませんでした。通信状態を確認して再試行してください。')
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
     }
-    load()
-  }, [storeId])
+
+    void load()
+    return () => {
+      active = false
+    }
+  }, [reloadToken, storeId])
 
   const filtered = filterHistoryItems(items, filter)
 
@@ -37,7 +63,7 @@ export default function HistoryPage() {
   return (
     <div className="admin-history">
       <AdminHistoryHeader
-        exportDisabled={filtered.length === 0}
+        exportDisabled={loading || Boolean(error) || filtered.length === 0}
         onExport={handleExport}
       />
       <AdminHistoryFilters
@@ -48,6 +74,9 @@ export default function HistoryPage() {
       <AdminHistoryList
         items={filtered}
         loading={loading}
+        error={error}
+        emptyMessage={items.length === 0 ? '操作ログはまだありません' : 'この条件に一致する操作ログはありません'}
+        onRetry={() => setReloadToken(token => token + 1)}
       />
     </div>
   )

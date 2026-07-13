@@ -18,6 +18,7 @@ export default function StaffShellHeader({
   onOpenHistory,
   onOpenMenuAdmin,
   onOpenReservations,
+  onOpenSalesAssignees,
   onOpenSettings,
   onOpenStaffAdmin,
   onOpenSales,
@@ -27,12 +28,19 @@ export default function StaffShellHeader({
 }) {
   const [managementOpen, setManagementOpen] = useState(false)
   const managementRef = useRef(null)
+  const managementButtonRef = useRef(null)
   const managementItems = [
     canCloseRegister && { key: 'sales', label: 'レジ締め', description: '日次締めと売上履歴', onSelect: onOpenSales },
+    !canCloseRegister && canManageStaff && {
+      key: 'sales-assignees',
+      label: '売上担当',
+      description: '会計に設定する担当者の管理',
+      onSelect: onOpenSalesAssignees,
+    },
     canManageTables && { key: 'tables', label: '席', description: '席とQRコード管理', onSelect: onOpenTables },
     canManageReservations && { key: 'reservations', label: '予約', description: '予約表と来店予定', onSelect: onOpenReservations },
     canManageMenu && { key: 'menu', label: 'メニュー', description: '商品・カテゴリ編集', onSelect: onOpenMenuAdmin },
-    canViewHistory && { key: 'history', label: '履歴', description: '操作履歴の確認', onSelect: onOpenHistory },
+    canViewHistory && { key: 'history', label: '操作ログ', description: 'スタッフ操作ログの確認', onSelect: onOpenHistory },
     canManageSettings && { key: 'settings', label: '設定', description: '店舗設定と通知設定', onSelect: onOpenSettings },
     canManageStaff && { key: 'staff', label: 'スタッフ', description: 'スタッフと権限管理', onSelect: onOpenStaffAdmin },
     showAdmin && { key: 'admin', label: '管理画面', description: '管理者向け全体画面', onSelect: onOpenAdmin },
@@ -48,7 +56,9 @@ export default function StaffShellHeader({
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setManagementOpen(false)
+      if (event.key !== 'Escape') return
+      setManagementOpen(false)
+      managementButtonRef.current?.focus()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -90,21 +100,21 @@ export default function StaffShellHeader({
         {hasManagementItems && (
           <div className="staff-shell__management" ref={managementRef}>
             <button
+              ref={managementButtonRef}
               type="button"
               onClick={() => setManagementOpen(open => !open)}
               className="staff-shell__button staff-shell__button--management"
-              aria-haspopup="menu"
+              aria-controls="staff-shell-management-actions"
               aria-expanded={managementOpen}
             >
               店舗管理
             </button>
             {managementOpen && (
-              <div className="staff-shell__management-menu" role="menu" aria-label="店舗管理">
+              <div id="staff-shell-management-actions" className="staff-shell__management-menu">
                 {managementItems.map(item => (
                   <button
                     key={item.key}
                     type="button"
-                    role="menuitem"
                     className="staff-shell__management-item"
                     onClick={() => handleManagementSelect(item)}
                   >

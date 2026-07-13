@@ -25,6 +25,7 @@
     "check:admin-category": "node scripts/check-admin-category.mjs",
     "check:staff-table-list": "node scripts/check-staff-table-list.mjs",
     "check:admin-sales": "node scripts/check-admin-sales.mjs",
+    "check:sales-attribution-rules-emulator": "node scripts/check-sales-attribution-rules-emulator.mjs",
     "check:admin-history": "node scripts/check-admin-history.mjs",
     "check:owner-access": "node scripts/check-owner-access.mjs",
     "check:owner-dashboard": "node scripts/check-owner-dashboard.mjs",

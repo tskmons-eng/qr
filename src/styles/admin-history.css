@@ -12,7 +12,15 @@
   font-weight: 700;
 }
 
+.admin-history__description {
+  margin: 3px 0 0;
+  color: #777777;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .admin-history__export {
+  min-height: 44px;
   padding: 7px 16px;
   color: #333333;
   background: #ffffff;
@@ -34,7 +42,12 @@
   margin-bottom: var(--space-4);
 }
 
+.admin-history-filter-select {
+  display: none;
+}
+
 .admin-history-filter {
+  min-height: 44px;
   padding: 5px 12px;
   color: #555555;
   background: #ffffff;
@@ -52,13 +65,48 @@
 }
 
 .admin-history__status {
-  padding: 32px;
+  margin: 0;
+  padding: 32px 16px;
   color: #999999;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 10px;
   text-align: center;
 }
 
 .admin-history__status--empty {
   color: #bbbbbb;
+}
+
+.admin-history__status--error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.admin-history__status--error p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.admin-history__retry {
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 7px 16px;
+  color: #ffffff;
+  background: #b91c1c;
+  border: none;
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: var(--font-weight-label);
+}
+
+.admin-history__export:focus-visible,
+.admin-history-filter:focus-visible,
+.admin-history__retry:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 .admin-history-list {
@@ -118,6 +166,18 @@
   background: #d9770618;
 }
 
+.admin-history-row__badge--sales_attribution {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.admin-history-row__badge--sales_assignee,
+.admin-history-row__badge--seat_reservation,
+.admin-history-row__badge--auto_seat_reservation {
+  color: #5b21b6;
+  background: #ede9fe;
+}
+
 .admin-history-row__main {
   flex: 1;
   min-width: 0;
@@ -141,4 +201,65 @@
   color: #bbbbbb;
   font-size: 12px;
   white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .admin-history__header {
+    margin-bottom: 12px;
+  }
+
+  .admin-history__export,
+  .admin-history-filter,
+  .admin-history__retry {
+    min-height: 44px;
+  }
+
+  .admin-history-filter-select {
+    display: grid;
+    gap: 5px;
+    margin-bottom: 12px;
+    color: #555555;
+    font-size: 12px;
+    font-weight: var(--font-weight-label);
+  }
+
+  .admin-history-filter-select select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid #d4d4d8;
+    border-radius: var(--radius-control);
+    background: #ffffff;
+    color: #222222;
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .admin-history-filters {
+    display: none;
+  }
+
+  .admin-history-row {
+    position: relative;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 12px;
+  }
+
+  .admin-history-row__main {
+    flex-basis: calc(100% - 92px);
+  }
+
+  .admin-history-row__note {
+    overflow: visible;
+    line-height: 1.5;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .admin-history-row__date {
+    width: 100%;
+    padding-left: 1px;
+  }
 }

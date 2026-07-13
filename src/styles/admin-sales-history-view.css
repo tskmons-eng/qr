@@ -1,0 +1,186 @@
+.admin-sales-filters {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.admin-sales-period-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--radius-panel);
+  background: #f0f0f0;
+}
+
+.admin-sales-period-tabs button {
+  min-height: 44px;
+  padding: 7px 8px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: #666666;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: var(--font-weight-label);
+}
+
+.admin-sales-period-tabs button.is-active {
+  background: #ffffff;
+  color: var(--color-text-main);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-sales-month-picker {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.admin-sales-month-picker button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.admin-sales-month-picker strong {
+  text-align: center;
+}
+
+.admin-sales-date-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.admin-sales-date-range label,
+.admin-sales-assignee-filter {
+  min-width: 0;
+}
+
+.admin-sales-date-range label span,
+.admin-sales-assignee-filter span {
+  display: block;
+  margin-bottom: 5px;
+  color: #666666;
+  font-size: 12px;
+  font-weight: var(--font-weight-label);
+}
+
+.admin-sales-date-range input,
+.admin-sales-assignee-filter select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: #ffffff;
+  color: var(--color-text-main);
+}
+
+.admin-sales-date-range__separator {
+  padding-bottom: 12px;
+  color: var(--color-text-muted);
+}
+
+.admin-sales-attribution-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.admin-sales-attribution-summary__item {
+  display: grid;
+  min-width: 0;
+  min-height: 86px;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--color-text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-sales-attribution-summary__item.is-unassigned {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.admin-sales-attribution-summary__item.is-selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.admin-sales-attribution-summary__label {
+  overflow: hidden;
+  color: #666666;
+  font-size: 11px;
+  font-weight: var(--font-weight-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sales-attribution-summary__item strong {
+  overflow: hidden;
+  margin-top: 3px;
+  font-family: var(--font-number);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sales-attribution-summary__item small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.admin-sales-load-more {
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+  font-weight: var(--font-weight-label);
+}
+
+@media (min-width: 620px) {
+  .admin-sales-attribution-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-sales-attribution-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-sales-date-range {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-sales-date-range__separator {
+    display: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-sales-period-tabs button {
+    padding-right: 4px;
+    padding-left: 4px;
+    font-size: 12px;
+  }
+}

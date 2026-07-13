@@ -46,24 +46,63 @@ service cloud.firestore {
       return isSuper() || isOwnerOf(storeId) || isStoreAdminEmail(storeId);
     }
 
-    function staffPermission(storeId, permission, legacyDefault) {
-      return isStaffOf(storeId)
-        && get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data
-          .get('permissions', {})
-          .get(permission, legacyDefault) == true;
+    function currentStaffSessionData() {
+      return get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data;
     }
 
-    function staffPreset() {
-      return get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data
-        .get('permissionPreset', '');
+    function canonicalStaffMemberExists(storeId) {
+      return isStaffOf(storeId)
+        && currentStaffSessionData().get('staffMemberId', null) is string
+        && currentStaffSessionData().staffMemberId.size() > 0
+        && exists(/databases/$(database)/documents/staffMembers/$(currentStaffSessionData().staffMemberId))
+        && get(/databases/$(database)/documents/staffMembers/$(currentStaffSessionData().staffMemberId)).data.storeId == storeId;
+    }
+
+    function currentStaffMemberData() {
+      return get(/databases/$(database)/documents/staffMembers/$(currentStaffSessionData().staffMemberId)).data;
+    }
+
+    function presetPermissionDefault(preset, permission, legacyDefault) {
+      return legacyDefault == true
+        || preset == 'manager'
+        || (
+          (
+            preset == 'operations'
+            || !(preset in ['manager', 'operations', 'menuLead', 'floor', 'custom', 'legacy', ''])
+          )
+          && permission in ['useKitchen', 'closeRegister', 'manageTables', 'manageReservations']
+        )
+        || (preset == 'menuLead' && permission in ['useKitchen', 'manageMenu'])
+        || (preset in ['floor', 'custom', 'legacy', ''] && permission == 'useKitchen');
+    }
+
+    function canonicalStaffPreset(memberData) {
+      return memberData.get('permissionPreset', null) is string
+        ? memberData.permissionPreset
+        : 'legacy';
+    }
+
+    function canonicalStaffPermission(memberData, permission, legacyDefault) {
+      return memberData.get('permissions', {}).get(permission, null) is bool
+        ? memberData.get('permissions', {}).get(permission, false)
+        : presetPermissionDefault(canonicalStaffPreset(memberData), permission, legacyDefault);
+    }
+
+    function staffPermission(storeId, permission, legacyDefault) {
+      return canonicalStaffMemberExists(storeId)
+        && canonicalStaffPermission(currentStaffMemberData(), permission, legacyDefault) == true;
+    }
+
+    function staffPreset(storeId) {
+      return canonicalStaffPreset(currentStaffMemberData());
     }
 
     function staffIsManager(storeId) {
-      return isStaffOf(storeId) && staffPreset() == 'manager';
+      return canonicalStaffMemberExists(storeId) && staffPreset(storeId) == 'manager';
     }
 
     function staffIsOperations(storeId) {
-      return isStaffOf(storeId) && staffPreset() == 'operations';
+      return canonicalStaffMemberExists(storeId) && staffPreset(storeId) == 'operations';
     }
 
     function canManageMenu(storeId) {
@@ -153,6 +192,470 @@ service cloud.firestore {
       return value == null || (value is string && value.size() <= maxLength);
     }
 
+    function validStaffSessionBase(data) {
+      return data.storeId is string
+        && data.storeId.size() > 0
+        && data.storeId.size() <= 128
+        && data.code is string
+        && data.code.size() > 0
+        && data.code.size() <= 64
+        && exists(/databases/$(database)/documents/storeCodes/$(data.code))
+        && get(/databases/$(database)/documents/storeCodes/$(data.code)).data.storeId == data.storeId;
+    }
+
+    function validStaffSessionEntry(data) {
+      return data.keys().hasOnly(['storeId', 'code'])
+        && data.keys().hasAll(['storeId', 'code'])
+        && validStaffSessionBase(data);
+    }
+
+    function validCanonicalStaffPermissions(permissions, memberData) {
+      return permissions.keys().hasOnly([
+          'useKitchen',
+          'closeRegister',
+          'manageMenu',
+          'manageTables',
+          'manageReservations',
+          'viewHistory',
+          'manageSettings',
+          'manageStaff'
+        ])
+        && permissions.keys().hasAll([
+          'useKitchen',
+          'closeRegister',
+          'manageMenu',
+          'manageTables',
+          'manageReservations',
+          'viewHistory',
+          'manageSettings',
+          'manageStaff'
+        ])
+        && permissions.useKitchen is bool
+        && permissions.closeRegister is bool
+        && permissions.manageMenu is bool
+        && permissions.manageTables is bool
+        && permissions.manageReservations is bool
+        && permissions.viewHistory is bool
+        && permissions.manageSettings is bool
+        && permissions.manageStaff is bool
+        && permissions.useKitchen == canonicalStaffPermission(memberData, 'useKitchen', false)
+        && permissions.closeRegister == canonicalStaffPermission(memberData, 'closeRegister', false)
+        && permissions.manageMenu == canonicalStaffPermission(memberData, 'manageMenu', false)
+        && permissions.manageTables == canonicalStaffPermission(memberData, 'manageTables', false)
+        && permissions.manageReservations == canonicalStaffPermission(memberData, 'manageReservations', false)
+        && permissions.viewHistory == canonicalStaffPermission(memberData, 'viewHistory', false)
+        && permissions.manageSettings == canonicalStaffPermission(memberData, 'manageSettings', false)
+        && permissions.manageStaff == canonicalStaffPermission(memberData, 'manageStaff', false);
+    }
+
+    function validActivatedStaffSession(data) {
+      return data.keys().hasOnly([
+          'storeId',
+          'code',
+          'staffMemberId',
+          'staffName',
+          'permissionPreset',
+          'permissions',
+          'updatedAt'
+        ])
+        && data.keys().hasAll([
+          'storeId',
+          'code',
+          'staffMemberId',
+          'staffName',
+          'permissionPreset',
+          'permissions',
+          'updatedAt'
+        ])
+        && validStaffSessionBase(data)
+        && data.staffMemberId is string
+        && data.staffMemberId.size() > 0
+        && data.staffMemberId.size() <= 128
+        && exists(/databases/$(database)/documents/staffMembers/$(data.staffMemberId))
+        && get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data.storeId == data.storeId
+        && data.staffName == get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data.name
+        && data.permissionPreset == canonicalStaffPreset(
+          get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data
+        )
+        && validCanonicalStaffPermissions(
+          data.permissions,
+          get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data
+        )
+        && data.updatedAt == request.time;
+    }
+
+    function validSalesAuditFieldTypes(data, prefix) {
+      return validOptionalString(data.get(prefix + 'ByUid', null), 128)
+        && validOptionalString(data.get(prefix + 'ByEmail', null), 320)
+        && validOptionalString(data.get(prefix + 'ByStaffId', null), 128)
+        && validOptionalString(data.get(prefix + 'ByStaffName', null), 120);
+    }
+
+    function hasSalesAuditFields(data) {
+      return data.keys().hasAll([
+        'createdByUid',
+        'createdByEmail',
+        'createdByStaffId',
+        'createdByStaffName',
+        'updatedByUid',
+        'updatedByEmail',
+        'updatedByStaffId',
+        'updatedByStaffName'
+      ]);
+    }
+
+    function validSalesStaffActorFields(data, prefix) {
+      let session = currentStaffSessionData();
+      let member = get(/databases/$(database)/documents/staffMembers/$(session.staffMemberId)).data;
+      return data.get(prefix + 'ByEmail', null) == null
+        && data.get(prefix + 'ByStaffId', null) == session.staffMemberId
+        && data.get(prefix + 'ByStaffName', null) == member.name;
+    }
+
+    function validSalesAdminActorFields(data, prefix) {
+      return data.get(prefix + 'ByEmail', null) == request.auth.token.email
+        && data.get(prefix + 'ByStaffId', null) == null
+        && data.get(prefix + 'ByStaffName', null) == null;
+    }
+
+    // 呼び出し元のcanManageStaff/canCloseRegisterで店舗とcanonical権限を検証済み。
+    function validSalesActorFields(data, prefix) {
+      return request.auth != null
+        && data.get(prefix + 'ByUid', null) == request.auth.uid
+        && (
+          (
+            request.auth.token.firebase.sign_in_provider == 'anonymous'
+            && validSalesStaffActorFields(data, prefix)
+          )
+          || (
+            request.auth.token.firebase.sign_in_provider != 'anonymous'
+            && validSalesAdminActorFields(data, prefix)
+          )
+        );
+    }
+
+    function sameSalesActorFields(data, firstPrefix, secondPrefix) {
+      return data.get(firstPrefix + 'ByUid', null) == data.get(secondPrefix + 'ByUid', null)
+        && data.get(firstPrefix + 'ByEmail', null) == data.get(secondPrefix + 'ByEmail', null)
+        && data.get(firstPrefix + 'ByStaffId', null) == data.get(secondPrefix + 'ByStaffId', null)
+        && data.get(firstPrefix + 'ByStaffName', null) == data.get(secondPrefix + 'ByStaffName', null);
+    }
+
+    function validSalesStaffActionActor(data) {
+      let session = currentStaffSessionData();
+      let member = get(/databases/$(database)/documents/staffMembers/$(session.staffMemberId)).data;
+      return data.actorType == 'staff'
+        && data.actorEmail == null
+        && data.actorStaffId == session.staffMemberId
+        && data.actorStaffName == member.name;
+    }
+
+    function validSalesAdminActionActor(data) {
+      return data.actorType == 'admin'
+        && data.actorEmail == request.auth.token.email
+        && data.actorStaffId == null
+        && data.actorStaffName == null;
+    }
+
+    // 呼び出し元の権限判定を通過したactorだけをcanonical情報と照合する。
+    function validSalesActionActor(data) {
+      return request.auth != null
+        && data.actorUid == request.auth.uid
+        && (
+          (
+            request.auth.token.firebase.sign_in_provider == 'anonymous'
+            && validSalesStaffActionActor(data)
+          )
+          || (
+            request.auth.token.firebase.sign_in_provider != 'anonymous'
+            && validSalesAdminActionActor(data)
+          )
+        );
+    }
+
+    function validSalesActionCommon(data) {
+      return data.note is string
+        && data.note.size() > 0
+        && data.note.size() <= 500
+        && data.createdAt == request.time
+        && validOptionalString(data.actorUid, 128)
+        && validOptionalString(data.actorEmail, 320)
+        && validOptionalString(data.actorStaffId, 128)
+        && validOptionalString(data.actorStaffName, 120)
+        && validSalesActionActor(data);
+    }
+
+    function validSalesAssigneeActionData(data) {
+      return data.keys().hasOnly([
+          'storeId',
+          'actionType',
+          'changeType',
+          'targetType',
+          'targetId',
+          'actorType',
+          'actorStaffId',
+          'actorStaffName',
+          'actorUid',
+          'actorEmail',
+          'assigneeId',
+          'assigneeName',
+          'previousAssigneeName',
+          'isActive',
+          'note',
+          'createdAt'
+        ])
+        && data.actionType == 'sales_assignee'
+        && data.changeType in ['create', 'rename', 'deactivate', 'reactivate']
+        && data.targetType == 'salesAssignee'
+        && data.targetId is string
+        && data.targetId.size() > 0
+        && data.targetId.size() <= 128
+        && data.assigneeId == data.targetId
+        && data.assigneeName is string
+        && data.assigneeName.size() > 0
+        && data.assigneeName.size() <= 80
+        && validOptionalString(data.previousAssigneeName, 80)
+        && data.isActive is bool
+        && validSalesActionCommon(data);
+    }
+
+    function validSalesAttributionActionData(data) {
+      return data.keys().hasOnly([
+          'storeId',
+          'actionType',
+          'changeType',
+          'targetType',
+          'targetId',
+          'actorType',
+          'actorStaffId',
+          'actorStaffName',
+          'actorUid',
+          'actorEmail',
+          'checkId',
+          'previousAssigneeId',
+          'previousAssigneeName',
+          'assigneeId',
+          'assigneeName',
+          'note',
+          'createdAt'
+        ])
+        && data.actionType == 'sales_attribution'
+        && data.changeType in ['set', 'change', 'clear']
+        && data.targetType == 'check'
+        && data.targetId is string
+        && data.targetId.size() > 0
+        && data.targetId.size() <= 128
+        && data.checkId == data.targetId
+        && validOptionalString(data.previousAssigneeId, 128)
+        && validOptionalString(data.previousAssigneeName, 80)
+        && validOptionalString(data.assigneeId, 128)
+        && validOptionalString(data.assigneeName, 80)
+        && validSalesActionCommon(data);
+    }
+
+    function validSalesAssigneeData(data) {
+      return data.keys().hasOnly([
+          'storeId',
+          'name',
+          'isActive',
+          'createdAt',
+          'createdByUid',
+          'createdByEmail',
+          'createdByStaffId',
+          'createdByStaffName',
+          'updatedAt',
+          'updatedByUid',
+          'updatedByEmail',
+          'updatedByStaffId',
+          'updatedByStaffName',
+          'lastAuditActionId'
+        ])
+        && hasSalesAuditFields(data)
+        && data.storeId is string
+        && data.storeId.size() > 0
+        && data.storeId.size() <= 128
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 80
+        && data.isActive is bool
+        && data.lastAuditActionId is string
+        && data.lastAuditActionId.size() > 0
+        && data.lastAuditActionId.size() <= 128;
+    }
+
+    function validAssignedSalesAttribution(data) {
+      let assignee = get(/databases/$(database)/documents/salesAssignees/$(data.assigneeId)).data;
+      return exists(/databases/$(database)/documents/salesAssignees/$(data.assigneeId))
+        && assignee.storeId == data.storeId
+        && assignee.isActive == true
+        && assignee.name == data.assigneeNameSnapshot;
+    }
+
+    function validSalesAttributionSelection(data) {
+      return (
+          data.status == 'unassigned'
+          && data.assigneeId == null
+          && data.assigneeNameSnapshot == null
+        ) || (
+          data.status == 'assigned'
+          && data.assigneeId is string
+          && data.assigneeId.size() > 0
+          && data.assigneeId.size() <= 128
+          && data.assigneeNameSnapshot is string
+          && data.assigneeNameSnapshot.size() > 0
+          && data.assigneeNameSnapshot.size() <= 80
+          && validAssignedSalesAttribution(data)
+        );
+    }
+
+    function validCompletedSalesCheck(data, checkId) {
+      let check = get(/databases/$(database)/documents/checks/$(checkId)).data;
+      return exists(/databases/$(database)/documents/checks/$(checkId))
+        && check.storeId == data.storeId
+        && check.status == 'completed';
+    }
+
+    function validSalesAttributionData(data, checkId) {
+      return data.keys().hasOnly([
+          'storeId',
+          'checkId',
+          'status',
+          'assigneeId',
+          'assigneeNameSnapshot',
+          'createdAt',
+          'createdByUid',
+          'createdByEmail',
+          'createdByStaffId',
+          'createdByStaffName',
+          'updatedAt',
+          'updatedByUid',
+          'updatedByEmail',
+          'updatedByStaffId',
+          'updatedByStaffName',
+          'lastAuditActionId'
+        ])
+        && hasSalesAuditFields(data)
+        && data.storeId is string
+        && data.storeId.size() > 0
+        && data.storeId.size() <= 128
+        && data.checkId == checkId
+        && validCompletedSalesCheck(data, checkId)
+        && validSalesAttributionSelection(data)
+        && data.lastAuditActionId is string
+        && data.lastAuditActionId.size() > 0
+        && data.lastAuditActionId.size() <= 128;
+    }
+
+    function salesAuditActionData(actionId) {
+      return getAfter(/databases/$(database)/documents/staffActions/$(actionId)).data;
+    }
+
+    function validSalesAssigneeCreateAudit(data, assigneeId) {
+      let action = salesAuditActionData(data.lastAuditActionId);
+      return existsAfter(/databases/$(database)/documents/staffActions/$(data.lastAuditActionId))
+        && action.actionType == 'sales_assignee'
+        && action.targetType == 'salesAssignee'
+        && action.createdAt == request.time
+        && action.storeId == data.storeId
+        && action.changeType == 'create'
+        && action.targetId == assigneeId
+        && action.assigneeId == assigneeId
+        && action.assigneeName == data.name
+        && action.previousAssigneeName == null
+        && action.isActive == true;
+    }
+
+    function validSalesAssigneeUpdateAudit(data, previousData, assigneeId) {
+      let action = salesAuditActionData(data.lastAuditActionId);
+      return data.lastAuditActionId != previousData.lastAuditActionId
+        && existsAfter(/databases/$(database)/documents/staffActions/$(data.lastAuditActionId))
+        && action.actionType == 'sales_assignee'
+        && action.targetType == 'salesAssignee'
+        && action.createdAt == request.time
+        && action.storeId == data.storeId
+        && action.targetId == assigneeId
+        && action.assigneeId == assigneeId
+        && action.previousAssigneeName == previousData.name
+        && action.assigneeName == data.name
+        && action.isActive == data.isActive
+        && (
+          (
+            data.isActive != previousData.isActive
+            && data.name == previousData.name
+            && (
+              (data.isActive == true && action.changeType == 'reactivate')
+              || (data.isActive == false && action.changeType == 'deactivate')
+            )
+          )
+          || (
+            data.isActive == previousData.isActive
+            && data.name != previousData.name
+            && action.changeType == 'rename'
+          )
+        );
+    }
+
+    function validSalesAttributionCreateAudit(data, checkId) {
+      let action = salesAuditActionData(data.lastAuditActionId);
+      return data.status == 'assigned'
+        && existsAfter(/databases/$(database)/documents/staffActions/$(data.lastAuditActionId))
+        && action.actionType == 'sales_attribution'
+        && action.targetType == 'check'
+        && action.createdAt == request.time
+        && action.storeId == data.storeId
+        && action.changeType == 'set'
+        && action.targetId == checkId
+        && action.checkId == checkId
+        && action.previousAssigneeId == null
+        && action.previousAssigneeName == null
+        && action.assigneeId == data.assigneeId
+        && action.assigneeName == data.assigneeNameSnapshot;
+    }
+
+    function validSalesAttributionUpdateAudit(data, previousData, checkId) {
+      let action = salesAuditActionData(data.lastAuditActionId);
+      return data.lastAuditActionId != previousData.lastAuditActionId
+        && (data.status != previousData.status || data.assigneeId != previousData.assigneeId)
+        && existsAfter(/databases/$(database)/documents/staffActions/$(data.lastAuditActionId))
+        && action.actionType == 'sales_attribution'
+        && action.targetType == 'check'
+        && action.createdAt == request.time
+        && action.storeId == data.storeId
+        && action.targetId == checkId
+        && action.checkId == checkId
+        && action.previousAssigneeId == previousData.assigneeId
+        && action.previousAssigneeName == previousData.assigneeNameSnapshot
+        && action.assigneeId == data.assigneeId
+        && action.assigneeName == data.assigneeNameSnapshot
+        && (
+          (data.status == 'unassigned' && action.changeType == 'clear')
+          || (
+            data.status == 'assigned'
+            && previousData.status == 'assigned'
+            && action.changeType == 'change'
+          )
+          || (
+            data.status == 'assigned'
+            && previousData.status == 'unassigned'
+            && action.changeType == 'set'
+          )
+        );
+    }
+
+    function validSalesAssigneeActionBackLink(data, actionId) {
+      let assignee = getAfter(/databases/$(database)/documents/salesAssignees/$(data.targetId)).data;
+      return existsAfter(/databases/$(database)/documents/salesAssignees/$(data.targetId))
+        && assignee.storeId == data.storeId
+        && assignee.lastAuditActionId == actionId;
+    }
+
+    function validSalesAttributionActionBackLink(data, actionId) {
+      let attribution = getAfter(/databases/$(database)/documents/salesAttributions/$(data.checkId)).data;
+      return existsAfter(/databases/$(database)/documents/salesAttributions/$(data.checkId))
+        && attribution.storeId == data.storeId
+        && attribution.lastAuditActionId == actionId;
+    }
+
     function validOrderCommandFailure() {
       return request.resource.data.keys().hasOnly([
           'commandType',
@@ -217,9 +720,19 @@ service cloud.firestore {
     // スタッフセッション（匿名ユーザーを店舗に紐づける）
     match /staffSessions/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
-        && exists(/databases/$(database)/documents/storeCodes/$(request.resource.data.code))
-        && get(/databases/$(database)/documents/storeCodes/$(request.resource.data.code)).data.storeId == request.resource.data.storeId;
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && validStaffSessionEntry(request.resource.data);
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && (
+          validStaffSessionEntry(request.resource.data)
+          || (
+            request.resource.data.storeId == resource.data.storeId
+            && request.resource.data.code == resource.data.code
+            && validActivatedStaffSession(request.resource.data)
+          )
+        );
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
@@ -312,11 +825,106 @@ service cloud.firestore {
       allow update, delete: if canCloseRegister(resource.data.storeId);
     }
 
+    // 売上担当マスタ（無効化で履歴を保持し、物理削除しない）
+    match /salesAssignees/{assigneeId} {
+      allow read: if canCloseRegister(resource.data.storeId) || canManageStaff(resource.data.storeId);
+      allow create: if canManageStaff(request.resource.data.storeId)
+        && validSalesAssigneeData(request.resource.data)
+        && validSalesAuditFieldTypes(request.resource.data, 'created')
+        && validSalesActorFields(request.resource.data, 'created')
+        && sameSalesActorFields(request.resource.data, 'created', 'updated')
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validSalesAssigneeCreateAudit(request.resource.data, assigneeId);
+      allow update: if canManageStaff(resource.data.storeId)
+        && request.resource.data.storeId == resource.data.storeId
+        && validSalesAssigneeData(request.resource.data)
+        && validSalesAuditFieldTypes(request.resource.data, 'created')
+        && validSalesAuditFieldTypes(request.resource.data, 'updated')
+        && validSalesActorFields(request.resource.data, 'updated')
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('createdByUid', null) == resource.data.get('createdByUid', null)
+        && request.resource.data.get('createdByEmail', null) == resource.data.get('createdByEmail', null)
+        && request.resource.data.get('createdByStaffId', null) == resource.data.get('createdByStaffId', null)
+        && request.resource.data.get('createdByStaffName', null) == resource.data.get('createdByStaffName', null)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'isActive',
+          'updatedAt',
+          'updatedByUid',
+          'updatedByEmail',
+          'updatedByStaffId',
+          'updatedByStaffName',
+          'lastAuditActionId'
+        ])
+        && validSalesAssigneeUpdateAudit(request.resource.data, resource.data, assigneeId);
+      allow delete: if false;
+    }
+
+    // 会計ごとの担当（ドキュメントIDをcheckIdに固定し、1会計1担当にする）
+    match /salesAttributions/{checkId} {
+      allow get: if exists(/databases/$(database)/documents/checks/$(checkId))
+        && canCloseRegister(get(/databases/$(database)/documents/checks/$(checkId)).data.storeId);
+      allow list: if canCloseRegister(resource.data.storeId);
+      allow create: if canCloseRegister(request.resource.data.storeId)
+        && validSalesAttributionData(request.resource.data, checkId)
+        && validSalesAuditFieldTypes(request.resource.data, 'created')
+        && validSalesActorFields(request.resource.data, 'created')
+        && sameSalesActorFields(request.resource.data, 'created', 'updated')
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validSalesAttributionCreateAudit(request.resource.data, checkId);
+      allow update: if canCloseRegister(resource.data.storeId)
+        && request.resource.data.storeId == resource.data.storeId
+        && request.resource.data.checkId == resource.data.checkId
+        && validSalesAttributionData(request.resource.data, checkId)
+        && validSalesAuditFieldTypes(request.resource.data, 'created')
+        && validSalesAuditFieldTypes(request.resource.data, 'updated')
+        && validSalesActorFields(request.resource.data, 'updated')
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('createdByUid', null) == resource.data.get('createdByUid', null)
+        && request.resource.data.get('createdByEmail', null) == resource.data.get('createdByEmail', null)
+        && request.resource.data.get('createdByStaffId', null) == resource.data.get('createdByStaffId', null)
+        && request.resource.data.get('createdByStaffName', null) == resource.data.get('createdByStaffName', null)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'assigneeId',
+          'assigneeNameSnapshot',
+          'updatedAt',
+          'updatedByUid',
+          'updatedByEmail',
+          'updatedByStaffId',
+          'updatedByStaffName',
+          'lastAuditActionId'
+        ])
+        && validSalesAttributionUpdateAudit(request.resource.data, resource.data, checkId);
+      allow delete: if false;
+    }
+
     // スタッフアクション
     match /staffActions/{actionId} {
       allow read: if canViewHistory(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      allow create: if (
+          request.resource.data.get('actionType', '') == 'sales_assignee'
+          && canManageStaff(request.resource.data.storeId)
+          && validSalesAssigneeActionData(request.resource.data)
+          && validSalesAssigneeActionBackLink(request.resource.data, actionId)
+        ) || (
+          request.resource.data.get('actionType', '') == 'sales_attribution'
+          && canCloseRegister(request.resource.data.storeId)
+          && validSalesAttributionActionData(request.resource.data)
+          && validSalesAttributionActionBackLink(request.resource.data, actionId)
+        ) || (
+          !(request.resource.data.get('actionType', '') in ['sales_assignee', 'sales_attribution'])
+          && canAccess(request.resource.data.storeId)
+        );
+      allow update: if !(resource.data.get('actionType', '') in ['sales_assignee', 'sales_attribution'])
+        && !(request.resource.data.get('actionType', '') in ['sales_assignee', 'sales_attribution'])
+        && canAccess(resource.data.storeId);
+      allow delete: if !(resource.data.get('actionType', '') in ['sales_assignee', 'sales_attribution'])
+        && canAccess(resource.data.storeId);
     }
 
     // 注文コマンド失敗ログ

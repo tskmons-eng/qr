@@ -8,7 +8,7 @@ export default function SalesSummaryCards({ businessDate, summary }) {
 
   return (
     <section className="admin-sales-card admin-sales-card--padded">
-      <div className="admin-sales-card__label">本日の売上（{businessDate}）</div>
+      <div className="admin-sales-card__label">本日の集計（{businessDate}）</div>
       <div className="admin-sales-summary">
         {cards.map(({ label, value }) => (
           <div key={label} className="admin-sales-summary__item">

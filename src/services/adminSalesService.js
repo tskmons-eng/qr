@@ -1,20 +1,23 @@
 import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import { filterCompletedChecks, sortCashClosingsByBusinessDateDesc } from '../lib/adminSales'
+import { loadSalesHistoryMetadata } from './salesHistoryService'
 
 function mapDocs(snapshot) {
   return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
 }
 
 export async function loadSalesAdminData(storeId) {
-  const [checksSnap, closingsSnap] = await Promise.all([
+  const [checksSnap, closingsSnap, historyMetadata] = await Promise.all([
     getDocs(query(collection(db, 'checks'), where('storeId', '==', storeId))),
     getDocs(query(collection(db, 'cashClosings'), where('storeId', '==', storeId))),
+    loadSalesHistoryMetadata(storeId),
   ])
 
   return {
     completedChecks: filterCompletedChecks(mapDocs(checksSnap)),
     cashClosings: sortCashClosingsByBusinessDateDesc(mapDocs(closingsSnap)),
+    ...historyMetadata,
   }
 }
 

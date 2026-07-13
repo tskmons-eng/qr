@@ -27,6 +27,7 @@ import SettingsPage from '../admin/SettingsPage'
 import TableListPage from './TableListPage'
 import TableDetailPage from './TableDetailPage'
 import StaffMenuPage from './StaffMenuPage'
+import SalesAssigneeManagementPage from './SalesAssigneeManagementPage'
 import CheckoutPage from './CheckoutPage'
 import RemainingPage from './RemainingPage'
 import KitchenPage from '../kitchen/KitchenPage'
@@ -209,6 +210,7 @@ export default function StaffLayout() {
             onSwitchStaff={handleSwitchStaff}
             onOpenKitchen={() => navigate('/staff/kitchen')}
             onOpenSales={() => navigate('/staff/sales')}
+            onOpenSalesAssignees={() => navigate('/staff/sales-assignees')}
             onOpenTables={() => navigate('/staff/tables')}
             onOpenReservations={() => navigate('/staff/reservations')}
             onOpenMenuAdmin={() => navigate('/staff/menu-admin')}
@@ -237,6 +239,11 @@ export default function StaffLayout() {
             <Route path="sales" element={
               <StaffPermissionGate activeStaff={activeStaff} permission="closeRegister" elevated>
                 <SalesPage />
+              </StaffPermissionGate>
+            } />
+            <Route path="sales-assignees" element={
+              <StaffPermissionGate activeStaff={activeStaff} permission="manageStaff" elevated>
+                <SalesAssigneeManagementPage />
               </StaffPermissionGate>
             } />
             <Route path="menu-admin" element={
