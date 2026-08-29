@@ -145,6 +145,7 @@ export default function MenuPage() {
               customerMenuTapToAddEnabled={storeConfig.customerMenuTapToAddEnabled !== false}
               onAddProduct={handleAddProduct}
               onSetSimpleProductQuantity={setSimpleProductQuantity}
+              onUpdateQuantity={updateQuantity}
             />
           </>
         )}

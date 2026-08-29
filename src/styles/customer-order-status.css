@@ -69,32 +69,6 @@
   line-height: 1.55;
 }
 
-.order-status__checkout-cart-warning {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 9px 10px;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #92400e;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.order-status__checkout-cart-button {
-  flex: 0 0 auto;
-  padding: 7px 10px;
-  border: none;
-  border-radius: 8px;
-  background: #111827;
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 900;
-}
-
 .order-status__summary {
   display: flex;
   gap: 0;

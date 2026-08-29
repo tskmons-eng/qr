@@ -6,7 +6,6 @@ import OrderStatusHeader from '../../components/order/OrderStatusHeader'
 import OrderStatusList from '../../components/order/OrderStatusList'
 import OrderStatusSummary from '../../components/order/OrderStatusSummary'
 import OrderTotalPanel from '../../components/order/OrderTotalPanel'
-import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
 import useCustomerCall from '../../hooks/useCustomerCall'
 import {
@@ -28,7 +27,6 @@ import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusS
 
 export default function OrderCompletePage() {
   const { orderId, table, tableId, storeId, storeConfig, storeConfigLoading } = useOrder()
-  const { count: cartCount } = useCart()
   const { callDisabled, requestStaff } = useCustomerCall()
   const [items, setItems] = useState([])
   const [showSubmitComplete, setShowSubmitComplete] = useState(false)
@@ -218,8 +216,6 @@ export default function OrderCompletePage() {
       <OrderCheckoutNotice
         checkoutStep={checkoutStep}
         itemCount={summary.itemCount}
-        cartCount={cartCount}
-        onOpenCart={() => navigate('../cart')}
         onCheckout={handleCheckout}
         onCancel={() => {
           setCheckoutStep(null)
@@ -271,7 +267,7 @@ export default function OrderCompletePage() {
   )
 }
 
-function OrderCheckoutNotice({ checkoutStep, itemCount, cartCount, onOpenCart, onCheckout, onCancel, submitting, error }) {
+function OrderCheckoutNotice({ checkoutStep, itemCount, onCheckout, onCancel, submitting, error }) {
   if (checkoutStep !== 'confirming' && checkoutStep !== 'sent') return null
 
   const sent = checkoutStep === 'sent'
@@ -286,14 +282,6 @@ function OrderCheckoutNotice({ checkoutStep, itemCount, cartCount, onOpenCart, o
     <section className={`order-status__checkout-notice${sent ? ' is-sent' : ''}`}>
       <div className="order-status__checkout-title">{title}</div>
       <div className="order-status__checkout-text">{description}</div>
-      {!sent && cartCount > 0 && (
-        <div className="order-status__checkout-cart-warning">
-          <span>カートに未注文の商品が{cartCount}点あります。</span>
-          <button type="button" onClick={onOpenCart} className="order-status__checkout-cart-button">
-            カートを見る
-          </button>
-        </div>
-      )}
       {error && <p className="order-status__checkout-error" role="alert">{error}</p>}
       {!sent && (
         <div className="order-status__checkout-actions">
