@@ -1,4 +1,5 @@
 const { FieldValue, getFirestore } = require('firebase-admin/firestore')
+const { info } = require('firebase-functions/logger')
 const {
   ORDER_COMMAND_VERSION,
   assertOpenOrder,
@@ -66,41 +67,81 @@ function addTableDelta(tableDeltas, tableId, delta) {
   tableDeltas.set(tableId, (tableDeltas.get(tableId) ?? 0) + delta)
 }
 
-async function loadProductWithCategoryGroup(db, productId, storeId, fallbackProduct = {}) {
-  if (!productId) throw commandError('product-not-found', 'Product was not found.')
-  const productSnap = await db.collection('products').doc(productId).get()
-  if (!productSnap.exists) throw commandError('product-not-found', 'Product was not found.')
-  const product = { id: productSnap.id, ...productSnap.data() }
-  if (product.storeId && product.storeId !== storeId) {
-    throw commandError('product-scope-mismatch', 'Product does not match this store.')
-  }
+function logOrderCommandStage(commandType, stage, startedAt, itemCount) {
+  info('Order command stage completed.', {
+    event: 'order_command_stage_completed',
+    commandType,
+    stage,
+    durationMs: Date.now() - startedAt,
+    itemCount,
+  })
+}
 
-  let categoryGroup = product.categoryGroup ?? fallbackProduct.categoryGroup ?? ''
-  if (!categoryGroup && product.categoryId) {
-    const categorySnap = await db.collection('categories').doc(product.categoryId).get()
-    if (categorySnap.exists) {
-      const category = categorySnap.data()
-      if (category.storeId && category.storeId !== storeId) {
-        throw commandError('category-scope-mismatch', 'Category does not match this store.')
-      }
-      categoryGroup = category.group ?? ''
+async function loadProductsWithCategoryGroups(db, productRequests, storeId) {
+  const productIds = productRequests.map(({ productId }) => {
+    if (!productId) throw commandError('product-not-found', 'Product was not found.')
+    return productId
+  })
+  const uniqueProductIds = [...new Set(productIds)]
+  const productRefs = uniqueProductIds.map(productId => db.collection('products').doc(productId))
+  const productSnaps = await db.getAll(...productRefs)
+  const productsById = new Map()
+
+  productSnaps.forEach(productSnap => {
+    if (!productSnap.exists) throw commandError('product-not-found', 'Product was not found.')
+    const product = { id: productSnap.id, ...productSnap.data() }
+    if (product.storeId && product.storeId !== storeId) {
+      throw commandError('product-scope-mismatch', 'Product does not match this store.')
     }
-  }
+    productsById.set(productSnap.id, product)
+  })
 
-  return {
-    ...fallbackProduct,
-    ...product,
-    categoryGroup,
-    name: product.name ?? fallbackProduct.name ?? '',
-  }
+  const categoryIds = new Set()
+  productRequests.forEach(({ productId, fallbackProduct = {} }) => {
+    const product = productsById.get(productId)
+    const categoryGroup = product.categoryGroup ?? fallbackProduct.categoryGroup ?? ''
+    if (!categoryGroup && product.categoryId) categoryIds.add(product.categoryId)
+  })
+
+  const categoryRefs = [...categoryIds].map(categoryId => db.collection('categories').doc(categoryId))
+  const categorySnaps = categoryRefs.length > 0 ? await db.getAll(...categoryRefs) : []
+  const categoriesById = new Map()
+  categorySnaps.forEach(categorySnap => {
+    if (!categorySnap.exists) return
+    const category = categorySnap.data()
+    if (category.storeId && category.storeId !== storeId) {
+      throw commandError('category-scope-mismatch', 'Category does not match this store.')
+    }
+    categoriesById.set(categorySnap.id, category)
+  })
+
+  return productRequests.map(({ productId, fallbackProduct = {} }) => {
+    const product = productsById.get(productId)
+    let categoryGroup = product.categoryGroup ?? fallbackProduct.categoryGroup ?? ''
+    if (!categoryGroup && product.categoryId) {
+      categoryGroup = categoriesById.get(product.categoryId)?.group ?? ''
+    }
+    return {
+      ...fallbackProduct,
+      ...product,
+      categoryGroup,
+      name: product.name ?? fallbackProduct.name ?? '',
+    }
+  })
+}
+
+async function loadProductWithCategoryGroup(db, productId, storeId, fallbackProduct = {}) {
+  const [product] = await loadProductsWithCategoryGroups(db, [{ productId, fallbackProduct }], storeId)
+  return product
 }
 
 async function normalizeCartItemsWithProducts(db, items, storeId) {
-  return Promise.all(items.map(async item => {
-    const productId = item?.product?.id ?? item?.productId
-    const product = await loadProductWithCategoryGroup(db, productId, storeId, item?.product ?? {})
-    return { ...item, product }
+  const productRequests = items.map(item => ({
+    productId: item?.product?.id ?? item?.productId,
+    fallbackProduct: item?.product ?? {},
   }))
+  const products = await loadProductsWithCategoryGroups(db, productRequests, storeId)
+  return items.map((item, index) => ({ ...item, product: products[index] }))
 }
 
 async function loadAutoAddProduct(db, guestAutoAdd, storeId) {
@@ -372,15 +413,17 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
   const db = getFirestore()
   const normalizedItems = normalizeOrderCommandItems(items)
   if (normalizedItems.length === 0) throw commandError('empty-order', 'No order items were provided.')
+  const productVerificationStartedAt = Date.now()
   const itemsWithProducts = await normalizeCartItemsWithProducts(db, normalizedItems, storeId)
+  logOrderCommandStage('customer_submit_items', 'product_verification', productVerificationStartedAt, normalizedItems.length)
   const requestId = clientRequestId || createOrderCommandRequestId('customer-order')
   const orderRef = db.collection('orders').doc(orderId)
   const itemRefs = itemsWithProducts.map((_, index) => itemRefFor(db, { orderId, clientRequestId: requestId, index }))
   const now = FieldValue.serverTimestamp()
 
-  return runOrderCommandTransaction(db, async transaction => {
-    const firstItemSnap = await transaction.get(itemRefs[0])
-    const orderSnap = await transaction.get(orderRef)
+  const transactionStartedAt = Date.now()
+  const result = await runOrderCommandTransaction(db, async transaction => {
+    const [firstItemSnap, orderSnap] = await transaction.getAll(itemRefs[0], orderRef)
     if (firstItemSnap.exists) return { ok: true, deduped: true, clientRequestId: requestId }
     assertOpenOrder(orderSnap.exists ? orderSnap.data() : null, { storeId, tableId })
     itemsWithProducts.forEach((cartItem, index) => {
@@ -399,6 +442,8 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
     })
     return { ok: true, deduped: false, clientRequestId: requestId }
   })
+  logOrderCommandStage('customer_submit_items', 'transaction', transactionStartedAt, itemsWithProducts.length)
+  return result
 }
 
 async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }, request) {
@@ -407,17 +452,18 @@ async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tabl
   await assertStoreAccess(db, request, storeId)
   const normalizedItems = normalizeOrderCommandItems(cart)
   if (normalizedItems.length === 0) throw commandError('empty-order', 'No order items were provided.')
+  const productVerificationStartedAt = Date.now()
   const itemsWithProducts = await normalizeCartItemsWithProducts(db, normalizedItems, storeId)
+  logOrderCommandStage('staff_submit_items', 'product_verification', productVerificationStartedAt, normalizedItems.length)
   const requestId = clientRequestId || createOrderCommandRequestId('staff-order')
   const orderRef = db.collection('orders').doc(orderId)
   const tableRef = db.collection('tables').doc(tableId)
   const itemRefs = itemsWithProducts.map((_, index) => itemRefFor(db, { orderId, clientRequestId: requestId, index }))
   const now = FieldValue.serverTimestamp()
 
-  return db.runTransaction(async transaction => {
-    const firstItemSnap = await transaction.get(itemRefs[0])
-    const orderSnap = await transaction.get(orderRef)
-    const tableSnap = await transaction.get(tableRef)
+  const transactionStartedAt = Date.now()
+  const result = await db.runTransaction(async transaction => {
+    const [firstItemSnap, orderSnap, tableSnap] = await transaction.getAll(itemRefs[0], orderRef, tableRef)
     if (firstItemSnap.exists) return { ok: true, deduped: true, clientRequestId: requestId }
     assertOpenOrder(orderSnap.exists ? orderSnap.data() : null, { storeId, tableId })
     const table = tableSnap.exists ? tableSnap.data() : null
@@ -442,6 +488,8 @@ async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tabl
     })
     return { ok: true, deduped: false, clientRequestId: requestId }
   })
+  logOrderCommandStage('staff_submit_items', 'transaction', transactionStartedAt, itemsWithProducts.length)
+  return result
 }
 
 async function seatStaffOrderSession({ tableId, seatCount, activeStaff }, request) {

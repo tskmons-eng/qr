@@ -50,6 +50,8 @@ Functions command の成功/失敗、UI の再試行、Firestore の反映状態
 - `functions/index.js` で各 callable command に `commandType` / `actorType` を付与する。
 - `scripts/audit-order-command-failures.mjs` を追加し、直近の `orderCommandFailures` を読み取り専用で確認できるようにする。
 - `scripts/check-live-observability.mjs` を追加し、server-side failure log、監査スクリプト、手順ドキュメントの接続を静的に確認する。
+- 2026-07-13の無料レイテンシ改善では、成功時の `order_command_completed` と `order_command_stage_completed` を追加した。成功ログはcommand種別・region・処理時間・item件数などの匿名値だけに限定し、店舗・席・注文・request IDは記録しない。
+- 区間は `product_verification` と `transaction` に分け、Functions全体時間だけでは判別できなかった待ち箇所を読み取り専用ログで比較できるようにした。運用と公開順は [12-free-order-submit-latency.md](12-free-order-submit-latency.md) を参照する。
 
 ## 直近エラー確認手順
 

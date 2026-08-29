@@ -1,6 +1,10 @@
 import { createOrderCommandRequestId } from '../lib/orderCommands'
 import { withOrderCommandFailureLog } from './orderCommandFailureService'
-import { callOrderCommandFunction, shouldUseOrderCommandFunctions } from './orderFunctionCommandService'
+import {
+  callOrderCommandFunction,
+  callRegionalOrderSubmitFunction,
+  shouldUseOrderCommandFunctions,
+} from './orderFunctionCommandService'
 import {
   completeCheckoutClient,
   seatStaffOrderSessionClient,
@@ -8,6 +12,33 @@ import {
   submitCustomerOrderItemsClient,
   submitStaffOrderItemsClient,
 } from './orderClientCommandService'
+
+function compactOrderSubmitItems(items) {
+  if (!Array.isArray(items)) return items
+  return items.map(item => {
+    if (!item) return item
+    const productId = item?.product?.id ?? item?.productId
+    const product = Object.fromEntries([
+      ['id', productId],
+      ['categoryGroup', item?.product?.categoryGroup],
+    ].filter(([, value]) => value !== undefined))
+    const compactItem = {
+      product,
+      optionSelections: Array.isArray(item?.optionSelections)
+        ? item.optionSelections.map(option => {
+          if (!option || typeof option !== 'object') return option
+          return Object.fromEntries(
+            ['groupName', 'choice', 'extraPrice']
+              .filter(key => option[key] !== undefined)
+              .map(key => [key, option[key]]),
+          )
+        })
+        : [],
+    }
+    if (item?.quantity !== undefined) compactItem.quantity = item.quantity
+    return compactItem
+  })
+}
 
 export async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
   return withOrderCommandFailureLog({
@@ -34,9 +65,13 @@ export async function submitCustomerOrderItems({ items, orderId, storeId, tableI
     clientRequestId: requestId,
   }, () => {
     const payload = { items, orderId, storeId, tableId, clientRequestId: requestId }
-    return shouldUseOrderCommandFunctions()
-      ? callOrderCommandFunction('submitCustomerOrderItemsCommand', payload)
-      : submitCustomerOrderItemsClient(payload)
+    if (!shouldUseOrderCommandFunctions()) return submitCustomerOrderItemsClient(payload)
+    const functionPayload = { ...payload, items: compactOrderSubmitItems(items) }
+    return callRegionalOrderSubmitFunction(
+      'submitCustomerOrderItemsCommandAsia',
+      'submitCustomerOrderItemsCommand',
+      functionPayload,
+    )
   })
 }
 
@@ -51,9 +86,13 @@ export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeI
     clientRequestId: requestId,
   }, () => {
     const payload = { activeStaff, cart, orderId, storeId, tableId, clientRequestId: requestId }
-    return shouldUseOrderCommandFunctions()
-      ? callOrderCommandFunction('submitStaffOrderItemsCommand', payload)
-      : submitStaffOrderItemsClient(payload)
+    if (!shouldUseOrderCommandFunctions()) return submitStaffOrderItemsClient(payload)
+    const functionPayload = { ...payload, cart: compactOrderSubmitItems(cart) }
+    return callRegionalOrderSubmitFunction(
+      'submitStaffOrderItemsCommandAsia',
+      'submitStaffOrderItemsCommand',
+      functionPayload,
+    )
   })
 }
 

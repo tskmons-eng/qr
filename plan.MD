@@ -50,6 +50,120 @@
 - `npm run check`、`npm run build`、`git diff --check` を通す。
 - 390×844を中心に、人数、読み込み、空メニュー、商品追加、オプション、空カート、注文中、送信中、反映待ち、エラー、履歴、会計確認をローカルブラウザで確認する。
 - commit/push後にFirebase既定プロジェクトを再確認し、Hostingのみ反映する。本番asset hash、主要ルートHTTP 200、実QRの読み取り表示を確認する。
+## 2026-07-14 Cloud Functions Node.js 22 / SDK更新
+
+### 目的
+
+- 2026-10-30に廃止予定のNode.js 20から、Firebaseが正式対応するNode.js 22へFunctions runtimeを移行する。
+- `firebase-functions` / `firebase-admin`を現行コードと互換な安定版へ更新し、既知の不具合・脆弱性修正を取り込む。
+- 注文、集計、通知、予約到着処理の動作と既存リージョン、scale設定、権限境界を維持し、一括更新による本番影響を避ける。
+
+### 現状確認
+
+- 本番FunctionsはNode.js 20で稼働中。Google Cloudの公開日程ではNode.js 20は2026-04-30にdeprecated、2026-10-30にdecommission予定。
+- `firebase.json`は`nodejs20`、`functions/package.json`はengine `20`。lock済み実体は`firebase-functions 5.1.1` / `firebase-admin 12.7.0`。
+- 更新前のFunctions production dependency監査はcritical 0 / high 4 / moderate 13 / low 1。
+- Firebase CLIは15.23.0でNode.js 22のdeploy要件を満たす。Functionsコードはv2の明示importとAdmin SDK modular importを使い、v7で削除された`functions.config()`やAdmin v13で削除された旧Messaging APIを使っていない。
+- 最新`firebase-admin 14.1.0`はNode.js 22対応だが、安定版`firebase-functions 7.2.5`のpeer範囲はAdmin 13まで。今回は互換範囲内の`firebase-admin 13.10.0`を選ぶ。
+- 本番19関数はasia-northeast1が6本、us-central1が13本で、すべてNode.js 20 / ACTIVE。`minInstances`は全関数で未設定、memory 256MiB、concurrency 80を維持している。
+- 本番では全注文Callable 13本、pending集計trigger 3本、`notifyStaff`に`maxInstances: 20`が設定済みだが、現sourceは東京注文Callable 2本以外の上限を明示していない。SDK更新deployで既存上限を失わないよう、runtime更新前にsourceと本番設定を一致させる。
+- Functions SDK v7では未指定のreset可能optionをplatform既定値へ戻すため、更新前に上限未設定だったevent functionも単純な再deployで`maxInstances: 20`になる。`maxInstances: 0`もFirebase deployでは20へ正規化されることを本番で確認した。
+
+### 変更方針
+
+- runtime指定を`nodejs22` / engine `22`へそろえる。
+- 既存依存だけを`firebase-functions 7.2.5`、`firebase-admin 13.10.0`へ更新し、lockfileを再生成する。新しい依存パッケージは追加しない。
+- package / lock / import / runtime / emulator初期化を固定する専用checkを追加し、今後Node.js 20や互換外Adminへ戻らないようにする。
+- 全注文Callableとevent / schedule Functionsを`maxInstances: 20`へsourceで統一する。`notifyReservationCreated`と`processReservationArrivals`だけは未設定から20への変更になるが、concurrency 80との組合せで最大1,600並列を確保し、実運用を妨げず暴走・従量課金を抑える安全上限として採用する。
+- CommonJS、既存trigger名、region、`minInstances`、メモリ、concurrency、Firestore transaction、認証検証は変更しない。
+- Hosting、Firestore Rules / indexes、Storage Rules、クライアントasset、既存データは変更しない。
+
+### 段階公開
+
+- 先に東京注文Callableをcanary更新する。クライアントは一時障害時に同一`clientRequestId`で既存米国Callableへfallbackできるため、runtime問題を注文重複なしで退避できる。
+- canaryのruntime・scale設定・ERRORログを確認後、注文Callable、Firestore trigger、通知・scheduleを10本以下の明示groupに分けて更新する。Functions全体deployは行わない。
+- 公開前後に直近の注文失敗、pending-count drift、Functions ERRORログを読み取り専用で比較する。本番ダミー注文や通知は作らない。
+- 問題時は本番scale上限をsourceへ反映したNode.js 20 rollback基準から、対象functionだけを再deployする。上限未反映の`93e13e5`をそのままrollback元にはせず、HostingやRulesは戻さない。
+
+### 検証方法
+
+- Node.js 22実体でclean `npm ci`、`node --check`、Functions source load、専用runtime checkとFunctions Emulatorを実行する。その後`npm.cmd run check`、`npm.cmd run build`、`git diff --check`を実行する。
+- Auth / Firestore / Functions Emulatorで注文の正常系、同時再送、権限拒否、会計、席移動、集計triggerを確認する。
+- `npm.cmd audit --omit=dev`で更新前後を比較し、残る脆弱性はpackage名と到達可能性を確認する。
+- 各deploy後に`functions:list`とCloud Run実設定でNode.js 22、region、scale上限を確認し、ERRORログと注文失敗監査が増えていないことを確認する。
+
+### ローカル検証結果
+
+- 本番scale上限をsourceへ固定したNode.js 20 rollback基準をcommit `aa996d6`として先に作成した。
+- Node.js 22.23.1実体でFunctions dependencyのclean `npm ci`、全Functions JavaScriptのsyntax check、`functions/index.js`読込、runtime / migration / latency routing checkが成功した。
+- Firebase CLI 15.23.0自体をNode.js 22で起動し、Functions Emulatorが`Using node@22 from host`と認識した状態で注文・会計・席移動・予約案内・pending集計trigger・予約通知triggerの検証が成功した。全19定義を読み込み、test processもNode.js 22.23.1だった。
+- `npm.cmd run check`、`npm.cmd run build`、`git diff --check`は成功した。scheduleはPub/Sub Emulator未起動のためローカル実行対象外で、最後に単独deployして本番の毎分成功ログを確認する。
+- Functions production dependency監査は更新前のcritical 0 / high 4 / moderate 13 / low 1から、critical 0 / high 0 / moderate 8 / low 0へ改善した。残る8件はFirestore / Storage経由の間接`uuid` advisoryで、互換外Admin 14への更新や`npm audit fix --force`は行わない。
+- `notifyReservationCreated`の初回Node.js 22 deploy後、SDK v7のplatform resetにより本番`maxInstances`が未設定から20へ変わることを実測した。`maxInstances: 0`で再deployしても20へ正規化されたため、外部設定を手動で残す構造にはせず、同上限をsourceへ明示して全Functionsを管理可能な状態にする。
+
+### 本番公開結果
+
+- branch `codex/functions-runtime-node22`をpushし、Firebase project `qrproduct-3340b`へ対象名を明示した段階deployだけを行った。Functions全体deploy、Hosting、Firestore Rules / indexes、Storage Rules、本番データ変更は行っていない。
+- 東京顧客注文1本をcanaryにし、東京スタッフ、米国fallback、低頻度Callable、セッション、取消、配膳、会計、予約通知、スタッフ通知、pending集計trigger、scheduleの順に更新した。各段階でruntime / state / scale設定、Cloud Run ERROR、注文失敗を確認した。
+- 全19本がNode.js 22 / ACTIVE。asia-northeast1 6本、us-central1 13本、全本256MiB / concurrency 80 / `minInstances`未設定 / `maxInstances: 20`である。
+- `notifyReservationCreated`と`processReservationArrivals`だけはSDK v7更新前の上限未設定から`maxInstances: 20`へ変更した。1関数あたり最大1,600並列を確保したまま、従量課金の暴走を抑えるsource管理上限として採用した。
+- 全Functionsの直近75分Cloud Run ERRORは0件、`orderCommandFailures`も直近75分0件だった。本番ダミー注文・通知は作成していない。
+- pending-count監査はtrigger更新前後とも19席 / 未提供item 50件 / drift 7席 / item参照不整合0件で一致した。既存driftは今回のruntime更新と分離し、自動修復していない。
+- `processReservationArrivals`はScheduler `ENABLED` / `every 1 minutes` / `Asia/Tokyo`を維持し、Node.js 22更新後の自然実行が3回連続HTTP 200だった。
+- Hostingの公開assetは`/assets/index-DGZ0_1if.js`のままで、注文速度改善公開時のassetとSHA-256が一致した。`/`、`/order`、`/staff`、`/admin/sales`はHTTP 200だった。
+- deploy時に既存`notifyStaff`がus-central1、Firestore triggerがasia-northeast1というcross-region警告が継続した。今回のruntime更新ではregionを移動せず、別名移行が必要な将来の速度改善課題として残す。
+
+## 2026-07-13 注文送信レイテンシ無料改善 Phase 1
+
+### 目的
+
+- 月額の常駐費用を増やさず、顧客・スタッフの注文送信にかかる実時間を短縮する。
+- Functions本線、Firestore transaction、`clientRequestId`冪等性、送信復旧を維持し、速度目的で安全性を下げない。
+- 成功注文の処理時間を匿名の区間ログで測定し、改善前後を推測ではなくp50 / p95で判断できるようにする。
+
+### 現状確認
+
+- 本番Firestoreは`asia-northeast1`、注文Callable Functionsは`us-central1`で、商品確認とtransactionが地域間通信になっている。
+- 過去7日の`submitCustomerOrderItemsCommand`成功81件は、Cloud Run request latencyがp50約2.0秒、p95約3.2秒。7日間にcontainer startup 24回があり、startup latencyはp50約1.33秒。
+- 商品確認はカート行ごとにproduct、必要時categoryを読み、その後customerはdedupe item→order、staffはdedupe item→order→tableをtransaction内で逐次取得する。
+- 成功時はCloud Run全体時間しかなく、商品確認とtransactionの区間時間が記録されていない。
+- 会計履歴branch `codex/sales-history-attribution` のcommit `27541bb`はRules / Hosting公開済みで、Functionsは未変更。今回のbranchは同commitから分離している。
+
+### 変更方針
+
+- `asia-northeast1`に顧客注文送信・スタッフ注文送信の別名Callableを追加し、既存`us-central1` Functionsは削除・変更せずrollback先として残す。
+- クライアントは東京Callableを優先し、到達不能・一時障害に限り同一`clientRequestId`のまま既存米国Callableへfallbackする。業務エラー・権限エラーではfallbackしない。
+- 商品IDをrequest内で重複排除してAdmin SDK `getAll()`で取得し、必要categoryも一括取得する。transactionの独立したdocument readも`getAll()`へまとめる。
+- Callable全体、商品確認、transactionのdurationを、店舗・席・注文・request IDを含めない構造化ログへ出す。
+- `minInstances`、有料サービス、新規依存、クライアント直接Firestore書込への復帰は行わない。新東京Callableは既存経路と同じ`maxInstances: 20`を上限にする。
+
+### 影響範囲
+
+- 注文Callable factory / exports、顧客・スタッフ注文handler、Functions呼出しservice。
+- Functions mainline / migration / observabilityの静的check、Functions emulator検証、注文信頼性ドキュメント、本計画書。
+- Firestore rules / indexes / Storage、既存データ、会計・席移動・提供済みcommand、会計履歴UIは変更しない。
+
+### 検証・公開方法
+
+- `node --check`、注文command関連check、`npm.cmd run check`、`npm.cmd run build`、`git diff --check`を通す。
+- Auth / Firestore / Functions Emulatorで東京別名Callableの顧客・スタッフ正常系、同一request再送、権限拒否、同時実行を確認する。
+- 東京Callable 2本だけを先にdeployし、`functions:list`でregionを確認する。旧米国Callableは残す。
+- その後Hostingをdeployし、公開assetが東京別名とregion指定、米国fallbackを含むことを確認する。本番へのダミー注文は送らない。
+- 公開後はCloud Run成功latencyと失敗監査を読み取り専用で比較する。即時の利用件数が少ない場合は、測定待ちを未達ではなく継続観測として明記する。
+
+### 検証結果
+
+- `npm.cmd run check`、`npm.cmd run build`、`git diff --check` は成功した。
+- Auth / Firestore / Functions Emulatorで東京別名Callable 2本の正常送信、同一requestの同時再送・完了後再送、スタッフ権限拒否、`pendingCount`重複防止を確認した。
+- 東京別名Callable 2本がEmulator上で`asia-northeast1`として初期化され、既存米国Callableも残ることを確認した。
+- 一時障害だけを米国fallback対象とし、入力・権限・業務エラーを対象外にするfixture、および`minInstances`未設定を静的checkで固定した。
+- 初回Functions公開後の実設定確認で最大スケール上限が未設定だったため、Hosting切替前に`maxInstances: 20`を明示する安全修正を追加した。
+- Firebase project `qrproduct-3340b`へ東京別名Callable 2本だけを公開した。両方とも`asia-northeast1` / ACTIVE / 256MiB / 1CPU / concurrency 80、`minInstances`未設定（scale to zero）、`maxInstances: 20`で、既存米国Callable 2本もACTIVEのまま残っている。
+- 公開直前の本番確認で注文更新が直近15分以内にあったため、既存画面に影響しないFunctions追加だけを先行し、注文・席・未提供明細の更新が15分間0件になってからHostingを公開した。
+- Hosting公開後の`/assets/index-DGZ0_1if.js`はローカルbuildとSHA-256が一致し、東京別名2本、`asia-northeast1`、`us-central1` fallbackを含む。`/`、`/order`、`/staff`、`/admin/sales`はHTTP 200だった。
+- 公開後の直近15分`orderCommandFailures`は0件、東京Callable 2本の直近30分ERRORログも0件だった。本番へのダミー注文は送っていないため、改善後latencyのp50 / p95は実利用サンプル待ちとする。
+- pending-count監査では19席中8席に既存drift、未提供item 55件、item参照不整合0件があり、今回の公開前後で件数は変わっていない。速度改善と分離し、本番データの自動修復は行っていない。
+- 公開時にNode.js 20の2026-10-30廃止予定と`firebase-functions`旧版の警告が出た。依存更新は破壊的変更を含み得るため今回の無料速度改善には混ぜず、期限前の別作業として残す。
 
 ## 2026-07-13 会計履歴・担当別売上と管理画面UI改善
 

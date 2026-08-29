@@ -26,6 +26,7 @@ in-memory mock だけではなく、Functions handler、Firestore transaction、
 8. 席移動で `tables`, `orders.tableId`, `orderItems.tableId` が揃う。
 9. 権限のない staff command が Functions 内で reject される。
 10. product/category の store 不一致が reject される。
+11. 東京別名Callableのお客様・スタッフ送信が正常に完了し、同じ `clientRequestId` の同時再送と完了後再送がdedupeされる。
 
 ## 実装方針
 
@@ -98,3 +99,11 @@ npm run check:order-functions-emulator
 - demo project と emulator のみを使う。`.firebaserc` の本番既定プロジェクトには接続しない。
 - 初回実行時は `npx firebase-tools` の取得で時間がかかる場合がある。
 - 本番 deploy はこの分担では実行しない。
+
+## 2026-07-13 東京別名Callable追試
+
+- `submitCustomerOrderItemsCommandAsia` と `submitStaffOrderItemsCommandAsia` を `asia-northeast1` のFunctions clientから呼ぶfixtureを追加した。
+- お客様・スタッフとも正常応答、同時再送のdedupe、完了後再送のdedupe、作成item数を確認する。
+- スタッフ送信では `pendingCount` が一度だけ増えることも確認する。
+- 既存米国Callableの全fixtureは削除せず、rollback経路の回帰確認として残す。
+- 2026-07-13に全fixtureが通過し、Emulator上で東京別名2本が `asia-northeast1` として初期化された。本番への接続・書込み・deployは行っていない。
