@@ -34,3 +34,29 @@
   font-weight: 700;
   line-height: 1.5;
 }
+.app-route-loading {
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.app-route-loading.is-compact {
+  min-height: 180px;
+}
+
+.app-route-loading__mark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #111827;
+  border-radius: 50%;
+  animation: app-route-loading-spin 0.7s linear infinite;
+}
+
+@keyframes app-route-loading-spin {
+  to { transform: rotate(360deg); }
+}

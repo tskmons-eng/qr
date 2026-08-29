@@ -2,7 +2,7 @@ export default function OrderEntryStatus({ error, loading }) {
   if (loading) {
     return (
       <div className="customer-entry-status">
-        <p className="customer-entry-status__loading">読み込み中...</p>
+        <p className="customer-entry-status__loading">お席を確認しています</p>
       </div>
     )
   }

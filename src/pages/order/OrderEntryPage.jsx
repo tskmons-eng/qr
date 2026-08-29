@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import AppRouteLoading from '../../components/AppRouteLoading'
 import OrderEntryStatus from '../../components/order/OrderEntryStatus'
 import { CartProvider } from '../../contexts/CartContext'
 import { OrderProvider } from '../../contexts/OrderContext'
 import { CUSTOMER_ENTRY_CONFIG_DEFAULTS, getCustomerEntryStartPath } from '../../lib/customerEntry'
 import { loadCustomerStoreConfig, subscribeCustomerTableByQrToken } from '../../services/customerEntryService'
-import CartPage from './CartPage'
-import GuestCountPage from './GuestCountPage'
-import MenuPage from './MenuPage'
-import OrderCompletePage from './OrderCompletePage'
+import '../../styles/customer.css'
+
+const CartPage = lazy(() => import('./CartPage'))
+const GuestCountPage = lazy(() => import('./GuestCountPage'))
+const MenuPage = lazy(() => import('./MenuPage'))
+const OrderCompletePage = lazy(() => import('./OrderCompletePage'))
 
 export default function OrderEntryPage() {
   const { qrToken } = useParams()
@@ -73,8 +76,8 @@ export default function OrderEntryPage() {
     })
   }, [qrToken])
 
-  if (loading || configLoading || error) {
-    return <OrderEntryStatus loading={loading || configLoading} error={error} />
+  if (loading || error || !table) {
+    return <OrderEntryStatus loading={loading} error={error} />
   }
 
   const entryBasePath = `/order/${qrToken}`
@@ -84,19 +87,30 @@ export default function OrderEntryPage() {
   )
 
   return (
-    <OrderProvider value={{ table, tableId: table.id, storeId: table.storeId, orderId, setOrderId, setTable, storeConfig }}>
+    <OrderProvider value={{
+      table,
+      tableId: table.id,
+      storeId: table.storeId,
+      orderId,
+      setOrderId,
+      setTable,
+      storeConfig,
+      storeConfigLoading: configLoading,
+    }}>
       <CartProvider>
-        <Routes>
-          <Route index element={
-            <Navigate to={`${entryBasePath}/${getCustomerEntryStartPath(orderId)}`} replace />
-          } />
-          <Route path="guests" element={
-            hasActiveOrder ? <Navigate to={`${entryBasePath}/menu`} replace /> : <GuestCountPage />
-          } />
-          <Route path="menu" element={requireActiveOrder(<MenuPage />)} />
-          <Route path="cart" element={requireActiveOrder(<CartPage />)} />
-          <Route path="complete" element={requireActiveOrder(<OrderCompletePage />)} />
-        </Routes>
+        <Suspense fallback={<AppRouteLoading compact />}>
+          <Routes>
+            <Route index element={
+              <Navigate to={`${entryBasePath}/${getCustomerEntryStartPath(orderId)}`} replace />
+            } />
+            <Route path="guests" element={
+              hasActiveOrder ? <Navigate to={`${entryBasePath}/menu`} replace /> : <GuestCountPage />
+            } />
+            <Route path="menu" element={requireActiveOrder(<MenuPage />)} />
+            <Route path="cart" element={requireActiveOrder(<CartPage />)} />
+            <Route path="complete" element={requireActiveOrder(<OrderCompletePage />)} />
+          </Routes>
+        </Suspense>
       </CartProvider>
     </OrderProvider>
   )

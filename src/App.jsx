@@ -1,56 +1,17 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import { StoreProvider } from './contexts/StoreContext'
-import OrderEntryPage from './pages/order/OrderEntryPage'
-import StaffLayout from './pages/staff/StaffLayout'
-import AdminLayout from './pages/admin/AdminLayout'
-import KitchenPage from './pages/kitchen/KitchenPage'
-import LoginPage from './pages/staff/LoginPage'
-import OwnerPage from './pages/owner/OwnerPage'
-import PrivateRoute from './components/PrivateRoute'
-import ApprovalGate from './components/ApprovalGate'
-import { useAuth } from './contexts/AuthContext'
-import { isSuperAdminEmail } from './lib/ownerIdentity'
+import { lazy, Suspense } from 'react'
+import { Route, Routes } from 'react-router-dom'
+import AppRouteLoading from './components/AppRouteLoading'
 
-function OwnerRoute({ children }) {
-  const { user } = useAuth()
-  if (!user) return <Navigate to="/login" replace />
-  if (!isSuperAdminEmail(user.email)) return <Navigate to="/staff" replace />
-  return children
-}
+const OrderEntryPage = lazy(() => import('./pages/order/OrderEntryPage'))
+const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'))
 
 export default function App() {
   return (
-    <AuthProvider>
-      <StoreProvider>
-        <Routes>
+    <Suspense fallback={<AppRouteLoading />}>
+      <Routes>
           <Route path="/order/:qrToken/*" element={<OrderEntryPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/owner" element={
-            <PrivateRoute>
-              <OwnerRoute>
-                <OwnerPage />
-              </OwnerRoute>
-            </PrivateRoute>
-          } />
-          <Route path="/staff/*" element={<StaffLayout />} />
-          <Route path="/admin/*" element={
-            <PrivateRoute>
-              <ApprovalGate>
-                <AdminLayout />
-              </ApprovalGate>
-            </PrivateRoute>
-          } />
-          <Route path="/kitchen" element={
-            <PrivateRoute>
-              <ApprovalGate>
-                <KitchenPage />
-              </ApprovalGate>
-            </PrivateRoute>
-          } />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </StoreProvider>
-    </AuthProvider>
+          <Route path="*" element={<AuthenticatedApp />} />
+      </Routes>
+    </Suspense>
   )
 }

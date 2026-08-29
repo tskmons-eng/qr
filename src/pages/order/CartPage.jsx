@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CustomerBottomNav from '../../components/CustomerBottomNav'
-import CartHeader from '../../components/order/CartHeader'
 import CartItemList from '../../components/order/CartItemList'
 import CartSubmitBar from '../../components/order/CartSubmitBar'
+import CustomerTopBar from '../../components/order/CustomerTopBar'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
+import useCustomerCall from '../../hooks/useCustomerCall'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import {
@@ -16,20 +17,16 @@ import {
   saveCustomerSubmitRecovery,
 } from '../../lib/customerSubmitRecovery'
 import { submitCustomerCartOrder } from '../../services/customerCartService'
-import { createCustomerCall } from '../../services/customerMenuService'
 
 export default function CartPage() {
   const { tableId, storeId, orderId, table } = useOrder()
   const { items, updateQuantity, clearCart, count } = useCart()
+  const { callDisabled, requestStaff } = useCustomerCall()
   const [submitting, setSubmitting] = useState(false)
-  const [callSent, setCallSent] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const cooldownRef = useRef(null)
   const submittingRef = useRef(false)
   const submitRequestIdRef = useRef(null)
   const navigate = useNavigate()
-
-  useEffect(() => () => clearTimeout(cooldownRef.current), [])
 
   useEffect(() => {
     if (!orderId || !storeId || !tableId || submittingRef.current) return
@@ -45,23 +42,6 @@ export default function CartPage() {
       },
     })
   }, [orderId, storeId, tableId, navigate])
-
-  async function sendCall(type) {
-    await createCustomerCall({
-      storeId,
-      tableId,
-      tableName: table?.tableName ?? '',
-      orderId,
-      type,
-    })
-  }
-
-  async function handleCall() {
-    if (callSent) return
-    await sendCall('call')
-    setCallSent(true)
-    cooldownRef.current = setTimeout(() => setCallSent(false), 30000)
-  }
 
   async function handleSubmit() {
     if (submittingRef.current || items.length === 0 || !orderId) return
@@ -133,24 +113,38 @@ export default function CartPage() {
   }
 
   return (
-    <div className="customer-cart">
-      <CartHeader onBack={() => navigate(-1)} />
-      <CartItemList
-        items={items}
-        onUpdateQuantity={updateQuantity}
+    <div className={`customer-cart${items.length === 0 ? ' is-empty' : ' has-items'}`}>
+      <CustomerTopBar
+        tableName={table?.tableName ?? ''}
+        title="カート"
+        onCall={requestStaff}
+        callDisabled={callDisabled}
       />
-      <CartSubmitBar
-        submitting={submitting}
-        itemCount={count}
-        disabled={submitting || items.length === 0}
-        errorMessage={submitError}
-        onSubmit={handleSubmit}
-      />
-      <CustomerBottomNav
-        current="cart"
-        onCall={handleCall}
-        callDisabled={callSent}
-      />
+      <main className="customer-cart__content">
+        {items.length === 0 ? (
+          <section className="customer-cart__empty">
+            <div className="customer-cart__empty-mark" aria-hidden="true">＋</div>
+            <h2>カートは空です</h2>
+            <p>メニューから商品を選ぶと、ここでまとめて注文できます。</p>
+            <button type="button" onClick={() => navigate('../menu')}>メニューを見る</button>
+          </section>
+        ) : (
+          <CartItemList
+            items={items}
+            onUpdateQuantity={updateQuantity}
+          />
+        )}
+      </main>
+      {items.length > 0 && (
+        <CartSubmitBar
+          submitting={submitting}
+          itemCount={count}
+          disabled={submitting}
+          errorMessage={submitError}
+          onSubmit={handleSubmit}
+        />
+      )}
+      <CustomerBottomNav current="cart" />
     </div>
   )
 }

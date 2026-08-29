@@ -8,8 +8,8 @@ import OrderStatusSummary from '../../components/order/OrderStatusSummary'
 import OrderTotalPanel from '../../components/order/OrderTotalPanel'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
+import useCustomerCall from '../../hooks/useCustomerCall'
 import {
-  getCheckoutConfirmMessage,
   getCustomerOrderSettings,
   isCustomerOrderRequestReflected,
   summarizeOrderItems,
@@ -27,8 +27,9 @@ import { createCustomerCall } from '../../services/customerMenuService'
 import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusService'
 
 export default function OrderCompletePage() {
-  const { orderId, table, tableId, storeId, storeConfig } = useOrder()
+  const { orderId, table, tableId, storeId, storeConfig, storeConfigLoading } = useOrder()
   const { count: cartCount } = useCart()
+  const { callDisabled, requestStaff } = useCustomerCall()
   const [items, setItems] = useState([])
   const [showSubmitComplete, setShowSubmitComplete] = useState(false)
   const [latestClientRequestId, setLatestClientRequestId] = useState('')
@@ -38,8 +39,8 @@ export default function OrderCompletePage() {
   const [recoverySubmitting, setRecoverySubmitting] = useState(false)
   const [recoveryError, setRecoveryError] = useState('')
   const [checkoutStep, setCheckoutStep] = useState(null)
-  const [callCooldown, setCallCooldown] = useState(false)
-  const callTimerRef = useRef(null)
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
   const recoveryTimerRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
@@ -110,30 +111,27 @@ export default function OrderCompletePage() {
   }, [latestClientRequestId, latestOrderReflected, pendingSubmit])
 
   useEffect(() => () => {
-    clearTimeout(callTimerRef.current)
     clearTimeout(recoveryTimerRef.current)
   }, [])
 
-  async function sendCall(type) {
-    await createCustomerCall({
-      storeId,
-      tableId,
-      tableName: table?.tableName ?? '',
-      orderId,
-      type,
-    })
-  }
-
-  async function handleCall() {
-    if (callCooldown) return
-    await sendCall('call')
-    setCallCooldown(true)
-    callTimerRef.current = setTimeout(() => setCallCooldown(false), 30000)
-  }
-
   async function handleCheckout() {
-    await sendCall('checkout')
-    setCheckoutStep('sent')
+    if (checkoutSubmitting) return
+    setCheckoutSubmitting(true)
+    setCheckoutError('')
+    try {
+      await createCustomerCall({
+        storeId,
+        tableId,
+        tableName: table?.tableName ?? '',
+        orderId,
+        type: 'checkout',
+      })
+      setCheckoutStep('sent')
+    } catch {
+      setCheckoutError('会計依頼を送信できませんでした。通信を確認して、もう一度お試しください。')
+    } finally {
+      setCheckoutSubmitting(false)
+    }
   }
 
   async function handleRecoveryRetry() {
@@ -206,6 +204,9 @@ export default function OrderCompletePage() {
       <OrderStatusHeader
         tableName={table.tableName}
         checkoutStep={checkoutStep}
+        onCall={requestStaff}
+        callDisabled={callDisabled}
+        loading={storeConfigLoading}
       />
       <OrderTotalPanel
         show={showTotal}
@@ -219,6 +220,13 @@ export default function OrderCompletePage() {
         itemCount={summary.itemCount}
         cartCount={cartCount}
         onOpenCart={() => navigate('../cart')}
+        onCheckout={handleCheckout}
+        onCancel={() => {
+          setCheckoutStep(null)
+          setCheckoutError('')
+        }}
+        submitting={checkoutSubmitting}
+        error={checkoutError}
       />
       <OrderReflectionNotice
         clientRequestId={latestClientRequestId}
@@ -229,8 +237,8 @@ export default function OrderCompletePage() {
         retrying={recoverySubmitting}
         retryError={recoveryError}
         onRetry={handleRecoveryRetry}
-        onCall={handleCall}
-        callDisabled={callCooldown}
+        onCall={requestStaff}
+        callDisabled={callDisabled}
       />
       <OrderStatusSummary
         itemCount={summary.itemCount}
@@ -239,6 +247,15 @@ export default function OrderCompletePage() {
         cancelledCount={summary.cancelledCount}
         showServedStatus={showServedStatus}
       />
+      {!isCheckoutPreview && (
+        <section className="order-status__checkout-entry">
+          <div>
+            <strong>お会計はこちら</strong>
+            <span>注文履歴と合計を確認してから依頼できます</span>
+          </div>
+          <button type="button" onClick={() => setCheckoutStep('confirming')}>お会計を確認</button>
+        </section>
+      )}
       <OrderStatusList
         items={items}
         latestClientRequestId={latestClientRequestId}
@@ -247,20 +264,14 @@ export default function OrderCompletePage() {
         showItemPrice={showItemPrice || isCheckoutPreview}
       />
       <CustomerBottomNav
-        current="checkout"
-        onCall={handleCall}
-        callDisabled={callCooldown}
-        menuDisabled={!allowAdditionalOrders}
-        onCheckout={checkoutStep === 'confirming' ? handleCheckout : undefined}
-        checkoutDisabled={checkoutStep === 'sent'}
-        checkoutLabel={checkoutStep === 'confirming' ? '会計依頼' : '注文確認'}
-        checkoutConfirmMessage={getCheckoutConfirmMessage(summary.total)}
+        current="history"
+        menuDisabled={storeConfigLoading || !allowAdditionalOrders}
       />
     </div>
   )
 }
 
-function OrderCheckoutNotice({ checkoutStep, itemCount, cartCount, onOpenCart }) {
+function OrderCheckoutNotice({ checkoutStep, itemCount, cartCount, onOpenCart, onCheckout, onCancel, submitting, error }) {
   if (checkoutStep !== 'confirming' && checkoutStep !== 'sent') return null
 
   const sent = checkoutStep === 'sent'
@@ -280,6 +291,15 @@ function OrderCheckoutNotice({ checkoutStep, itemCount, cartCount, onOpenCart })
           <span>カートに未注文の商品が{cartCount}点あります。</span>
           <button type="button" onClick={onOpenCart} className="order-status__checkout-cart-button">
             カートを見る
+          </button>
+        </div>
+      )}
+      {error && <p className="order-status__checkout-error" role="alert">{error}</p>}
+      {!sent && (
+        <div className="order-status__checkout-actions">
+          <button type="button" className="order-status__checkout-cancel" onClick={onCancel} disabled={submitting}>履歴へ戻る</button>
+          <button type="button" className="order-status__checkout-submit" onClick={onCheckout} disabled={submitting}>
+            {submitting ? '送信中...' : '会計を依頼する'}
           </button>
         </div>
       )}

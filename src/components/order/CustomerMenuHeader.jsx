@@ -1,10 +1,12 @@
-export default function CustomerMenuHeader({ tableName }) {
+import CustomerTopBar from './CustomerTopBar'
+
+export default function CustomerMenuHeader({ tableName, onCall, callDisabled }) {
   return (
-    <header className="customer-menu__header">
-      <div>
-        <div className="customer-menu__table">{tableName}</div>
-        <div className="customer-menu__title">メニュー</div>
-      </div>
-    </header>
+    <CustomerTopBar
+      tableName={tableName}
+      title="メニュー"
+      onCall={onCall}
+      callDisabled={callDisabled}
+    />
   )
 }

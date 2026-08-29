@@ -38,7 +38,6 @@ export default function OrderStatusList({
               key={item.id}
               item={item}
               latestClientRequestId={latestClientRequestId}
-              showServedStatus={showServedStatus}
               showItemPrice={showItemPrice}
             />
           ))}
@@ -48,7 +47,7 @@ export default function OrderStatusList({
   )
 }
 
-function OrderStatusItem({ item, latestClientRequestId, showServedStatus, showItemPrice }) {
+function OrderStatusItem({ item, latestClientRequestId, showItemPrice }) {
   const customerStatus = item.customerStatus ?? normalizeCustomerOrderItemStatus(item.itemStatus)
   const statusLabel = item.customerStatusLabel ?? (customerStatus === 'cancelled' ? 'キャンセル' : '注文済み')
   const isCancelled = customerStatus === 'cancelled'
@@ -57,7 +56,7 @@ function OrderStatusItem({ item, latestClientRequestId, showServedStatus, showIt
   const priceText = isCancelled
     ? '会計対象外'
     : `¥${(Number.isFinite(lineTotal) ? lineTotal : 0).toLocaleString()}`
-  const showStatusBadge = showServedStatus || isCancelled
+  const showStatusBadge = isCancelled
 
   return (
     <div className={`order-status__item order-status__item--${customerStatus}`}>
@@ -65,16 +64,18 @@ function OrderStatusItem({ item, latestClientRequestId, showServedStatus, showIt
         <div className="order-status__item-name">
           {item.productNameSnapshot || '商品'} × {item.quantity || 0}
         </div>
-        <div className="order-status__item-tags">
-          {showStatusBadge && (
-            <div className={`order-status__item-badge order-status__item-badge--${customerStatus}`}>
-              {statusLabel}
-            </div>
-          )}
-          {isLatestItem && (
-            <div className="order-status__item-new-label">今回追加</div>
-          )}
-        </div>
+        {(showStatusBadge || isLatestItem) && (
+          <div className="order-status__item-tags">
+            {showStatusBadge && (
+              <div className={`order-status__item-badge order-status__item-badge--${customerStatus}`}>
+                {statusLabel}
+              </div>
+            )}
+            {isLatestItem && (
+              <div className="order-status__item-new-label">今回追加</div>
+            )}
+          </div>
+        )}
       </div>
       {showItemPrice && (
         <div className={`order-status__item-price${isCancelled ? ' order-status__item-price--cancelled' : ''}`}>

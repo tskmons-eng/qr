@@ -6,13 +6,13 @@ export default function OrderStatusSummary({
   showServedStatus,
 }) {
   if (itemCount === 0 && cancelledCount === 0) return null
+  const visibleOrderedCount = showServedStatus ? orderedCount : orderedCount + servedCount
 
   return (
     <section className="order-status__summary">
-      <SummaryCard label="準備中" value={orderedCount} tone="ordered" />
+      <SummaryCard label={showServedStatus ? '準備中' : '注文済み'} value={visibleOrderedCount} tone="ordered" />
       {showServedStatus && <SummaryCard label="提供済み" value={servedCount} tone="served" />}
       {cancelledCount > 0 && <SummaryCard label="キャンセル" value={cancelledCount} tone="cancelled" />}
-      <SummaryCard label="注文数" value={itemCount} />
     </section>
   )
 }

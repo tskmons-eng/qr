@@ -7,7 +7,7 @@ import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCo
 import { createCustomerOrderSession } from '../../services/customerEntryService'
 
 export default function GuestCountPage() {
-  const { table, tableId, storeId, setOrderId, setTable, storeConfig } = useOrder()
+  const { table, tableId, storeId, setOrderId, setTable, storeConfig, storeConfigLoading } = useOrder()
   const [count, setCount] = useState(2)
   const [commandError, setCommandError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,6 +20,7 @@ export default function GuestCountPage() {
   )
 
   async function handleStart() {
+    if (storeConfigLoading || loading) return
     setLoading(true)
     setCommandError('')
     try {
@@ -45,8 +46,9 @@ export default function GuestCountPage() {
       count={count}
       errorMessage={commandError}
       loading={loading}
+      ready={!storeConfigLoading}
       tableName={table.tableName}
-      autoAddLabel={showAutoAddButton ? `${guestAutoAdd.productNameSnapshot || '設定メニュー'}を${count}名分追加して始める` : ''}
+      autoAddNote={showAutoAddButton ? `${guestAutoAdd.productNameSnapshot || '設定メニュー'}を${count}名分追加します` : ''}
       onChange={delta => setCount(currentCount => stepGuestCount(currentCount, delta))}
       onStart={handleStart}
     />

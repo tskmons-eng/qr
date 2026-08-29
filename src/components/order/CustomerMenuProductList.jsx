@@ -3,6 +3,7 @@ import { getDiscountedProductPrice } from '../../lib/discounts'
 export default function CustomerMenuProductList({
   products,
   cartItems,
+  interactionDisabled = false,
   customerMenuTapToAddEnabled = true,
   onAddProduct,
   onSetSimpleProductQuantity,
@@ -20,8 +21,9 @@ export default function CustomerMenuProductList({
         const optionQuantity = cartItems
           .filter(item => item.product.id === product.id && item.optionSelections.length > 0)
           .reduce((sum, item) => sum + item.quantity, 0)
-        const rowTapEnabled = customerMenuTapToAddEnabled && !product.isSoldOut
+        const rowTapEnabled = customerMenuTapToAddEnabled && !product.isSoldOut && !interactionDisabled
         const tapLabel = hasOptions ? `${product.name}のオプションを選択` : `${product.name}を1個追加`
+        const ProductMain = rowTapEnabled ? 'button' : 'div'
 
         function handleRowTap() {
           if (!rowTapEnabled) return
@@ -32,26 +34,18 @@ export default function CustomerMenuProductList({
           onSetSimpleProductQuantity(product, (simpleItem?.quantity ?? 0) + 1)
         }
 
-        function handleRowKeyDown(event) {
-          if (!rowTapEnabled || (event.key !== 'Enter' && event.key !== ' ')) return
-          event.preventDefault()
-          handleRowTap()
-        }
-
         return (
           <div
             key={product.id}
-            className={`customer-product${rowTapEnabled ? ' is-tappable' : ''}`}
-            {...(rowTapEnabled ? {
-              role: 'button',
-              tabIndex: 0,
-              onClick: handleRowTap,
-              onKeyDown: handleRowKeyDown,
-              'aria-label': tapLabel,
-            } : {})}
+            className={`customer-product${product.isSoldOut ? ' is-sold-out' : ''}`}
           >
-            <div
-              className="customer-product__tap-area"
+            <ProductMain
+              className="customer-product__main"
+              {...(rowTapEnabled ? {
+                type: 'button',
+                onClick: handleRowTap,
+                'aria-label': tapLabel,
+              } : {})}
             >
               <div className="customer-product__body">
                 <div className={`customer-product__name${product.isSoldOut ? ' is-sold-out' : ''}`}>{product.name}</div>
@@ -63,60 +57,68 @@ export default function CustomerMenuProductList({
                 </div>
                 {hasOptions && !product.isSoldOut && (
                   <div className="customer-product__options">
-                    オプションあり{optionQuantity > 0 && ` / ${optionQuantity}個選択中`}
+                    {optionQuantity > 0 ? `${optionQuantity}個選択中` : 'オプションあり'}
                   </div>
                 )}
-                {product.isSoldOut && <div className="customer-product__sold-out">売り切れ</div>}
+                {product.isSoldOut && <div className="customer-product__sold-out">本日売り切れ</div>}
               </div>
 
               {product.imageUrl && (
-                <img className="customer-product__image" src={product.imageUrl} alt={product.name} />
+                <img
+                  className="customer-product__image"
+                  src={product.imageUrl}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  width="68"
+                  height="68"
+                />
               )}
-            </div>
+            </ProductMain>
 
             {hasOptions ? (
               <button
                 type="button"
                 className="customer-product__select"
-                disabled={product.isSoldOut}
-                onClick={event => {
-                  event.stopPropagation()
-                  onAddProduct(product)
-                }}
+                disabled={product.isSoldOut || interactionDisabled}
+                onClick={() => onAddProduct(product)}
               >
-                選択
+                {optionQuantity > 0 ? `選択中 ${optionQuantity}` : '選ぶ'}
               </button>
-            ) : (
+            ) : simpleItem ? (
               <div
                 className="customer-product__quantity"
-                onClick={event => event.stopPropagation()}
+                aria-label={`${product.name}の数量`}
               >
                 <button
                   type="button"
-                  disabled={product.isSoldOut || !simpleItem}
-                  onClick={() => onSetSimpleProductQuantity(product, (simpleItem?.quantity ?? 0) - 1)}
+                  disabled={product.isSoldOut || interactionDisabled}
+                  onClick={() => onSetSimpleProductQuantity(product, simpleItem.quantity - 1)}
+                  aria-label={`${product.name}を1個減らす`}
                 >
-                  -
+                  −
                 </button>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="99"
-                  value={simpleItem?.quantity ?? ''}
-                  onChange={e => onSetSimpleProductQuantity(product, e.target.value)}
-                  placeholder="0"
-                  disabled={product.isSoldOut}
-                />
+                <span className="customer-product__quantity-value" aria-live="polite">{simpleItem.quantity}</span>
                 <button
                   type="button"
                   className="is-plus"
-                  disabled={product.isSoldOut}
-                  onClick={() => onSetSimpleProductQuantity(product, (simpleItem?.quantity ?? 0) + 1)}
+                  disabled={product.isSoldOut || interactionDisabled}
+                  onClick={() => onSetSimpleProductQuantity(product, simpleItem.quantity + 1)}
+                  aria-label={`${product.name}を1個増やす`}
                 >
                   +
                 </button>
               </div>
+            ) : (
+              <button
+                type="button"
+                className="customer-product__add"
+                disabled={product.isSoldOut || interactionDisabled}
+                onClick={() => onSetSimpleProductQuantity(product, 1)}
+                aria-label={`${product.name}を1個追加`}
+              >
+                +
+              </button>
             )}
           </div>
         )

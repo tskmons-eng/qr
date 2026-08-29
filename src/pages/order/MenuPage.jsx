@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import CustomerCategoryTabs from '../../components/order/CustomerCategoryTabs'
 import CustomerMenuHeader from '../../components/order/CustomerMenuHeader'
 import CustomerMenuProductList from '../../components/order/CustomerMenuProductList'
@@ -7,54 +7,48 @@ import OptionModal from '../../components/OptionModal'
 import SuggestionSheet from '../../components/SuggestionSheet'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
+import useCustomerCall from '../../hooks/useCustomerCall'
 import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
 import { productMatchesCategory } from '../../lib/productTags'
-import { createCustomerCall, loadCustomerMenuData } from '../../services/customerMenuService'
+import { loadCustomerMenuData } from '../../services/customerMenuService'
 
 export default function MenuPage() {
-  const { storeId, tableId, orderId, table, storeConfig } = useOrder()
+  const { storeId, table, storeConfig, storeConfigLoading } = useOrder()
   const { items, addItem, updateQuantity } = useCart()
+  const { callDisabled, requestStaff } = useCustomerCall()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [activeCat, setActiveCat] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [callSent, setCallSent] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [optionTarget, setOptionTarget] = useState(null)
   const [suggestions, setSuggestions] = useState([])
-  const cooldownRef = useRef(null)
-
-  useEffect(() => () => clearTimeout(cooldownRef.current), [])
 
   useEffect(() => {
     if (!storeId) return
+    let cancelled = false
 
     async function load() {
-      const data = await loadCustomerMenuData(storeId)
-      setCategories(data.categories)
-      setProducts(data.products)
-      if (data.categories.length > 0) setActiveCat(data.categories[0].id)
-      setLoading(false)
+      setLoading(true)
+      setLoadError('')
+      try {
+        const data = await loadCustomerMenuData(storeId)
+        if (cancelled) return
+        setCategories(data.categories)
+        setProducts(data.products)
+        setActiveCat(current => data.categories.some(category => category.id === current)
+          ? current
+          : data.categories[0]?.id ?? null)
+      } catch {
+        if (!cancelled) setLoadError('メニューを読み込めませんでした。通信を確認して、もう一度お試しください。')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
 
     load()
+    return () => { cancelled = true }
   }, [storeId])
-
-  async function sendCall(type) {
-    await createCustomerCall({
-      storeId,
-      tableId,
-      tableName: table.tableName,
-      orderId,
-      type,
-    })
-  }
-
-  async function handleCall() {
-    if (callSent) return
-    await sendCall('call')
-    setCallSent(true)
-    cooldownRef.current = setTimeout(() => setCallSent(false), 30000)
-  }
 
   function showSuggestionsFor(product) {
     const ids = product.linkedProductIds ?? []
@@ -105,8 +99,6 @@ export default function MenuPage() {
     ? products.filter(product => productMatchesCategory(product, activeCategory))
     : products)
 
-  if (loading) return <div className="customer-menu__loading">読み込み中...</div>
-
   return (
     <div className="customer-menu">
       {optionTarget && (
@@ -124,27 +116,41 @@ export default function MenuPage() {
         />
       )}
 
-      <CustomerMenuHeader tableName={table.tableName} />
+      <CustomerMenuHeader
+        tableName={table.tableName}
+        onCall={requestStaff}
+        callDisabled={callDisabled}
+      />
       <div className="customer-menu__scroll">
-        <CustomerCategoryTabs
-          categories={categories}
-          activeCategoryId={activeCat}
-          onSelect={setActiveCat}
-        />
-        <CustomerMenuProductList
-          products={filteredProducts}
-          cartItems={items}
-          customerMenuTapToAddEnabled={storeConfig.customerMenuTapToAddEnabled !== false}
-          onAddProduct={handleAddProduct}
-          onSetSimpleProductQuantity={setSimpleProductQuantity}
-        />
+        {loading ? (
+          <div className="customer-menu__skeleton" role="status" aria-label="メニューを読み込み中">
+            <span /><span /><span /><span />
+          </div>
+        ) : loadError ? (
+          <div className="customer-menu__error" role="alert">
+            <p>{loadError}</p>
+            <button type="button" onClick={() => window.location.reload()}>再読み込み</button>
+          </div>
+        ) : (
+          <>
+            <CustomerCategoryTabs
+              categories={categories}
+              activeCategoryId={activeCat}
+              onSelect={setActiveCat}
+            />
+            <CustomerMenuProductList
+              products={filteredProducts}
+              cartItems={items}
+              interactionDisabled={storeConfigLoading}
+              customerMenuTapToAddEnabled={storeConfig.customerMenuTapToAddEnabled !== false}
+              onAddProduct={handleAddProduct}
+              onSetSimpleProductQuantity={setSimpleProductQuantity}
+            />
+          </>
+        )}
       </div>
 
-      <CustomerBottomNav
-        current="menu"
-        onCall={handleCall}
-        callDisabled={callSent}
-      />
+      <CustomerBottomNav current="menu" />
     </div>
   )
 }

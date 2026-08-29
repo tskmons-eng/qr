@@ -10,7 +10,7 @@ export default function CartSubmitBar({ submitting, itemCount, disabled, errorMe
         disabled={disabled}
         className="customer-cart__submit-button"
       >
-        {submitting ? '送信中...' : `この内容で注文する（${itemCount}品）`}
+        {submitting ? '注文を送信しています...' : `${itemCount}点を注文する`}
       </button>
     </div>
   )
