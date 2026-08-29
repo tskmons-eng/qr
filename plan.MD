@@ -33,6 +33,13 @@
 - 未注文商品が3個残る状態で会計確認を開き、「カートに未注文の商品」と `カートを見る` が表示されないことを確認した。会計依頼は送信していない。
 - `npm.cmd run check:customer-cart`、`check:customer-order-status`、`check:option-modal`、全体 `npm.cmd run check`、`npm.cmd run build`、`git diff --check` は成功した。
 
+### 本番公開結果
+
+- commit `a9c7d47` をbranch `codex/customer-order-mobile-redesign` へpushし、Firebase project `qrproduct-3340b` のHostingだけを更新した。Functions、Rules、indexes、既存データは変更していない。
+- 公開HTMLのasset参照はローカル完成版と一致し、`/`、`/login`、`/order/test-token` はHTTP 200だった。
+- 本番の有効な実QRでタレを1個から2個へ増やし、商品カード内の選択名・数量・増減操作とカート合計2個が表示されること、横方向のはみ出しがないことを確認した。このカート操作はブラウザ内の未送信状態だけで、本番注文は作成していない。
+- 未注文商品が残る状態の本番会計確認で、「カートに未注文の商品」と `カートを見る` が表示されず、`会計を依頼する` は維持されることを確認した。会計依頼は送信していない。
+
 ## 2026-08-29 お客様QR注文画面 モバイル再設計・初回表示高速化
 
 ### 目的
