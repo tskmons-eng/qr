@@ -35,6 +35,15 @@
 - Functions sourceの構文・読込、`check:functions-rules-migration`、`check:order-latency-routing`、`check:functions-runtime-upgrade`、全体 `npm.cmd run check`、`npm.cmd run build`、`git diff --check` は成功した。
 - Auth / Firestore / Functions Emulatorで全19定義を読み込み、注文開始、顧客・スタッフ同時注文、同一request再送、会計、配膳、取消、席移動、予約、pending集計triggerを含む既存fixtureが成功した。本番データへのダミー注文は作成していない。
 
+### 本番公開・確認結果
+
+- 実装commit `7998b68` をbranch `codex/customer-order-mobile-redesign` へpushした後、Firebase project `qrproduct-3340b` へ対象2本だけを明示deployした。
+- 最初の通常deployは、最小請求額が増える変更としてFirebase CLIの安全確認で停止した。ユーザー様の有料待機実装の承認範囲内で対象を変えずに `--force` を付け、`startCustomerOrderSessionCommand` と `submitCustomerOrderItemsCommandAsia` のみ公開した。CLIは金額を表示せず、最小請求額が増える旨だけを示したため、月額はFirebase公式目安の1本約8米ドル、2本合計約16米ドル（無料枠適用前）として扱う。
+- 本番Functions一覧は全19本がACTIVE / Node.js 22で、対象2本だけ `minInstances: 1`、残り17本は未設定だった。全19本の `maxInstances: 20`、concurrency 80、256MiBも維持されている。
+- Cloud Run実設定でも両Functionの `minScale: 1`、`maxScale: 20`、container concurrency 80を確認し、Ready / ConfigurationsReady / RoutesReadyはいずれもTrueだった。
+- 公開後30分の注文失敗監査は0件だった。本番ダミー注文は送信しておらず、自然注文での実測速度比較は後続確認とする。
+- Hosting、Firestore Rules / indexes、Storage Rules、既存注文・店舗データは変更していない。既存の `notifyStaff` cross-region trigger警告は今回の変更対象外で、設定も変更していない。
+
 ## 2026-08-29 お客様メニュー オプション数量調整・会計確認文言整理
 
 ### 目的
