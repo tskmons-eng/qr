@@ -59,6 +59,16 @@
 - 390×844のローカル実画面で、来店人数、商品追加、選択後だけ出る数量操作、空カート、カート注文ボタン、注文履歴、会計確認、スタッフ呼出シートを確認した。管理側の `/login` も分離後のCSSで表示崩れがないことを確認した。
 - 本番への注文送信、会計依頼、スタッフ呼出は検証データを作らないため実行していない。既存command契約と失敗復旧は自動チェックで維持を確認した。
 
+### 本番公開結果
+
+- branch `codex/customer-order-mobile-redesign` をGitHubへpushし、Firebase project `qrproduct-3340b` へHostingだけを公開した。Functions、Firestore Rules / indexes、Storage Rules、既存データは変更していない。
+- 公開HTMLが参照する `/assets/index-C-DEM1pj.js`、`/assets/index-CyK1AOUa.css`、`/assets/vendor-react-Ddk2dSdh.js` はローカル完成版と一致した。`/`、`/login`、`/admin`、`/owner`、`/staff`、`/order/test-token` はすべてHTTP 200だった。
+- 本番の有効な実QRを390×844で読み取り、共通ヘッダー、低頻度操作メニュー、`メニュー` / `カート` / `履歴・会計` の3導線、新しい商品追加UIが表示されることを確認した。画面幅390pxに対して本文幅390pxで、横方向のはみ出しはなかった。
+- 分離後の本番 `/login` でスタッフログイン画面が表示されることを確認した。公開後のFunctions一覧は19本すべてNode.js 22のままで、Hosting公開によるFunctions変更がないことを確認した。
+- `npm.cmd run check:order-safety-release-gate -- --final` と `npm.cmd run check:restaurant-ux-release-gate -- --final` は、Functions Emulatorの同時注文・重複防止・権限・会計・席移動・集計triggerを含めて成功した。
+- 読み取り専用の既存データ監査は19卓、未提供item 58件、集計drift 8卓、item参照不整合0件だった。既存driftは今回のUI公開と分離し、自動修復していない。
+- 本番では注文送信、会計依頼、スタッフ呼出を実行せず、実運用データを増やさない表示確認に限定した。
+
 ## 2026-07-14 Cloud Functions Node.js 22 / SDK更新
 
 ### 目的
