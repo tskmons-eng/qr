@@ -1,5 +1,40 @@
 # QR System Plan
 
+## 2026-08-30 お客様注文Functions 常時1台待機
+
+### 目的
+
+- お客様QRで人数確定後に注文を開始する処理と、カートから注文を確定する処理のコールドスタートを減らす。
+- 料金対象を顧客体験に直結する最小2本へ限定し、スタッフ・会計・通知など低頻度Functionsまで常時待機させない。
+
+### 変更前バックアップ・現状確認
+
+- 変更前HEAD `98f70d6` に復元タグ `backup/customer-order-warm-instances-before-20260830` を付け、GitHubへpush済み。
+- 本番19 FunctionsはNode.js 22 / 256MiB / concurrency 80 / `maxInstances: 20`。現在は全本 `minInstances` 未設定で、無通信時に0台まで縮退する。
+- お客様注文送信は `submitCustomerOrderItemsCommandAsia` を本線とし、一時障害時だけ米国 `submitCustomerOrderItemsCommand` へ同一 `clientRequestId` でfallbackする。注文開始は `startCustomerOrderSessionCommand` を使用する。
+- Firebase公式の目安では、256MiB・1CPU・concurrency有効の最小1台は1本あたり月約8米ドル。2本で無料枠適用前の目安は月約16米ドルで、実額はリージョン、為替、無料枠、実利用量により変わる。
+
+### 変更方針
+
+- `startCustomerOrderSessionCommand` と `submitCustomerOrderItemsCommandAsia` だけに `minInstances: 1` を設定する。
+- 共通Callable factoryは `minInstances` を非負整数として明示検証し、未指定Functionにはfield自体を渡さない。全19本へ広げず対象2本だけを有料待機にする。
+- 米国fallback、スタッフ注文、会計、配膳、取消、席移動、予約、通知、集計triggerは `minInstances` 未設定を維持する。
+- region、memory、CPU、concurrency、`maxInstances: 20`、注文payload、Firestore transaction、冪等性、Rules、Hosting、既存データは変更しない。
+
+### 検証・段階公開・復元
+
+- factory options、対象2本、非対象Functionを静的checkで固定し、Functions source load、Emulator、`npm run check`、`npm run build`、`git diff --check` を実行する。
+- commit/push後、Firebase project `qrproduct-3340b` へ対象2本だけを1本ずつ明示deployする。CLIの月額見積りを記録し、Functions一覧とCloud Run実設定で `minInstances: 1`、Node.js 22、region、`maxInstances: 20`、concurrency 80を確認する。
+- 本番ダミー注文は送らず、自然注文のログでコールドスタート減少と処理時間を後続確認する。
+- 問題や費用見直し時は復元タグの設定へ戻し、対象2本を `minInstances` 未設定で再deployする。Functions全体、Hosting、Rules、データは巻き戻さない。
+
+### ローカル検証結果
+
+- 共通Callable factoryへ非負整数の `minInstances` 検証を追加し、未指定時はmanifestへfield自体を含めないことを静的checkで固定した。
+- `startCustomerOrderSessionCommand` と `submitCustomerOrderItemsCommandAsia` だけが `CUSTOMER_ORDER_MIN_INSTANCES = 1` を使用し、スタッフ東京送信を含む残り17本には設定がないことを確認した。
+- Functions sourceの構文・読込、`check:functions-rules-migration`、`check:order-latency-routing`、`check:functions-runtime-upgrade`、全体 `npm.cmd run check`、`npm.cmd run build`、`git diff --check` は成功した。
+- Auth / Firestore / Functions Emulatorで全19定義を読み込み、注文開始、顧客・スタッフ同時注文、同一request再送、会計、配膳、取消、席移動、予約、pending集計triggerを含む既存fixtureが成功した。本番データへのダミー注文は作成していない。
+
 ## 2026-08-29 お客様メニュー オプション数量調整・会計確認文言整理
 
 ### 目的

@@ -55,6 +55,17 @@ npm.cmd run check:order-functions-emulator
 
 Functions未公開の状態でHostingだけを先に公開すると、初回送信が米国fallbackまで待つため速度改善にならない。必ずFunctions 2本を先に公開する。
 
+## 2026-08-30 お客様経路の有料常時待機
+
+ユーザー様の明示承認を受け、無料運用を維持する上記Phase 1から、お客様の体感速度を優先する限定的な常時待機へ進める。`startCustomerOrderSessionCommand` と `submitCustomerOrderItemsCommandAsia` だけに `minInstances: 1` を設定する。
+
+- 注文開始と東京のお客様注文送信だけを常時1台待機させる。
+- 米国fallback、スタッフ注文、会計、配膳、取消、席移動、予約、通知、集計triggerの残り17本は `minInstances` 未設定を維持する。
+- 256MiB・1CPU・concurrency有効の公式目安は1本あたり月約8米ドル。2本で無料枠適用前の目安は月約16米ドルだが、実額はリージョン、為替、無料枠、利用量で変わる。deploy時のCLI見積りを記録する。
+- `maxInstances: 20`、concurrency 80、Node.js 22、region、同じ `clientRequestId` によるfallback、Firestore transactionは変更しない。
+- 対象だけを `functions:startCustomerOrderSessionCommand`、`functions:submitCustomerOrderItemsCommandAsia` の順に明示deployする。Hosting、Rules、indexes、storage、既存データは変更しない。
+- 費用や動作に問題があれば `backup/customer-order-warm-instances-before-20260830` の設定へ戻し、同じ2本だけを再deployする。
+
 ## 2026-07-13 ローカル検証結果
 
 - `check:order-latency-routing`、`check:order-functions-mainline`、`check:functions-rules-migration`、`check:live-observability` は通過した。

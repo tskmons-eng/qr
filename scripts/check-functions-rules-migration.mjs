@@ -111,13 +111,25 @@ for (const name of ['submitCustomerOrderItemsCommandAsia', 'submitStaffOrderItem
   assert.notEqual(exportStart, -1, `${name} should be exported`)
   const exportBlock = functionsIndex.slice(exportStart, exportStart + 400)
   assert.ok(exportBlock.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), `${name} should use asia-northeast1`)
-  assert.ok(!exportBlock.includes('minInstances'), `${name} should remain scale-to-zero`)
+  if (name === 'submitCustomerOrderItemsCommandAsia') {
+    assert.ok(exportBlock.includes('minInstances: CUSTOMER_ORDER_MIN_INSTANCES'), `${name} should keep one warm instance`)
+  } else {
+    assert.ok(!exportBlock.includes('minInstances'), `${name} should remain scale-to-zero`)
+  }
 }
+assert.ok(functionsIndex.includes('const CUSTOMER_ORDER_MIN_INSTANCES = 1'), 'customer critical callables should use one warm instance')
+const customerStartExport = functionsIndex.slice(
+  functionsIndex.indexOf('exports.startCustomerOrderSessionCommand = createOrderCommandCallable'),
+  functionsIndex.indexOf('exports.submitCustomerOrderItemsCommand = createOrderCommandCallable'),
+)
+assert.ok(customerStartExport.includes('minInstances: CUSTOMER_ORDER_MIN_INSTANCES'), 'customer session start should keep one warm instance')
 assert.ok(api.includes('const ORDER_COMMAND_MAX_INSTANCES = 20'), 'all order callables should cap max instances at 20')
 assert.ok(
   api.includes('options.maxInstances ?? ORDER_COMMAND_MAX_INSTANCES'),
   'order callable factory should default to the production max instance cap',
 )
 assert.ok(api.includes('const callableOptions = { cors: true, region, maxInstances }'), 'order callable manifest should always include the scale cap')
+assert.ok(api.includes('function normalizeCallableMinInstances(minInstances)'), 'order callable minInstances should be validated')
+assert.ok(api.includes('if (minInstances !== undefined) callableOptions.minInstances = minInstances'), 'only selected callables should include minInstances')
 
 console.log('functions/rules migration checks passed')

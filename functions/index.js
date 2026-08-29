@@ -10,6 +10,7 @@ initializeApp()
 
 const ASIA_NORTHEAST_FUNCTION_REGION = 'asia-northeast1'
 const US_CENTRAL_FUNCTION_REGION = 'us-central1'
+const CUSTOMER_ORDER_MIN_INSTANCES = 1
 const EVENT_TRIGGER_MAX_INSTANCES = 20
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
@@ -17,7 +18,7 @@ const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 exports.startCustomerOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.startCustomerOrderSession, {
   commandType: 'start_customer_order_session',
   actorType: 'customer',
-})
+}, { minInstances: CUSTOMER_ORDER_MIN_INSTANCES })
 exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
   commandType: 'customer_submit_items',
   actorType: 'customer',
@@ -25,7 +26,10 @@ exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderComman
 exports.submitCustomerOrderItemsCommandAsia = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
   commandType: 'customer_submit_items',
   actorType: 'customer',
-}, { region: ASIA_NORTHEAST_FUNCTION_REGION })
+}, {
+  region: ASIA_NORTHEAST_FUNCTION_REGION,
+  minInstances: CUSTOMER_ORDER_MIN_INSTANCES,
+})
 exports.submitStaffOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitStaffOrderItems, {
   commandType: 'staff_submit_items',
   actorType: 'staff',

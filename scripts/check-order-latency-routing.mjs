@@ -66,7 +66,11 @@ for (const name of [
       : 'exports.seatStaffOrderSessionCommand = createOrderCommandCallable',
   )
   assert.ok(aliasBlock.includes('region: ASIA_NORTHEAST_FUNCTION_REGION'), `${name} should run in asia-northeast1`)
-  assert.ok(!aliasBlock.includes('minInstances'), `${name} should not add paid warm instances`)
+  if (name === 'submitCustomerOrderItemsCommandAsia') {
+    assert.ok(aliasBlock.includes('minInstances: CUSTOMER_ORDER_MIN_INSTANCES'), `${name} should keep one warm instance`)
+  } else {
+    assert.ok(!aliasBlock.includes('minInstances'), `${name} should remain scale-to-zero`)
+  }
 }
 
 assert.ok(
@@ -77,8 +81,9 @@ assert.ok(functionsApi.includes('const region = normalizeCallableRegion(options.
 assert.ok(functionsApi.includes('const ORDER_COMMAND_MAX_INSTANCES = 20'), 'all order callables should preserve the production scale cap')
 assert.ok(functionsApi.includes('options.maxInstances ?? ORDER_COMMAND_MAX_INSTANCES'), 'callable maxInstances should default to the production cap')
 assert.ok(functionsApi.includes('const callableOptions = { cors: true, region, maxInstances }'), 'callable factory should always apply the scale cap')
+assert.ok(functionsApi.includes('const minInstances = normalizeCallableMinInstances(options.minInstances)'), 'callable minInstances should be validated')
+assert.ok(functionsApi.includes('if (minInstances !== undefined) callableOptions.minInstances = minInstances'), 'only explicit callables should reserve warm instances')
 assert.ok(functionsApi.includes('return onCall(callableOptions'), 'callable factory should apply its selected options')
-assert.ok(!functionsApi.includes('minInstances'), 'order callable factory should remain scale-to-zero')
 
 const productLoader = sliceBetween(
   handlers,
@@ -189,6 +194,8 @@ for (const token of [
   '同じ `clientRequestId`',
   '業務エラー・権限エラーでは fallback しない',
   '`minInstances` は追加しない',
+  '`startCustomerOrderSessionCommand` と `submitCustomerOrderItemsCommandAsia` だけに `minInstances: 1`',
+  '残り17本',
   '`maxInstances: 20`',
   'order_command_completed',
   'order_command_stage_completed',

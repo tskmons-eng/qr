@@ -98,6 +98,14 @@ function normalizeCallableMaxInstances(maxInstances) {
   return maxInstances
 }
 
+function normalizeCallableMinInstances(minInstances) {
+  if (minInstances === undefined) return undefined
+  if (!Number.isInteger(minInstances) || minInstances < 0) {
+    throw new TypeError('Order command minInstances must be a non-negative integer.')
+  }
+  return minInstances
+}
+
 function createOrderCommandCallable(handler, commandContext = {}, options = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new TypeError('Order command callable options must be an object.')
@@ -106,7 +114,9 @@ function createOrderCommandCallable(handler, commandContext = {}, options = {}) 
   const maxInstances = normalizeCallableMaxInstances(
     options.maxInstances ?? ORDER_COMMAND_MAX_INSTANCES
   )
+  const minInstances = normalizeCallableMinInstances(options.minInstances)
   const callableOptions = { cors: true, region, maxInstances }
+  if (minInstances !== undefined) callableOptions.minInstances = minInstances
   return onCall(callableOptions, async request => {
     const startedAt = Date.now()
     try {
