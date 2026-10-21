@@ -30,7 +30,7 @@ const [
   readFile('functions/package.json', 'utf8'),
   readFile('functions/package-lock.json', 'utf8'),
   readFile('package.json', 'utf8'),
-  readFile('plan.MD', 'utf8'),
+  readFile('docs/archive/reset-2026-10-21/plan.MD', 'utf8'),
   readFile('docs/order-reliability/13-functions-node22-upgrade.md', 'utf8'),
   readdir('functions'),
 ])

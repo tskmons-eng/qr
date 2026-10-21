@@ -1,0 +1,66 @@
+{
+  "説明": "指示書と記録ファイルの行数の上限。数字を書き換えれば調節できる。上限を超えると、書いた直後とセッション開始時に Claude へ知らせる（止めはしない）。上限を上げるのは利用者が決める。",
+  "groups": [
+    {
+      "name": "毎回読み込まれる指示書の合計",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "max_lines": 200,
+      "when_over": "公式の目安（200行）を超えた。新しく足した内容を、場面別ルール（.claude/rules/）・スキル・仕様書へ移すか、要らなくなった行を消す。"
+    }
+  ],
+  "files": [
+    {
+      "pattern": "AGENTS.md",
+      "max_lines": 160,
+      "when_over": "一部のファイルにだけ関係する内容は .claude/rules/ へ、手順はスキルへ移す。同じことを2か所に書いていないか見る。"
+    },
+    {
+      "pattern": "CLAUDE.md",
+      "max_lines": 40,
+      "when_over": "Claude だけの補足に絞る。Codex にも要る内容は AGENTS.md へ。"
+    },
+    {
+      "pattern": ".claude/rules/*.md",
+      "max_lines": 100,
+      "when_over": "どの画面・処理にも通じる原則だけを残し、画面ごとの細かい決まりは仕様書へ移す。テーマが2つ混ざっていれば分ける。"
+    },
+    {
+      "pattern": ".claude/skills/*/SKILL.md",
+      "max_lines": 200,
+      "when_over": "手順だけを残し、細かい資料は同じフォルダの別ファイルへ分けて、SKILL.md から「いつ読むか」を示す。"
+    },
+    {
+      "pattern": "TASK.md",
+      "max_lines": 150,
+      "when_over": "理解確認が長すぎる。利用者が読み切れる長さに要点を絞るか、作業を章に分ける。"
+    },
+    {
+      "pattern": "PLANS.md",
+      "max_lines": 60,
+      "when_over": "終わったことを消す。詳細は CHANGELOG.md・docs/archive/ へ。"
+    },
+    {
+      "pattern": "docs/IDEAS.md",
+      "max_lines": 200,
+      "when_over": "作ったもの・やめたものを消す。似た案をまとめる。"
+    },
+    {
+      "pattern": "docs/DECISIONS.md",
+      "max_lines": 1000,
+      "when_over": "古い判断のうち、今のコードに反映済みで参照されないものを docs/archive/DECISIONS_<日付>.md へ移す。"
+    },
+    {
+      "pattern": "docs/WORK_LOG.md",
+      "max_lines": 400,
+      "when_over": "最後の行だけが使われる。古い行を docs/archive/WORK_LOG_<日付>.md へ移し、見出しと最近の数行だけ残す。"
+    },
+    {
+      "pattern": "CHANGELOG.md",
+      "max_lines": 1500,
+      "when_over": "古い版を docs/archive/CHANGELOG_<日付>.md へ移し、最近の版だけ残す。"
+    }
+  ]
+}

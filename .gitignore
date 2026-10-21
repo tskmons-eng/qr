@@ -2,6 +2,7 @@ node_modules
 dist
 .env.local
 .firebase
-.claude
+.claude/settings.local.json
+.claude/worktrees/
 firebase-debug.log
 firestore-debug.log
