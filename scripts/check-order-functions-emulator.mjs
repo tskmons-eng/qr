@@ -520,10 +520,35 @@ async function runUnauthorizedStaffReject(db, staffFunctions) {
   ), 'staff command without staff session')
 }
 
-async function createStaffSession(db, uid) {
+const managerMemberId = `${runId}_manager_member`
+const floorMemberId = `${runId}_floor_member`
+
+async function seedStaffMember(db, memberId, name, permissionPreset) {
+  await db.collection('staffMembers').doc(memberId).set({
+    storeId,
+    name,
+    code: '1111',
+    permissionPreset,
+    createdAt: FieldValue.serverTimestamp(),
+  })
+}
+
+async function createFloorStaffSession(db, uid) {
+  await seedStaffMember(db, floorMemberId, 'Emulator Floor', 'floor')
   await db.collection('staffSessions').doc(uid).set({
     storeId,
     code: `${runId}_staff_code`,
+    staffMemberId: floorMemberId,
+    createdAt: FieldValue.serverTimestamp(),
+  })
+}
+
+async function createStaffSession(db, uid) {
+  await seedStaffMember(db, managerMemberId, 'Emulator Manager', 'manager')
+  await db.collection('staffSessions').doc(uid).set({
+    storeId,
+    code: `${runId}_staff_code`,
+    staffMemberId: managerMemberId,
     permissions: {
       useKitchen: true,
       closeRegister: true,
@@ -641,6 +666,76 @@ async function runItemStatusCounterChecks(db, staffFunctions, productId) {
   )))
   assert.equal((await itemData(db, servedCancelItemId)).itemStatus, 'cancelled')
   assert.equal((await tableData(db, tableId)).pendingCount, 1, 'served cancel should not decrement pendingCount')
+}
+
+// メニュー管理の権限が無いスタッフの取消は、店の共通パスコードをサーバーで照合する。
+async function runCancelPasscodeChecks(db, managerFunctions, floorFunctions, productId) {
+  const tableId = `${runId}_cancel_passcode_table`
+  const requestId = `${runId}_cancel_passcode_request`
+  await db.collection('stores').doc(storeId).set({ storeId, storeName: 'Emulator Store' }, { merge: true })
+  await seedTable(db, tableId)
+  const orderId = await call(managerFunctions, 'seatStaffOrderSessionCommand', { tableId, seatCount: 2, activeStaff: staff })
+  await call(managerFunctions, 'submitStaffOrderItemsCommand', {
+    activeStaff: staff,
+    cart: [cartItem(productId), cartItem(productId), cartItem(productId)],
+    orderId,
+    storeId,
+    tableId,
+    clientRequestId: requestId,
+  })
+  const [floorItemId, managerItemId, lockedItemId] = (await queryBy(db, 'orderItems', 'clientRequestId', requestId)).map(item => item.id)
+  const cancelPayload = itemId => ({ tableId, itemId, tableName: tableId, source: 'staff_table', activeStaff: staff })
+
+  await expectCallableError('cancel-passcode-not-set', () => (
+    call(floorFunctions, 'cancelOrderItemCommand', { ...cancelPayload(floorItemId), passcode: '2580' })
+  ), 'floor cancel before passcode is set')
+  await expectCallableError('permission-denied', () => (
+    call(floorFunctions, 'setCancelPasscodeCommand', { storeId, passcode: '2580' })
+  ), 'floor staff setting cancel passcode')
+  await expectCallableError('invalid-cancel-passcode-format', () => (
+    call(managerFunctions, 'setCancelPasscodeCommand', { storeId, passcode: '12' })
+  ), 'too short cancel passcode')
+
+  await call(managerFunctions, 'setCancelPasscodeCommand', { storeId, passcode: '2580' })
+  const secret = (await db.collection('storeSecrets').doc(storeId).get()).data()
+  assert.ok(secret.cancelPasscodeHash && secret.cancelPasscodeHash !== '2580', 'cancel passcode should be stored as a hash')
+  assert.equal((await db.collection('stores').doc(storeId).get()).data().cancelPasscodeStatus.isSet, true)
+
+  await expectCallableError('invalid-cancel-passcode', () => (
+    call(floorFunctions, 'cancelOrderItemCommand', { ...cancelPayload(floorItemId), passcode: '0000' })
+  ), 'floor cancel with wrong passcode')
+  await expectCallableError('invalid-cancel-passcode', () => (
+    call(floorFunctions, 'cancelOrderItemCommand', cancelPayload(floorItemId))
+  ), 'floor cancel without passcode')
+  assert.equal((await itemData(db, floorItemId)).itemStatus, 'ordered', 'rejected cancel should not change the item')
+  const pendingBefore = (await tableData(db, tableId)).pendingCount
+
+  await Promise.all(Array.from({ length: 6 }, () => (
+    call(floorFunctions, 'cancelOrderItemCommand', { ...cancelPayload(floorItemId), passcode: '2580' })
+  )))
+  assert.equal((await itemData(db, floorItemId)).itemStatus, 'cancelled')
+  assert.equal((await tableData(db, tableId)).pendingCount, pendingBefore - 1, 'passcode cancel double-tap should decrement once')
+
+  await call(managerFunctions, 'cancelOrderItemCommand', cancelPayload(managerItemId))
+  assert.equal((await itemData(db, managerItemId)).itemStatus, 'cancelled', 'manageMenu staff should cancel without passcode')
+
+  // 続けて間違えるとロックされ、正しいパスコードでも一定時間は通らない。ロック中も権限のある人は取り消せる。
+  for (let attempt = 1; attempt < 5; attempt += 1) {
+    await expectCallableError('invalid-cancel-passcode', () => (
+      call(floorFunctions, 'cancelOrderItemCommand', { ...cancelPayload(lockedItemId), passcode: '1111' })
+    ), `wrong passcode attempt ${attempt}`)
+  }
+  await expectCallableError('cancel-passcode-locked', () => (
+    call(floorFunctions, 'cancelOrderItemCommand', { ...cancelPayload(lockedItemId), passcode: '1111' })
+  ), 'fifth wrong passcode attempt')
+  await expectCallableError('cancel-passcode-locked', () => (
+    call(floorFunctions, 'cancelOrderItemCommand', { ...cancelPayload(lockedItemId), passcode: '2580' })
+  ), 'correct passcode while locked')
+  assert.equal((await itemData(db, lockedItemId)).itemStatus, 'ordered', 'locked cancel should not change the item')
+  const passcodeFailureLogs = (await queryBy(db, 'orderCommandFailures', 'itemId', lockedItemId))
+  assert.equal(passcodeFailureLogs.length, 0, 'passcode mistakes should not be logged as order command failures')
+  await call(managerFunctions, 'cancelOrderItemCommand', cancelPayload(lockedItemId))
+  assert.equal((await itemData(db, lockedItemId)).itemStatus, 'cancelled', 'manageMenu staff should cancel while passcode is locked')
 }
 
 async function runLateSubmitAfterCheckout(db, publicFunctions, staffFunctions, productId) {
@@ -1028,6 +1123,10 @@ await createStaffSession(db, staffCredential.user.uid)
 await runStaffSubmitDedup(db, staffClient.functions, products.productId, products.drinkProductId)
 await runAsiaStaffSubmitDedup(db, staffClient.functions, staffClient.asiaFunctions, products.productId, products.drinkProductId)
 await runItemStatusCounterChecks(db, staffClient.functions, products.productId)
+const floorClient = createStaffClient(`floor-${runId}`)
+const floorCredential = await signInAnonymously(floorClient.auth)
+await createFloorStaffSession(db, floorCredential.user.uid)
+await runCancelPasscodeChecks(db, staffClient.functions, floorClient.functions, products.productId)
 await runLateSubmitAfterCheckout(db, publicClient.functions, staffClient.functions, products.productId)
 await runDoubleCheckoutIdempotency(db, publicClient.functions, staffClient.functions)
 await runCheckoutSubmitRace(db, publicClient.functions, staffClient.functions, products.productId)

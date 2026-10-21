@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AllowedEmailSettings from '../../components/admin/AllowedEmailSettings'
+import CancelPasscodeSettings from '../../components/admin/CancelPasscodeSettings'
 import CustomerDisplaySettings from '../../components/admin/CustomerDisplaySettings'
 import DeviceSoundSettings from '../../components/admin/DeviceSoundSettings'
 import SettingsSaveButton from '../../components/admin/SettingsSaveButton'
@@ -240,6 +241,7 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
         onToggle={handleToggle}
         onGuestAutoAddChange={handleGuestAutoAddChange}
       />
+      <CancelPasscodeSettings storeId={storeId} />
       <DeviceSoundSettings notificationControls={notificationControls} />
       <TaxRateSettings
         taxRate={config.taxRate}

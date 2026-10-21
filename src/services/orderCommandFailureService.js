@@ -1,4 +1,5 @@
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { isExpectedOperatorError } from '../lib/orderCommandErrors'
 import { buildOrderCommandFailurePayload } from '../lib/orderCommandFailures'
 import { db } from '../lib/firebase'
 
@@ -35,7 +36,9 @@ export async function withOrderCommandFailureLog(context, operation) {
   try {
     return await operation()
   } catch (error) {
-    void recordOrderCommandFailure({ ...context, ...getErrorContext(error) }, error)
+    if (!isExpectedOperatorError(error)) {
+      void recordOrderCommandFailure({ ...context, ...getErrorContext(error) }, error)
+    }
     throw error
   }
 }

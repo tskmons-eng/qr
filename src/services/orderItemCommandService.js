@@ -5,6 +5,7 @@ import {
   buildCancelItemStaffActionPayload,
   commandError,
 } from '../lib/orderCommandPayloads'
+import { getOrderCommandErrorCode } from '../lib/orderCommandErrors'
 import { withOrderCommandFailureLog } from './orderCommandFailureService'
 import { callOrderCommandFunction, shouldUseOrderCommandFunctions } from './orderFunctionCommandService'
 
@@ -140,6 +141,7 @@ export async function cancelOrderItemCommand({
   source,
   activeStaff,
   actorUid,
+  passcode,
 }) {
   return withOrderCommandFailureLog({
     commandType: 'cancel_order_item',
@@ -155,6 +157,7 @@ export async function cancelOrderItemCommand({
         source,
         activeStaff,
         actorUid,
+        ...(passcode ? { passcode } : {}),
       })
     }
 
@@ -198,4 +201,17 @@ export async function cancelOrderItemCommand({
       return { ok: true, deduped: false }
     })
   })
+}
+
+// 席詳細と厨房で共通の取消。パスコードが違うときだけは例外にせず、画面で入力し直せるように返す。
+export async function cancelOrderItemWithPasscode(params) {
+  try {
+    await cancelOrderItemCommand(params)
+    return { ok: true }
+  } catch (error) {
+    if (getOrderCommandErrorCode(error) === 'invalid-cancel-passcode') {
+      return { ok: false, reason: 'invalid-passcode' }
+    }
+    throw error
+  }
 }

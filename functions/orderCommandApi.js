@@ -4,6 +4,7 @@ const {
   buildOrderCommandFailureContext,
   recordOrderCommandFailure,
 } = require('./orderCommandFailures')
+const { EXPECTED_PASSCODE_ERROR_CODES } = require('./cancelPasscode')
 
 const ORDER_COMMAND_REGION = 'us-central1'
 const ORDER_COMMAND_MAX_INSTANCES = 20
@@ -15,6 +16,11 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['empty-order', 'invalid-argument'],
   ['unauthenticated', 'unauthenticated'],
   ['permission-denied', 'permission-denied'],
+  ['invalid-cancel-passcode', 'permission-denied'],
+  ['invalid-cancel-passcode-format', 'invalid-argument'],
+  ['cancel-passcode-not-set', 'failed-precondition'],
+  ['cancel-passcode-locked', 'failed-precondition'],
+  ['store-not-found', 'not-found'],
   ['reservation-not-found', 'not-found'],
   ['reservation-store-mismatch', 'failed-precondition'],
   ['reservation-closed', 'failed-precondition'],
@@ -131,14 +137,16 @@ function createOrderCommandCallable(handler, commandContext = {}, options = {}) 
       })
       return result
     } catch (error) {
-      await recordOrderCommandFailure(
-        buildOrderCommandFailureContext({
-          commandContext,
-          data: request.data ?? {},
-          error,
-        }),
-        error
-      )
+      if (!EXPECTED_PASSCODE_ERROR_CODES.has(error?.code)) {
+        await recordOrderCommandFailure(
+          buildOrderCommandFailureContext({
+            commandContext,
+            data: request.data ?? {},
+            error,
+          }),
+          error
+        )
+      }
       throw toHttpsError(error, commandContext)
     }
   })

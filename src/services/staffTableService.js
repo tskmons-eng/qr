@@ -1,10 +1,9 @@
-import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
-import { hasStaffPermission } from '../lib/staffPermissions'
 import { filterVisibleOrderItems, sortOrderItemsByOrderedAt } from '../lib/staffTableDetail'
 import { seatStaffOrderSession } from './orderCommandService'
 import {
-  cancelOrderItemCommand,
+  cancelOrderItemWithPasscode,
   markOrderItemOrderedCommand,
   markOrderItemServedCommand,
 } from './orderItemCommandService'
@@ -35,25 +34,17 @@ export function markOrderItemOrdered({ tableId, itemId }) {
   return markOrderItemOrderedCommand({ tableId, itemId })
 }
 
-export async function cancelOrderItem({ table, tableId, item, passcode, activeStaff }) {
-  const canBypassPasscode = hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
-  if (!canBypassPasscode) {
-    const storeSnap = await getDoc(doc(db, 'stores', table.storeId))
-    if (storeSnap.data()?.adminPasscode !== passcode) {
-      return { ok: false, reason: 'invalid-passcode' }
-    }
-  }
-
-  await cancelOrderItemCommand({
+// パスコードの照合と権限の確認はサーバー（cancelOrderItemCommand）で行う。
+export function cancelOrderItem({ table, tableId, item, passcode, activeStaff }) {
+  return cancelOrderItemWithPasscode({
     itemId: item.id,
     tableId,
     tableName: table.tableName,
     source: 'staff_table',
     activeStaff,
     actorUid: auth.currentUser?.uid ?? null,
+    passcode,
   })
-
-  return { ok: true }
 }
 
 export function seatGuestsAtTable({ table, tableId, seatCount, activeStaff }) {

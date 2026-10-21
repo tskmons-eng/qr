@@ -47,6 +47,7 @@ assert.match(rules, /function isStoreAdminEmail\(storeId\)/)
 assert.match(rules, /match \/storeAdminEmails\/\{email\}/)
 assert.match(rules, /data\.get\('ownerEmail', request\.auth\.token\.email\) == request\.auth\.token\.email/)
 assert.match(rules, /allow write: if isSuper\(\);/)
-assert.match(rules, /allow update, delete: if canManageStore\(storeId\);/)
+assert.match(rules, /match \/stores\/\{storeId\} \{[^}]*allow update: if canManageStore\(storeId\)\s*&&/)
+assert.match(rules, /match \/stores\/\{storeId\} \{[^}]*allow delete: if canManageStore\(storeId\);/)
 
 console.log('store admin assignment checks passed')

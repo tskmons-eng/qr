@@ -25,6 +25,7 @@ const {
   loadOrderItemForAccess,
   loadTableForAccess,
 } = require('./orderCommandAuth')
+const { assertCancelAllowed } = require('./cancelPasscode')
 
 function itemRefFor(db, { orderId, clientRequestId, index }) {
   return db.collection('orderItems').doc(buildOrderItemCommandDocId({ orderId, clientRequestId, index }))
@@ -727,9 +728,11 @@ async function cancelOrderItemCommand(data, request) {
     tableName,
     source,
     activeStaff,
+    passcode,
   } = data
   const db = getFirestore()
-  await loadOrderItemForAccess(db, request, itemId)
+  const itemPreview = await loadOrderItemForAccess(db, request, itemId)
+  await assertCancelAllowed(db, request, itemPreview.storeId, passcode)
   const itemRef = db.collection('orderItems').doc(itemId)
   const staffActionRef = db.collection('staffActions').doc()
   const now = FieldValue.serverTimestamp()

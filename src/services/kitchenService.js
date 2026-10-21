@@ -1,7 +1,7 @@
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import {
-  cancelOrderItemCommand,
+  cancelOrderItemWithPasscode,
   markOrderItemsServedCommand,
   markOrderItemServedCommand,
 } from './orderItemCommandService'
@@ -32,13 +32,14 @@ export async function markKitchenItemsServed(items) {
   return markOrderItemsServedCommand(items)
 }
 
-export async function cancelKitchenItem({ item, table, activeStaff }) {
-  return cancelOrderItemCommand({
+export function cancelKitchenItem({ item, table, activeStaff, passcode }) {
+  return cancelOrderItemWithPasscode({
     itemId: item.id,
     tableId: item.tableId,
     tableName: table?.tableName ?? '',
     source: 'kitchen',
     activeStaff,
     actorUid: auth.currentUser?.uid ?? null,
+    passcode,
   })
 }

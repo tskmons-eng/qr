@@ -747,7 +747,15 @@ service cloud.firestore {
     match /stores/{storeId} {
       allow read: if canAccess(storeId);
       allow create: if isSuper() || isAllowedOwner();
-      allow update, delete: if canManageStore(storeId);
+      // 取消パスコードの設定状況は setCancelPasscodeCommand だけが書く。
+      allow update: if canManageStore(storeId)
+        && request.resource.data.get('cancelPasscodeStatus', null) == resource.data.get('cancelPasscodeStatus', null);
+      allow delete: if canManageStore(storeId);
+    }
+
+    // 取消パスコードのハッシュ。照合は Functions だけが行うので、画面からは読み書きさせない。
+    match /storeSecrets/{storeId} {
+      allow read, write: if false;
     }
 
     // テーブル（お客さんも読める）

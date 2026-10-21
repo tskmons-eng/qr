@@ -6,9 +6,11 @@ import KitchenEmptyState from '../../components/staff/KitchenEmptyState'
 import KitchenHeader from '../../components/staff/KitchenHeader'
 import KitchenSoundPanel from '../../components/staff/KitchenSoundPanel'
 import KitchenTableGrid from '../../components/staff/KitchenTableGrid'
+import TableCancelModal from '../../components/staff/TableCancelModal'
 import TodayReservationNoticeList from '../../components/staff/TodayReservationNoticeList'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { useStore } from '../../contexts/StoreContext'
+import useOrderItemCancel from '../../hooks/useOrderItemCancel'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { getTokyoDateString } from '../../lib/reservationDisplay'
 import { loadKitchenSoundPrefs, playSound } from '../../lib/sounds'
@@ -45,6 +47,13 @@ export default function KitchenPage() {
   const [todayReservations, setTodayReservations] = useState([])
   const [commandError, setCommandError] = useState('')
   const [optimisticHiddenItemIds, setOptimisticHiddenItemIds] = useState(() => new Set())
+  const itemCancel = useOrderItemCancel({
+    storeId,
+    activeStaff,
+    onCancel: (item, passcode, table) => cancelKitchenItem({ item, table, activeStaff, passcode }),
+    errorContext: 'kitchenAction',
+    logOperation: 'kitchen_cancel_item',
+  })
   const prevItemIdsRef = useRef(null)
   const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
   const today = getTokyoDateString()
@@ -85,22 +94,6 @@ export default function KitchenPage() {
   useEffect(() => {
     setOptimisticHiddenItemIds(currentIds => pruneOptimisticHiddenKitchenItemIds(currentIds, pendingItems))
   }, [pendingItems])
-
-  async function cancelItem(item, table) {
-    if (!confirm(`「${item.productNameSnapshot} x${item.quantity}」を削除しますか？\n注文ミス用のキャンセルとして履歴に残します。`)) return
-    setCommandError('')
-    try {
-      await cancelKitchenItem({ item, table, activeStaff })
-    } catch (error) {
-      const formatted = formatOrderCommandError(error, { context: 'kitchenAction' })
-      setCommandError(formatted.message)
-      logOrderCommandError({
-        operation: 'kitchen_cancel_item',
-        error,
-        metadata: { storeId, tableId: item.tableId, itemId: item.id },
-      })
-    }
-  }
 
   async function handleMarkServed(item) {
     const itemIds = [item.id]
@@ -185,11 +178,12 @@ export default function KitchenPage() {
           reservations={todayReservations}
           nowMs={nowMs}
           servedWorkflowEnabled={servedWorkflowEnabled}
-          onCancelItem={cancelItem}
+          onCancelItem={itemCancel.open}
           onMarkAllServed={handleMarkAllServed}
           onMarkServed={handleMarkServed}
         />
       )}
+      <TableCancelModal {...itemCancel.modalProps} />
       <StaffBottomNav current="kitchen" />
     </div>
   )

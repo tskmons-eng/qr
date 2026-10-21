@@ -5,6 +5,7 @@ const { getMessaging } = require('firebase-admin/messaging')
 const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore')
 const { createOrderCommandCallable } = require('./orderCommandApi')
 const orderCommandHandlers = require('./orderCommandHandlers')
+const cancelPasscode = require('./cancelPasscode')
 
 initializeApp()
 
@@ -60,6 +61,10 @@ exports.markOrderItemOrderedCommand = createOrderCommandCallable(orderCommandHan
 })
 exports.cancelOrderItemCommand = createOrderCommandCallable(orderCommandHandlers.cancelOrderItemCommand, {
   commandType: 'cancel_order_item',
+  actorType: 'staff',
+})
+exports.setCancelPasscodeCommand = createOrderCommandCallable(cancelPasscode.setCancelPasscodeCommand, {
+  commandType: 'set_cancel_passcode',
   actorType: 'staff',
 })
 exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.moveTableOrderCommand, {

@@ -42,7 +42,7 @@ const checks = [
     required: [
       'markOrderItemServedCommand',
       'markOrderItemOrderedCommand',
-      'cancelOrderItemCommand',
+      'cancelOrderItemWithPasscode',
       'moveTableOrderCommand',
       'seatStaffOrderSession',
     ],
@@ -57,7 +57,7 @@ const checks = [
     required: [
       'markOrderItemServedCommand',
       'markOrderItemsServedCommand',
-      'cancelOrderItemCommand',
+      'cancelOrderItemWithPasscode',
     ],
     forbidden: [
       "doc(db, 'orderItems'",
@@ -86,6 +86,8 @@ const checks = [
       "commandType: 'mark_items_served'",
       "commandType: 'mark_item_ordered'",
       "commandType: 'cancel_order_item'",
+      'export async function cancelOrderItemWithPasscode',
+      'await cancelOrderItemCommand(params)',
     ],
     forbidden: [],
   },

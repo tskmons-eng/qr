@@ -1,0 +1,56 @@
+.admin-settings__passcode-panel {
+  padding: 16px;
+}
+
+.admin-settings__passcode-status {
+  display: inline-flex;
+  align-items: center;
+  margin: 4px 0 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-settings__passcode-status.is-unset {
+  background: #fff1f0;
+  color: #c62828;
+}
+
+.admin-settings__passcode-status.is-set {
+  background: #edf7ee;
+  color: #2e7d32;
+}
+
+.admin-settings__passcode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.admin-settings__passcode-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-settings__passcode-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 18px;
+  letter-spacing: 6px;
+  text-align: center;
+}
+
+.admin-settings__passcode-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 480px) {
+  .admin-settings__passcode-grid {
+    grid-template-columns: 1fr;
+  }
+}

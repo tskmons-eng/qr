@@ -17,6 +17,11 @@ const COMMAND_ERROR_MESSAGES = {
   'item-not-found': '対象の商品が見つかりません。画面を更新してください。',
   'item-table-mismatch': '商品と席の状態が一致しません。画面を更新してください。',
   'permission-denied': '操作権限がありません。スタッフ権限を確認してください。',
+  'invalid-cancel-passcode': 'パスコードが違います',
+  'invalid-cancel-passcode-format': 'パスコードは数字4〜8桁で入力してください。',
+  'cancel-passcode-not-set': '取消パスコードが未設定です。メニュー管理の権限がある人に取り消してもらうか、店舗設定でパスコードを決めてください。',
+  'cancel-passcode-locked': 'パスコードを続けて間違えたため、10分間取り消せません。メニュー管理の権限がある人に取り消してもらってください。',
+  'store-not-found': '店舗が見つかりません。店舗コードを確認してください。',
   aborted: '同時操作がありました。もう一度お試しください。',
   unavailable: '通信が不安定です。少し待ってからもう一度お試しください。',
   'deadline-exceeded': '通信に時間がかかっています。もう一度お試しください。',
@@ -55,10 +60,26 @@ const NON_RETRYABLE_CODES = new Set([
   'item-not-found',
   'item-table-mismatch',
   'permission-denied',
+  'invalid-cancel-passcode',
+  'invalid-cancel-passcode-format',
+  'cancel-passcode-not-set',
+  'cancel-passcode-locked',
+  'store-not-found',
 ])
 
 export function getOrderCommandErrorCode(error) {
   return error?.code || error?.cause?.code || 'unknown'
+}
+
+// パスコードの打ち間違いやロックは操作の結果で、システムの失敗ではない（失敗ログに残さない）。
+const EXPECTED_OPERATOR_ERROR_CODES = new Set([
+  'invalid-cancel-passcode',
+  'invalid-cancel-passcode-format',
+  'cancel-passcode-locked',
+])
+
+export function isExpectedOperatorError(error) {
+  return EXPECTED_OPERATOR_ERROR_CODES.has(getOrderCommandErrorCode(error))
 }
 
 export function formatOrderCommandError(error, { context = 'general' } = {}) {

@@ -11,7 +11,7 @@ import TableMoveModal from '../../components/staff/TableMoveModal'
 import TableDetailOrderContent from '../../components/staff/TableDetailOrderContent'
 import TableSeatingPanel from '../../components/staff/TableSeatingPanel'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
-import { hasStaffPermission } from '../../lib/staffPermissions'
+import useOrderItemCancel from '../../hooks/useOrderItemCancel'
 import { calculateTableOrderTotal, splitTableOrderItems, stepGuestInputValue } from '../../lib/staffTableDetail'
 import {
   cancelOrderItem,
@@ -44,10 +44,13 @@ export default function TableDetailPage() {
   }, [])
 
   // キャンセルモーダル
-  const [cancelTarget, setCancelTarget] = useState(null)
-  const [passcode, setPasscode] = useState('')
-  const [passcodeError, setPasscodeError] = useState('')
-  const [cancelling, setCancelling] = useState(false)
+  const itemCancel = useOrderItemCancel({
+    storeId,
+    activeStaff,
+    onCancel: (item, passcode) => cancelOrderItem({ table, tableId, item, passcode, activeStaff }),
+    errorContext: 'itemAction',
+    logOperation: 'staff_table_cancel_item',
+  })
 
   // 着席
   const [seatCount, setSeatCount] = useState(2)
@@ -112,36 +115,6 @@ export default function TableDetailPage() {
     }
   }
 
-  function openCancel(item) {
-    setCancelTarget(item)
-    setPasscode('')
-    setPasscodeError('')
-  }
-
-  async function handleCancel() {
-    if (!cancelTarget || cancelling) return
-    setCancelling(true)
-    setPasscodeError('')
-    try {
-      const result = await cancelOrderItem({ table, tableId, item: cancelTarget, passcode, activeStaff })
-      if (result.reason === 'invalid-passcode') {
-        setPasscodeError('パスコードが違います')
-        setCancelling(false)
-        return
-      }
-      setCancelTarget(null)
-    } catch (error) {
-      const formatted = formatOrderCommandError(error, { context: 'itemAction' })
-      setPasscodeError(formatted.message)
-      logOrderCommandError({
-        operation: 'staff_table_cancel_item',
-        error,
-        metadata: { tableId, itemId: cancelTarget.id },
-      })
-    } finally {
-      setCancelling(false)
-    }
-  }
 
   // 着席
   async function handleSeat() {
@@ -214,20 +187,10 @@ export default function TableDetailPage() {
   const hasOrder = !!table.currentOrderId
   const guestCount = table.guestCount ?? 0
   const servedWorkflowEnabled = storeConfig?.servedWorkflowEnabled !== false
-  const cancelPasscodeRequired = !hasStaffPermission(activeStaff, 'manageMenu', { useKitchen: true, closeRegister: false, manageMenu: false })
 
   return (
     <div className="staff-table-page">
-      <TableCancelModal
-        item={cancelTarget}
-        passcodeRequired={cancelPasscodeRequired}
-        passcode={passcode}
-        passcodeError={passcodeError}
-        cancelling={cancelling}
-        onPasscodeChange={setPasscode}
-        onConfirm={handleCancel}
-        onClose={() => setCancelTarget(null)}
-      />
+      <TableCancelModal {...itemCancel.modalProps} />
       <TableMoveModal
         errorMessage={moveError}
         open={showMoveModal}
@@ -272,7 +235,7 @@ export default function TableDetailPage() {
             guestCount={guestCount}
             onMarkServed={markServed}
             onMarkOrdered={markOrdered}
-            onCancel={openCancel}
+            onCancel={itemCancel.open}
           />
         )}
       </div>

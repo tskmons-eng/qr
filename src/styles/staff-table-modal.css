@@ -144,3 +144,19 @@
   border-radius: var(--radius-panel);
   cursor: pointer;
 }
+
+.staff-table-modal-warning {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #c62828;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.staff-table-modal-button-danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

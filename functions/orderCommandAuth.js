@@ -54,6 +54,25 @@ async function canAccessStore(db, request, storeId) {
     (await isStaffOf(db, request, storeId))
 }
 
+// 店舗管理者（スーパー管理者・オーナー・店舗管理者メール）。スタッフ端末は含まない。
+async function isStoreManager(db, request, storeId) {
+  if (!storeId) return false
+  if (isSuper(request)) return true
+  return (await isOwnerOf(db, request, storeId)) ||
+    (await isStoreAdminEmail(db, request, storeId))
+}
+
+// スタッフ端末で選ばれているスタッフ。権限の判定は staffSessions の写しではなく staffMembers を正とする。
+async function loadActiveStaffMember(db, request, storeId) {
+  if (!isAnonymousStaff(request)) return null
+  const sessionSnap = await db.collection('staffSessions').doc(request.auth.uid).get()
+  const session = sessionSnap.exists ? sessionSnap.data() : null
+  if (!session || session.storeId !== storeId || typeof session.staffMemberId !== 'string' || !session.staffMemberId) return null
+  const memberSnap = await db.collection('staffMembers').doc(session.staffMemberId).get()
+  if (!memberSnap.exists || memberSnap.data()?.storeId !== storeId) return null
+  return { id: memberSnap.id, ...memberSnap.data() }
+}
+
 async function assertStoreAccess(db, request, storeId) {
   if (!request.auth) {
     throw commandError('unauthenticated', 'Authentication is required for this order command.')
@@ -107,6 +126,9 @@ async function assertOrderItemTargetsAccess(db, request, targets) {
 module.exports = {
   assertOrderItemTargetsAccess,
   assertStoreAccess,
+  getEmail,
+  isStoreManager,
+  loadActiveStaffMember,
   loadOrderForAccess,
   loadOrderItemForAccess,
   loadTableForAccess,
