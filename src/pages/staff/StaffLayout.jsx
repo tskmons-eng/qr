@@ -6,6 +6,7 @@ import { loadSoundPrefs, playSound } from '../../lib/sounds'
 import { hasRegisteredNotificationToken, removeRegisteredNotificationToken, requestAndRegisterToken } from '../../lib/messaging'
 import { buildStoreManagerStaff, clearStaffAutoLoginPreference } from '../../lib/staffMember'
 import { hasStaffPermission } from '../../lib/staffPermissions'
+import { getOrderCommandErrorCode } from '../../lib/orderCommandErrors'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffReservationWaitController from '../../components/staff/StaffReservationWaitController'
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
@@ -45,6 +46,8 @@ const ELEVATED_PERMISSION_DEFAULTS = {
   manageStaff: false,
 }
 
+const STAFF_RESELECT_ERROR_CODES = new Set(['staff-code-required', 'staff-member-not-found', 'permission-denied', 'invalid-argument'])
+
 const STAFF_ADMIN_LOGIN_PATH = `/login?next=${encodeURIComponent('/staff/staff-admin')}`
 
 export default function StaffLayout() {
@@ -81,7 +84,10 @@ export default function StaffLayout() {
   const storedStaffId = storedStaff?.id
   useEffect(() => {
     if (!storeId || !storedStaff || storeManagerStaff) return
-    activateStaffMemberSession({ storeId, staff: storedStaff }).catch(() => setActiveStaffPersisted(null))
+    activateStaffMemberSession({ storeId, staff: storedStaff }).catch(error => {
+      // 通信の一時的な失敗では外さない（混雑時に全員がパスを入れ直すことになる）。照合できないと分かったときだけ選び直す。
+      if (STAFF_RESELECT_ERROR_CODES.has(getOrderCommandErrorCode(error))) setActiveStaffPersisted(null)
+    })
   },[storeId, storedStaffId, storeManagerStaff])
 
   async function handleStaffLogin(staff, code) {

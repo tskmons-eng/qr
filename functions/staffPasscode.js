@@ -64,20 +64,22 @@ function buildSecretWrite(storeId, secret, updates) {
   }
 }
 
-// パスを照合し、秘密の記録を更新する（トランザクションの中で使う）。失敗は理由のコードを返す。
-function verifyStaffCodeInTransaction(transaction, { secretRef, secretSnap, memberRef, member, storeId, code }) {
+// パスを照合する。書き込みはせず、失敗の理由と、秘密の記録へ書く内容（無ければ null）を返す。
+// 書き込みは呼び出し側がトランザクションで1件1回にまとめる。
+function checkStaffCode({ secretSnap, member, storeId, code }) {
   const { secret, legacyCode } = resolveStaffSecret(secretSnap.exists ? secretSnap.data() : null, member)
-  if (!secret) return 'staff-code-not-set'
+  if (!secret) return { failure: 'staff-code-not-set', secretWrite: null, removeLegacyCode: false }
   const attempt = evaluatePasscodeAttempt(secret, passcodeMatches(code, secret.codeHash, secret.codeSalt, STAFF_CODE_PATTERN))
+  const failure = attempt.failure === 'locked' ? 'staff-code-locked' : attempt.failure === 'invalid' ? 'invalid-staff-code' : null
   if (legacyCode) {
-    transaction.set(secretRef, buildSecretWrite(storeId, secret, attempt.updates ?? {}))
-    transaction.update(memberRef, { code: FieldValue.delete() })
-  } else if (attempt.updates) {
-    transaction.update(secretRef, attempt.updates)
+    return { failure, secretWrite: buildSecretWrite(storeId, secret, attempt.updates ?? {}), removeLegacyCode: true }
   }
-  if (attempt.failure === 'locked') return 'staff-code-locked'
-  if (attempt.failure === 'invalid') return 'invalid-staff-code'
-  return null
+  return { failure, secretWrite: attempt.updates ? { ...attempt.updates, updatedAt: FieldValue.serverTimestamp() } : null, removeLegacyCode: false }
+}
+
+function applyStaffCodeCheck(transaction, { secretRef, memberRef }, check) {
+  if (check.secretWrite) transaction.set(secretRef, check.secretWrite, { merge: true })
+  if (check.removeLegacyCode) transaction.update(memberRef, { code: FieldValue.delete() })
 }
 
 async function loadStoreMemberInTransaction(transaction, memberRef, storeId) {
@@ -116,8 +118,9 @@ async function activateStaffSessionCommand({ storeId, staffMemberId, code }, req
       return { failure: null, name: member.name }
     }
 
-    const failure = verifyStaffCodeInTransaction(transaction, { secretRef, secretSnap, memberRef, member, storeId, code })
-    if (failure) return { failure }
+    const check = checkStaffCode({ secretSnap, member, storeId, code })
+    applyStaffCodeCheck(transaction, { secretRef, memberRef }, check)
+    if (check.failure) return { failure: check.failure }
     transaction.set(sessionRef, {
       staffMemberId,
       verifiedStaffMemberId: staffMemberId,
@@ -195,8 +198,11 @@ async function setStaffCodeCommand({ storeId, staffMemberId, currentCode, nextCo
     const hasCode = Boolean(secretSnap.data()?.codeHash) || Boolean(resolveStaffSecret(null, member).secret)
     if (hasCode) {
       if (currentCode === nextCode) return 'staff-code-unchanged'
-      const verifyFailure = verifyStaffCodeInTransaction(transaction, { secretRef, secretSnap, memberRef, member, storeId, code: currentCode })
-      if (verifyFailure) return verifyFailure
+      const check = checkStaffCode({ secretSnap, member, storeId, code: currentCode })
+      if (check.failure) {
+        applyStaffCodeCheck(transaction, { secretRef, memberRef }, check)
+        return check.failure
+      }
     }
     const { hash, salt } = createPasscodeHash(nextCode)
     transaction.set(secretRef, {
@@ -207,8 +213,8 @@ async function setStaffCodeCommand({ storeId, staffMemberId, currentCode, nextCo
       lockedUntilMs: 0,
       updatedAt: FieldValue.serverTimestamp(),
     })
-    // パスが変わったら、そのスタッフの端末ではもう一度パスが要る（自動で入れない）。
-    transaction.update(memberRef, { updatedAt: FieldValue.serverTimestamp() })
+    // パスが変わったら、そのスタッフの端末ではもう一度パスが要る（自動で入れない）。移し替え前のパスもここで消す。
+    transaction.update(memberRef, { code: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() })
     return null
   })
   if (failure) throw commandError(failure, 'Staff code was not changed.')

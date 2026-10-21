@@ -894,6 +894,16 @@ async function runStaffPasscodeChecks(db, managerClient, floorClient, productId)
   assert.equal((await db.collection('staffMembers').doc(legacyMemberId).get()).data().code, undefined)
   const migratedDevice = await newStoreCodeDevice(db, 'migrated-device')
   await call(migratedDevice.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: legacyMemberId, code: '1111' })
+
+  // 移し替え前のパスのまま変更しても、パスは1か所（staffSecrets）だけに残る。
+  const legacyChangeId = `${runId}_legacy_change_member`
+  await seedStaffMember(db, legacyChangeId, 'Emulator Legacy Change', 'floor')
+  await expectCallableError('invalid-staff-code', () => call(managerClient.functions, 'setStaffCodeCommand', {
+    storeId, staffMemberId: legacyChangeId, currentCode: '9999', nextCode: '2468',
+  }), 'changing a legacy staff code with a wrong current code')
+  assert.equal((await db.collection('staffMembers').doc(legacyChangeId).get()).data().code, undefined, 'legacy code should be moved even when the change is rejected')
+  await call(managerClient.functions, 'setStaffCodeCommand', { storeId, staffMemberId: legacyChangeId, currentCode: '1111', nextCode: '2468' })
+  await call(migratedDevice.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: legacyChangeId, code: '2468' })
   return device.client
 }
 

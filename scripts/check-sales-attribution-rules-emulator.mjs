@@ -460,6 +460,10 @@ async function readAllowedDocument(label, token, path) {
   return decodeFields(response.fields ?? {})
 }
 
+// 会計（checks）とスタッフ（staffMembers）の作成、スタッフの選択（staffSessions）は Functions だけが書く（2026-10-22 第4章）。
+// このチェックでは、エミュレーターの管理者（rules を通らない）で Functions の代わりに用意する。
+const EMULATOR_ADMIN_TOKEN = 'owner'
+
 async function main() {
   const superUser = await createAuthUser({ email: 'tsk.mons@gmail.com' })
   const storeId = superUser.uid
@@ -468,7 +472,7 @@ async function main() {
   const managerPermissions = canonicalPermissions({ manageStaff: true })
   const registerPermissions = canonicalPermissions({ closeRegister: true })
 
-  await expectAllowed('店舗・会計・正規スタッフを準備できる', commit(superUser.token, [
+  await expectAllowed('店舗・会計・正規スタッフを準備できる', commit(EMULATOR_ADMIN_TOKEN, [
     createWrite(`storeCodes/${storeCode}`, { storeId }),
     createWrite('checks/check-a-1', { storeId, status: 'completed', total: 4200 }),
     createWrite('checks/check-a-2', { storeId, status: 'completed', total: 1800 }),
@@ -512,21 +516,32 @@ async function main() {
     }, ['updatedAt']),
   ]))
 
-  await expectAllowed('管理担当を正規staffMembersの権限で有効化できる', commit(managerUser.token, [
+  await expectPermissionDenied('端末からはスタッフの選択（照合済みの印つき）を書けない', commit(managerUser.token, [
     updateWrite(`staffSessions/${managerUser.uid}`, {
       storeId,
       code: storeCode,
       staffMemberId: 'manager-1',
+      verifiedStaffMemberId: 'manager-1',
+      staffName: '管理担当',
+    }, ['updatedAt']),
+  ]))
+  await expectAllowed('管理担当を照合済みとして記録できる（Functions の代わり）', commit(EMULATOR_ADMIN_TOKEN, [
+    updateWrite(`staffSessions/${managerUser.uid}`, {
+      storeId,
+      code: storeCode,
+      staffMemberId: 'manager-1',
+      verifiedStaffMemberId: 'manager-1',
       staffName: '管理担当',
       permissionPreset: 'custom',
       permissions: managerPermissions,
     }, ['updatedAt']),
   ]))
-  await expectAllowed('レジ担当を正規staffMembersの権限で有効化できる', commit(registerUser.token, [
+  await expectAllowed('レジ担当を照合済みとして記録できる（Functions の代わり）', commit(EMULATOR_ADMIN_TOKEN, [
     updateWrite(`staffSessions/${registerUser.uid}`, {
       storeId,
       code: storeCode,
       staffMemberId: 'register-1',
+      verifiedStaffMemberId: 'register-1',
       staffName: 'レジ担当',
       permissionPreset: 'custom',
       permissions: registerPermissions,
