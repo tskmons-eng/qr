@@ -235,9 +235,8 @@ for (let index = 0; index < responsibilityDocs.length; index += 1) {
 assertIncludes('ownerAccessService', ownerAccessService, "collection(db, 'allowedEmails')")
 assertIncludes('ownerAccessService', ownerAccessService, 'subscribeAllowedEmailEntries')
 assertIncludes('ownerAccessService', ownerAccessService, 'addedBy')
-assertIncludes('settingsService', settingsService, 'subscribeAllowedEmailEntries')
-assertIncludes('settingsService', settingsService, 'saveAllowedEmail')
-assertIncludes('settingsService', settingsService, 'deleteAllowedEmail')
+// 2026-10-21 整理 第1章：許可メールはオーナー画面だけで扱い、店舗設定のサービスは触らない。
+assertNotIncludes('settingsService', settingsService, 'AllowedEmail')
 assertNotIncludes('settingsService', settingsService, "doc(db, 'allowedEmails'")
 
 assertIncludes('ownerDashboardService', ownerDashboardService, "doc(db, 'storeAdminEmails', normalizedEmail)")

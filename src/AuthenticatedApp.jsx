@@ -10,7 +10,6 @@ import './styles/authenticated.css'
 
 const StaffLayout = lazy(() => import('./pages/staff/StaffLayout'))
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
-const KitchenPage = lazy(() => import('./pages/kitchen/KitchenPage'))
 const LoginPage = lazy(() => import('./pages/staff/LoginPage'))
 const OwnerPage = lazy(() => import('./pages/owner/OwnerPage'))
 
@@ -40,13 +39,6 @@ export default function AuthenticatedApp() {
               <PrivateRoute>
                 <ApprovalGate>
                   <AdminLayout />
-                </ApprovalGate>
-              </PrivateRoute>
-            } />
-            <Route path="/kitchen" element={
-              <PrivateRoute>
-                <ApprovalGate>
-                  <KitchenPage />
                 </ApprovalGate>
               </PrivateRoute>
             } />

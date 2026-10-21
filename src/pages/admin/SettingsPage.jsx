@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import AllowedEmailSettings from '../../components/admin/AllowedEmailSettings'
 import CancelPasscodeSettings from '../../components/admin/CancelPasscodeSettings'
 import CustomerDisplaySettings from '../../components/admin/CustomerDisplaySettings'
 import DeviceSoundSettings from '../../components/admin/DeviceSoundSettings'
@@ -12,21 +11,15 @@ import { useStore } from '../../contexts/StoreContext'
 import {
   CUSTOMER_SETTING_TOGGLES,
   WORKFLOW_SETTING_TOGGLES,
-  normalizeAllowedEmail,
   TAX_PRESETS,
-  validateAllowedEmail,
 } from '../../lib/settingsConfig'
-import { isSuperAdminEmail } from '../../lib/ownerIdentity'
 import { normalizeStoreName } from '../../lib/storeIdentity'
 import {
-  addAllowedEmail,
   loadStoreIdentity,
   loadStoreConfig,
   loadStoreConfigProducts,
-  removeAllowedEmail,
   saveStoreName,
   saveStoreConfig,
-  subscribeAllowedEmails,
 } from '../../services/settingsService'
 
 export default function SettingsPage({ notificationControls = null, onConfigSaved }) {
@@ -43,12 +36,7 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
   const [taxInput, setTaxInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [allowedEmails, setAllowedEmails] = useState([])
   const [products, setProducts] = useState([])
-  const [newEmail, setNewEmail] = useState('')
-  const [emailAdding, setEmailAdding] = useState(false)
-  const [emailError, setEmailError] = useState('')
-  const canManageAllowedEmails = isSuperAdminEmail(user?.email)
   const storeNameChanged = storeIdentity
     ? normalizeStoreName(storeNameInput) !== storeIdentity.storeName
     : false
@@ -79,14 +67,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
       active = false
     }
   }, [storeId, user])
-
-  useEffect(() => {
-    if (!canManageAllowedEmails) {
-      setAllowedEmails([])
-      return undefined
-    }
-    return subscribeAllowedEmails(setAllowedEmails)
-  }, [canManageAllowedEmails])
 
   useEffect(() => {
     if (!storeId) return
@@ -121,35 +101,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
       setStoreNameError(error.message || '店舗名の保存に失敗しました')
     } finally {
       setStoreNameSaving(false)
-    }
-  }
-
-  async function handleAddEmail() {
-    setEmailError('')
-    const email = normalizeAllowedEmail(newEmail)
-    const validationError = validateAllowedEmail(email, allowedEmails)
-    if (validationError) {
-      setEmailError(validationError)
-      return
-    }
-
-    setEmailAdding(true)
-    try {
-      await addAllowedEmail(email, user?.email ?? null)
-      setNewEmail('')
-    } catch (error) {
-      setEmailError(`保存失敗: ${error.message}`)
-    } finally {
-      setEmailAdding(false)
-    }
-  }
-
-  async function handleRemoveEmail(email) {
-    if (!confirm(`${email} を削除しますか？`)) return
-    try {
-      await removeAllowedEmail(email)
-    } catch (error) {
-      alert(`削除失敗: ${error.message}`)
     }
   }
 
@@ -213,20 +164,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
           onStoreNameSave={handleStoreNameSave}
           copied={codeCopied}
           onCopy={handleCopyCode}
-        />
-      )}
-      {canManageAllowedEmails && (
-        <AllowedEmailSettings
-          allowedEmails={allowedEmails}
-          newEmail={newEmail}
-          emailAdding={emailAdding}
-          emailError={emailError}
-          onNewEmailChange={value => {
-            setNewEmail(value)
-            setEmailError('')
-          }}
-          onAddEmail={handleAddEmail}
-          onRemoveEmail={handleRemoveEmail}
         />
       )}
       <CustomerDisplaySettings

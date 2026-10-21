@@ -2,12 +2,6 @@ import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updat
 import { db } from '../lib/firebase'
 import { normalizeStoreConfig } from '../lib/settingsConfig'
 import { STORE_NAME_FALLBACK, normalizeStoreName, validateStoreName } from '../lib/storeIdentity'
-import {
-  deleteAllowedEmail,
-  loadAllowedEmailEntries,
-  saveAllowedEmail,
-  subscribeAllowedEmailEntries,
-} from './ownerAccessService'
 
 export async function loadStoreCode(storeId) {
   const identity = await loadStoreIdentity(storeId)
@@ -61,23 +55,4 @@ export function saveStoreConfig(storeId, config) {
     ...config,
     updatedAt: serverTimestamp(),
   }, { merge: true })
-}
-
-export async function loadAllowedEmails() {
-  const entries = await loadAllowedEmailEntries()
-  return entries.map(entry => entry.email)
-}
-
-export function subscribeAllowedEmails(onNext) {
-  return subscribeAllowedEmailEntries(entries => {
-    onNext(entries.map(entry => entry.email))
-  })
-}
-
-export function addAllowedEmail(email, addedBy = null) {
-  return saveAllowedEmail({ email, addedBy })
-}
-
-export function removeAllowedEmail(email) {
-  return deleteAllowedEmail(email)
 }

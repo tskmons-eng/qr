@@ -4,11 +4,9 @@ import {
   calculateIncludedTax,
   CUSTOMER_SETTING_TOGGLES,
   GUEST_AUTO_ADD_DEFAULTS,
-  normalizeAllowedEmail,
   normalizeGuestAutoAdd,
   normalizeStoreConfig,
   STORE_CONFIG_DEFAULTS,
-  validateAllowedEmail,
 } from '../src/lib/settingsConfig.js'
 import {
   STORE_NAME_FALLBACK,
@@ -39,10 +37,6 @@ assert.deepEqual(normalizeGuestAutoAdd({ showGuestCountButton: false }), {
   showGuestCountButton: false,
 })
 
-assert.equal(normalizeAllowedEmail('  USER@Example.COM  '), 'user@example.com')
-assert.equal(validateAllowedEmail('invalid', []), '正しいメールアドレスを入力してください')
-assert.equal(validateAllowedEmail('user@example.com', ['user@example.com']), 'すでに追加されています')
-assert.equal(validateAllowedEmail('user@example.com', []), '')
 assert.equal(normalizeStoreName('  テスト 店  '), 'テスト 店')
 assert.equal(normalizeStoreName('   '), STORE_NAME_FALLBACK)
 assert.equal(validateStoreName('あ'.repeat(STORE_NAME_MAX_LENGTH + 1)), `店舗名は${STORE_NAME_MAX_LENGTH}文字以内で入力してください`)
@@ -66,17 +60,12 @@ assert.match(settingsPage, /CUSTOMER_SETTING_TOGGLES/)
 assert.match(settingsPage, /loadStoreIdentity/)
 assert.match(settingsPage, /saveStoreName/)
 assert.match(settingsPage, /storeNameChanged/)
-assert.match(settingsPage, /subscribeAllowedEmails\(setAllowedEmails\)/)
-assert.match(settingsPage, /addAllowedEmail\(email, user\?\.email \?\? null\)/)
-assert.doesNotMatch(settingsPage, /loadAllowedEmails/)
-assert.doesNotMatch(settingsPage, /setAllowedEmails\(prev =>/)
-assert.match(settingsService, /subscribeAllowedEmailEntries/)
+// 許可メールはオーナー画面の「許可メール」タブだけで管理する（2026-10-21 整理 第1章）。
+assert.doesNotMatch(settingsPage, /AllowedEmail|allowedEmails/)
+assert.doesNotMatch(settingsService, /allowedEmails|AllowedEmail/)
 assert.match(settingsService, /export async function loadStoreIdentity/)
 assert.match(settingsService, /export async function saveStoreName/)
 assert.match(settingsService, /updateDoc\(doc\(db, 'stores', storeId\)/)
-assert.match(settingsService, /loadAllowedEmailEntries/)
-assert.match(settingsService, /saveAllowedEmail/)
-assert.match(settingsService, /deleteAllowedEmail/)
 assert.doesNotMatch(settingsService, /setDoc\(doc\(db, 'allowedEmails'/)
 assert.match(storeCodeCard, /店舗情報/)
 assert.match(storeCodeCard, /店舗名[\s\S]*店舗コード/)
@@ -87,8 +76,9 @@ assert.match(storeWorkflowSettings, /onGuestAutoAddChange\(\{ showGuestCountButt
 assert.match(staffLayout, /notificationControls=\{notificationControls\}/)
 assert.match(staffLayout, /onConfigSaved=\{setStoreConfig\}/)
 assert.match(deviceSoundSettings, /saveSoundPrefs/)
-assert.match(deviceSoundSettings, /saveKitchenSoundPrefs/)
-assert.match(deviceSoundSettings, /ホールとキッチンで使う通知音/)
+// キッチン通知音はキッチン画面の音の設定だけで変える（2026-10-21 整理 第1章）。
+assert.doesNotMatch(deviceSoundSettings, /KitchenSoundPrefs/)
+assert.match(deviceSoundSettings, /ホールで使う通知音/)
 assert.match(deviceSoundSettings, /この端末の通知/)
 assert.match(readFileSync(new URL('../src/lib/settingsConfig.js', import.meta.url), 'utf8'), /商品行タップで追加/)
 assert.doesNotMatch(staffAuthStyles, /sound-settings/)

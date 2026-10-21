@@ -1,11 +1,5 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import {
-  buildAdminCategoryActivePayload,
-  buildAdminCategoryPayload,
-  normalizeAdminCategoryName,
-  sortAdminCategories,
-} from '../src/lib/adminCategory.js'
 
 const categoryCss = readFileSync(new URL('../src/styles/admin-product-category.css', import.meta.url), 'utf8')
 const indexHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
@@ -26,27 +20,10 @@ function assertHas16pxFontSize(selector) {
   )
 }
 
-assert.equal(normalizeAdminCategoryName('  Food  '), 'Food')
-assert.deepEqual(sortAdminCategories([{ id: 'b', sortOrder: 2 }, { id: 'a', sortOrder: 1 }]).map(item => item.id), ['a', 'b'])
-
-const timestamp = { seconds: 1 }
-assert.deepEqual(buildAdminCategoryPayload({
-  storeId: 'store-1',
-  name: ' Drinks ',
-  sortOrder: 3,
-  timestamp,
-}), {
-  storeId: 'store-1',
-  name: 'Drinks',
-  sortOrder: 3,
-  isActive: true,
-  createdAt: timestamp,
-  updatedAt: timestamp,
-})
-assert.deepEqual(buildAdminCategoryActivePayload({ isActive: true }, timestamp), {
-  isActive: false,
-  updatedAt: timestamp,
-})
+// カテゴリー管理は商品画面のカテゴリータブだけ（旧 /admin/categories は 2026-10-21 に削除）。
+const adminLayout = readFileSync(new URL('../src/pages/admin/AdminLayout.jsx', import.meta.url), 'utf8')
+assert.doesNotMatch(adminLayout, /CategoryPage|path="categories"/, 'old category page should stay removed')
+assert.match(adminLayout, /<Navigate to="\/admin\/products" replace \/>/, 'admin entry should open the product page')
 
 assertHas16pxFontSize('.category-add-form .admin-text-input')
 assertHas16pxFontSize('.category-group-select')

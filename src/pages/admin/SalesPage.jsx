@@ -29,12 +29,9 @@ import {
   sortChecksByCompletedAtDesc,
 } from '../../lib/adminSales'
 import { hasStaffPermission } from '../../lib/staffPermissions'
+import useSalesAssigneeManager from '../../hooks/useSalesAssigneeManager'
 import { createCashClosingRecord, loadSalesAdminData } from '../../services/adminSalesService'
-import {
-  createSalesAssignee,
-  saveSalesAttribution,
-  updateSalesAssignee,
-} from '../../services/salesHistoryService'
+import { saveSalesAttribution } from '../../services/salesHistoryService'
 
 const PAGE_SIZE = 50
 const ELEVATED_PERMISSION_DEFAULTS = {
@@ -96,9 +93,7 @@ export default function SalesPage() {
   const [detailError, setDetailError] = useState('')
   const [detailSuccess, setDetailSuccess] = useState('')
   const [managerOpen, setManagerOpen] = useState(false)
-  const [managerSaving, setManagerSaving] = useState(false)
-  const [managerError, setManagerError] = useState('')
-  const [managerSuccess, setManagerSuccess] = useState('')
+  const assigneeManager = useSalesAssigneeManager({ storeId, activeStaff, setAssignees })
 
   const businessDate = getBusinessDate()
   const activeView = searchParams.get('view') === 'history' ? 'history' : 'today'
@@ -283,57 +278,6 @@ export default function SalesPage() {
     }
   }
 
-  async function handleCreateAssignee(name) {
-    setManagerSaving(true)
-    setManagerError('')
-    setManagerSuccess('')
-    try {
-      const createdAssignee = await createSalesAssignee({ storeId, name, activeStaff })
-      setAssignees(previous => [...previous, createdAssignee].sort((a, b) => (
-        Number(b.isActive !== false) - Number(a.isActive !== false)
-        || String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ja')
-      )))
-      setManagerSuccess(`担当者「${name}」を追加しました。`)
-    } catch (error) {
-      setManagerError(errorMessage(error, '担当者を追加できませんでした。'))
-      throw error
-    } finally {
-      setManagerSaving(false)
-    }
-  }
-
-  async function handleUpdateAssignee(assignee, patch) {
-    setManagerSaving(true)
-    setManagerError('')
-    setManagerSuccess('')
-    try {
-      const updatedAssignee = await updateSalesAssignee({
-        storeId,
-        assigneeId: assignee.id,
-        name: patch.name,
-        isActive: patch.isActive,
-        activeStaff,
-      })
-      setAssignees(previous => previous.map(item => (
-        item.id === assignee.id ? { ...item, ...updatedAssignee } : item
-      )).sort((a, b) => (
-        Number(b.isActive !== false) - Number(a.isActive !== false)
-        || String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ja')
-      )))
-      const nextIsActive = patch.isActive ?? assignee.isActive !== false
-      const nextName = patch.name ?? assignee.name
-      const activeChanged = (assignee.isActive !== false) !== nextIsActive
-      setManagerSuccess(activeChanged
-        ? `「${nextName}」を${nextIsActive ? '再有効化' : '無効に'}しました。`
-        : `担当者名を「${nextName}」に変更しました。`)
-    } catch (error) {
-      setManagerError(errorMessage(error, '担当者を更新できませんでした。'))
-      throw error
-    } finally {
-      setManagerSaving(false)
-    }
-  }
-
   function handleExportAll() {
     downloadCSV(buildSalesExportRows(allChecks, formatSalesTimestamp), buildSalesExportFilename())
   }
@@ -384,8 +328,7 @@ export default function SalesPage() {
         onExportAssigneeSummary={handleExportAssigneeSummary}
         onExportFiltered={handleExportFiltered}
         onManageAssignees={() => {
-          setManagerError('')
-          setManagerSuccess('')
+          assigneeManager.resetMessages()
           setManagerOpen(true)
         }}
         onViewChange={handleViewChange}
@@ -446,14 +389,10 @@ export default function SalesPage() {
         onSaveAttribution={handleSaveAttribution}
       />
       <SalesAssigneeManagerModal
+        {...assigneeManager.modalProps}
         assignees={assignees}
-        error={managerError}
         open={managerOpen}
-        saving={managerSaving}
-        successMessage={managerSuccess}
         onClose={() => setManagerOpen(false)}
-        onCreate={handleCreateAssignee}
-        onUpdate={handleUpdateAssignee}
       />
     </div>
   )

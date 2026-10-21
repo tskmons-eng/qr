@@ -255,3 +255,11 @@ export function buildSalesExportFilename(date = new Date()) {
   const [year, month, day] = getBusinessDate(date).split('-').map(Number)
   return `売上履歴_${year}-${month}-${day}.csv`
 }
+
+// 有効な担当者を先に、名前の五十音順に並べる。
+export function sortSalesAssignees(assignees) {
+  return [...assignees].sort((a, b) => (
+    Number(b.isActive !== false) - Number(a.isActive !== false)
+    || String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ja')
+  ))
+}

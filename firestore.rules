@@ -143,28 +143,11 @@ service cloud.firestore {
         || staffIsManager(storeId);
     }
 
-    function legacyPublicOrderWritesAllowed() {
-      // Lockdown stage. Production order writes now go through Cloud Functions commands.
-      return false;
-    }
-
-    function legacyPublicTableOccupyAllowed() {
-      // Lockdown stage. Customer/staff seating now goes through Cloud Functions commands.
-      return false;
-    }
-
     function keepsTableManagementFields() {
       return request.resource.data.storeId == resource.data.storeId
         && request.resource.data.tableName == resource.data.tableName
         && request.resource.data.qrToken == resource.data.qrToken
         && request.resource.data.get('groupId', null) == resource.data.get('groupId', null);
-    }
-
-    function legacyPublicTableOccupyRequest() {
-      return legacyPublicTableOccupyAllowed()
-        && resource.data.status == 'vacant'
-        && request.resource.data.status == 'occupied'
-        && keepsTableManagementFields();
     }
 
     function canHandleReservationWait() {
@@ -763,8 +746,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if canManageTables(request.resource.data.storeId);
       allow update: if canManageTables(resource.data.storeId)
-                    || (canAccess(resource.data.storeId) && keepsTableManagementFields())
-                    || legacyPublicTableOccupyRequest();
+                    || (canAccess(resource.data.storeId) && keepsTableManagementFields());
       allow delete: if canManageTables(resource.data.storeId);
     }
 
@@ -803,18 +785,18 @@ service cloud.firestore {
       allow update, delete: if canManageMenu(resource.data.storeId);
     }
 
-    // 注文（お客さんも作成できる）
+    // 注文（作成は Cloud Functions のコマンドだけ）
     match /orders/{orderId} {
       allow read: if true;
-      allow create: if legacyPublicOrderWritesAllowed();
+      allow create: if false;
       allow update: if canAccess(resource.data.storeId);
       allow delete: if canAccess(resource.data.storeId);
     }
 
-    // 注文アイテム（お客さんも作成できる）
+    // 注文アイテム（作成は Cloud Functions のコマンドだけ）
     match /orderItems/{itemId} {
       allow read: if true;
-      allow create: if legacyPublicOrderWritesAllowed();
+      allow create: if false;
       allow update: if canAccess(resource.data.storeId);
       allow delete: if canAccess(resource.data.storeId);
     }

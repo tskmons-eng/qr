@@ -5,7 +5,6 @@ import { useStore } from '../../contexts/StoreContext'
 import { isSuperAdminEmail } from '../../lib/ownerIdentity'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { loadStoreIdentity } from '../../services/settingsService'
-import CategoryPage from './CategoryPage'
 import HistoryPage from './HistoryPage'
 import ProductPage from './ProductPage'
 import ReservationPage from './ReservationPage'
@@ -189,8 +188,7 @@ export default function AdminLayout() {
           <Route path="reservations" element={<ReservationPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="categories" element={<CategoryPage />} />
-          <Route path="*" element={<Navigate to="/admin/categories" replace />} />
+          <Route path="*" element={<Navigate to="/admin/products" replace />} />
         </Routes>
       </main>
     </div>

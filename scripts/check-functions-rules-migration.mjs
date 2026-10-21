@@ -82,16 +82,13 @@ assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'functions'"), 'clie
 
 assert.match(
   rules,
-  /function legacyPublicOrderWritesAllowed\(\) \{[\s\S]*?return false;/,
-  'legacy public order writes should be locked down after Functions mainline'
+  /match \/orders\/\{orderId\} \{[\s\S]*?allow create: if false;/,
+  'orders create should stay closed to clients after Functions mainline'
 )
-assert.ok(
-  rules.includes('match /orders/{orderId}') && rules.includes('allow create: if legacyPublicOrderWritesAllowed();'),
-  'orders create rule must route through the compatibility helper during migration'
-)
-assert.ok(
-  rules.includes('match /orderItems/{itemId}') && rules.includes('allow create: if legacyPublicOrderWritesAllowed();'),
-  'orderItems create rule must route through the compatibility helper during migration'
+assert.match(
+  rules,
+  /match \/orderItems\/\{itemId\} \{[\s\S]*?allow create: if false;/,
+  'orderItems create should stay closed to clients after Functions mainline'
 )
 
 const firebase = JSON.parse(firebaseJson)

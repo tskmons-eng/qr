@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import {
   SOUNDS,
-  loadKitchenSoundPrefs,
   loadSoundPrefs,
   playSound,
-  saveKitchenSoundPrefs,
   saveSoundPrefs,
 } from '../../lib/sounds'
 
 export default function DeviceSoundSettings({ notificationControls = null }) {
   const [staffPrefs, setStaffPrefs] = useState(loadSoundPrefs)
-  const [kitchenPrefs, setKitchenPrefs] = useState(loadKitchenSoundPrefs)
 
   const soundGroups = [
     {
@@ -20,14 +17,6 @@ export default function DeviceSoundSettings({ notificationControls = null }) {
       prefs: staffPrefs,
       onChange: setStaffPrefs,
       onSave: saveSoundPrefs,
-    },
-    {
-      key: 'kitchen',
-      title: 'キッチン通知音',
-      description: 'キッチン画面で新しい未提供メニューを受けた時に、この端末で鳴る音です。',
-      prefs: kitchenPrefs,
-      onChange: setKitchenPrefs,
-      onSave: saveKitchenSoundPrefs,
     },
   ]
 
@@ -59,7 +48,7 @@ export default function DeviceSoundSettings({ notificationControls = null }) {
       <h2 className="admin-settings__heading">呼び出し音設定</h2>
       <div className="admin-settings__panel admin-settings__sound-panel">
         <div className="admin-settings__description">
-          ホールとキッチンで使う通知音を、この端末ごとに設定します。変更はすぐ保存されます。
+          ホールで使う通知音を、この端末ごとに設定します。変更はすぐ保存されます。キッチンの通知音はキッチン画面の音の設定で変えます。
         </div>
         <div className="admin-settings__sound-grid">
           {notificationControls && (
