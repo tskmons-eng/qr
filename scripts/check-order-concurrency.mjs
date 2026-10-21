@@ -487,13 +487,11 @@ await Promise.all([
   assertSourceContains('functions/orderCommandApi.js', [
     "['checkout-items-stale', 'failed-precondition']",
   ]),
-  assertSourceContains('src/services/orderClientCommandService.js', [
-    'return runTransaction(db, async transaction =>',
+  // 2026-10-22 整理 第4章：ブラウザから直接書く予備は廃止。同じ守りはサーバー（Functions）側にある。
+  assertSourceContains('functions/orderCommandHandlers.js', [
     'if (table.currentOrderId) return table.currentOrderId',
-    'if (firstItemSnap.exists()) return { ok: true, deduped: true, clientRequestId }',
-    'assertOpenOrder(orderSnap.exists() ? orderSnap.data() : null, { storeId, tableId })',
-    'transaction.update(tableRef, { pendingCount: increment(normalizedItems.length), updatedAt: now })',
-    'orderItemsRevision: increment(1)',
+    'if (firstItemSnap.exists) return { ok: true, deduped: true, clientRequestId: requestId }',
+    'assertOpenOrder(orderSnap.exists ? orderSnap.data() : null, { storeId, tableId })',
     'checkoutItemIds',
   ]),
   assertSourceContains('src/pages/staff/CheckoutPage.jsx', [
@@ -511,20 +509,25 @@ await Promise.all([
     "'checkout-items-stale': '注文明細が更新されました。会計内容を確認してからもう一度確定してください。'",
     "'checkout-items-stale'",
   ]),
-  assertSourceContains('src/services/orderItemCommandService.js', [
+  assertSourceContains('functions/orderCommandHandlers.js', [
     "if (normalizeItemStatus(item) !== 'ordered') return",
     'addTableDelta(tableDeltas, tableId, -1)',
     "if (normalizeItemStatus(item) !== 'served') return { ok: true, changed: false }",
-    'pendingCount: increment(1)',
     "if (normalizeItemStatus(item) === 'cancelled')",
     "if (normalizeItemStatus(item) === 'ordered' && resolvedTableId)",
-  ]),
-  assertSourceContains('src/services/tableMoveCommandService.js', [
-    'const pendingCount = movedItems.filter',
-    'transaction.update(orderRef, {',
+    "const pendingCount = movedItems.filter(({ item }) => normalizeItemStatus(item) === 'ordered').length",
     'transaction.update(sourceTableRef, {',
     'transaction.update(targetTableRef, {',
     'tableId: targetTable.id',
+  ]),
+  // 画面側は必ずサーバーを呼ぶだけ（直接の書き込みを持たない）。
+  assertSourceContains('src/services/orderItemCommandService.js', [
+    "callOrderCommandFunction('markOrderItemServedCommand'",
+    "callOrderCommandFunction('markOrderItemOrderedCommand'",
+    "callOrderCommandFunction('cancelOrderItemCommand'",
+  ]),
+  assertSourceContains('src/services/tableMoveCommandService.js', [
+    "callOrderCommandFunction('moveTableOrderCommand'",
   ]),
 ])
 

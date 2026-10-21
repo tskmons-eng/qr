@@ -24,6 +24,7 @@ const {
   assertStoreAccess,
   loadOrderItemForAccess,
   loadTableForAccess,
+  resolveStaffActor,
 } = require('./orderCommandAuth')
 const { assertCancelAllowed } = require('./cancelPasscode')
 
@@ -143,6 +144,13 @@ async function normalizeCartItemsWithProducts(db, items, storeId) {
   }))
   const products = await loadProductsWithCategoryGroups(db, productRequests, storeId)
   return items.map((item, index) => ({ ...item, product: products[index] }))
+}
+
+// 人数分の自動追加は、お客様の端末から送られた値ではなく、店舗設定（storeConfig）をサーバーが読む（2026-10-22 整理 第4章 K8）。
+async function loadStoreGuestAutoAdd(db, storeId) {
+  const snap = await db.collection('storeConfig').doc(storeId).get()
+  const guestAutoAdd = snap.exists ? snap.data()?.guestAutoAdd : null
+  return guestAutoAdd && typeof guestAutoAdd === 'object' ? guestAutoAdd : null
 }
 
 async function loadAutoAddProduct(db, guestAutoAdd, storeId) {
@@ -311,9 +319,10 @@ function assertCheckoutItemsFresh({
   }
 }
 
-async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
+async function startCustomerOrderSession({ guestCount, storeId, tableId }) {
   if (!storeId || !tableId) throw commandError('invalid-argument', 'Store and table are required.')
   const db = getFirestore()
+  const guestAutoAdd = await loadStoreGuestAutoAdd(db, storeId)
   const autoAddProduct = await loadAutoAddProduct(db, guestAutoAdd, storeId)
   const tableRef = db.collection('tables').doc(tableId)
   const orderRef = db.collection('orders').doc()
@@ -447,10 +456,11 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
   return result
 }
 
-async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }, request) {
+async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRequestId }, request) {
   if (!orderId || !storeId || !tableId) throw commandError('invalid-argument', 'Order, store, and table are required.')
   const db = getFirestore()
-  await assertStoreAccess(db, request, storeId)
+  // 操作した人はサーバーが決める（画面から送られた activeStaff は使わない）。
+  const activeStaff = await assertStoreAccess(db, request, storeId)
   const normalizedItems = normalizeOrderCommandItems(cart)
   if (normalizedItems.length === 0) throw commandError('empty-order', 'No order items were provided.')
   const productVerificationStartedAt = Date.now()
@@ -493,11 +503,12 @@ async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tabl
   return result
 }
 
-async function seatStaffOrderSession({ tableId, seatCount, activeStaff }, request) {
+async function seatStaffOrderSession({ tableId, seatCount }, request) {
   if (!tableId) throw commandError('invalid-argument', 'Table is required.')
   const db = getFirestore()
   const table = await loadTableForAccess(db, request, tableId)
   const storeId = table.storeId
+  const activeStaff = await resolveStaffActor(db, request, storeId)
   const tableRef = db.collection('tables').doc(tableId)
   const orderRef = db.collection('orders').doc()
   const staffActionRef = db.collection('staffActions').doc()
@@ -558,11 +569,10 @@ async function completeCheckoutCommand(data, request) {
     checkoutItemIds,
     orderItemsRevision,
     total,
-    activeStaff,
   } = data
   if (!storeId || !tableId || !orderId) throw commandError('invalid-argument', 'Order, store, and table are required.')
   const db = getFirestore()
-  await assertStoreAccess(db, request, storeId)
+  const activeStaff = await assertStoreAccess(db, request, storeId)
   const orderRef = db.collection('orders').doc(orderId)
   const tableRef = db.collection('tables').doc(tableId)
   const checkRef = db.collection('checks').doc(buildCheckoutCommandDocId({ orderId }))
@@ -727,11 +737,11 @@ async function cancelOrderItemCommand(data, request) {
     tableId,
     tableName,
     source,
-    activeStaff,
     passcode,
   } = data
   const db = getFirestore()
   const itemPreview = await loadOrderItemForAccess(db, request, itemId)
+  const activeStaff = await resolveStaffActor(db, request, itemPreview.storeId)
   await assertCancelAllowed(db, request, itemPreview.storeId, passcode)
   const itemRef = db.collection('orderItems').doc(itemId)
   const staffActionRef = db.collection('staffActions').doc()
@@ -774,10 +784,11 @@ async function cancelOrderItemCommand(data, request) {
   })
 }
 
-async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }, request) {
+async function moveTableOrderCommand({ sourceTableId, targetTable }, request) {
   if (!sourceTableId || !targetTable?.id) throw commandError('invalid-argument', 'Source and target tables are required.')
   const db = getFirestore()
   const sourcePreview = await loadTableForAccess(db, request, sourceTableId)
+  const activeStaff = await resolveStaffActor(db, request, sourcePreview.storeId)
   const orderId = sourcePreview.currentOrderId
   if (!orderId) throw commandError('order-not-found', 'No active order is linked to the source table.')
 
@@ -860,7 +871,7 @@ async function moveTableOrderCommand({ sourceTableId, targetTable, activeStaff }
   })
 }
 
-async function guideReservationToTableCommand({ reservationId, targetTableId, activeStaff, storeId }, request) {
+async function guideReservationToTableCommand({ reservationId, targetTableId, storeId }, request) {
   if (!reservationId || !targetTableId) {
     throw commandError('invalid-argument', 'Reservation and target table are required.')
   }
@@ -874,7 +885,7 @@ async function guideReservationToTableCommand({ reservationId, targetTableId, ac
   if (storeId && reservationPreview.storeId !== storeId) {
     return { ok: false, reason: 'store-mismatch' }
   }
-  await assertStoreAccess(db, request, reservationPreview.storeId)
+  const activeStaff = await assertStoreAccess(db, request, reservationPreview.storeId)
 
   return db.runTransaction(async transaction => {
     const reservationSnap = await transaction.get(reservationRef)

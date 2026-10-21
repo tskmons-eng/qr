@@ -32,7 +32,7 @@ const sourceAssertions = [
   },
   {
     file: 'src/services/orderCommandService.js',
-    required: ['export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId })', 'const payload = { activeStaff, cart, orderId, storeId, tableId, clientRequestId: requestId }'],
+    required: ['export async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRequestId })', 'const functionPayload = { cart: compactOrderSubmitItems(cart), orderId, storeId, tableId, clientRequestId: requestId }'],
     forbidden: [],
   },
   {
@@ -47,7 +47,7 @@ const sourceAssertions = [
   },
   {
     file: 'functions/orderCommandHandlers.js',
-    required: ['async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }, request)', 'activeStaff,'],
+    required: ['async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRequestId }, request)', 'const activeStaff = await assertStoreAccess(db, request, storeId)', 'activeStaff,'],
     forbidden: [],
   },
   {

@@ -36,20 +36,21 @@ function extractBlock(source, marker) {
 
 // 2026-10-21 整理 第1章：常に false の切り替え関数をやめ、作成不可を直接書く。動きは同じ。
 assert.doesNotMatch(rules, /legacyPublic/, 'retired legacy public write switches should stay removed')
+// 2026-10-22 整理 第4章 K7：注文と会計は作成・書き換え・削除のすべてを Functions だけにする。
 assert.equal(
-  countToken(rules, 'allow create: if false;'),
-  2,
-  'orders and orderItems create should both stay closed to clients'
+  countToken(rules, 'allow create, update, delete: if false;'),
+  3,
+  'orders, orderItems, and checks writes should all stay closed to clients'
 )
 
 assert.match(
   rules,
-  /match \/orders\/\{orderId\} \{[\s\S]*?allow read: if true;[\s\S]*?allow create: if false;[\s\S]*?allow update: if canAccess\(resource\.data\.storeId\);/,
+  /match \/orders\/\{orderId\} \{\s*allow read: if true;\s*allow create, update, delete: if false;\s*\}/,
   'orders read/staff update permissions should remain intact'
 )
 assert.match(
   rules,
-  /match \/orderItems\/\{itemId\} \{[\s\S]*?allow read: if true;[\s\S]*?allow create: if false;[\s\S]*?allow update: if canAccess\(resource\.data\.storeId\);/,
+  /match \/orderItems\/\{itemId\} \{\s*allow read: if true;\s*allow create, update, delete: if false;\s*\}/,
   'orderItems read/staff update permissions should remain intact'
 )
 assert.match(
@@ -67,8 +68,8 @@ const lockdownPreview = rules
 const lockdownOrdersBlock = extractBlock(lockdownPreview, 'match /orders/{orderId}')
 const lockdownOrderItemsBlock = extractBlock(lockdownPreview, 'match /orderItems/{itemId}')
 
-assert.ok(lockdownOrdersBlock.includes('allow create: if false;'), 'orders create should stay closed')
-assert.ok(lockdownOrderItemsBlock.includes('allow create: if false;'), 'orderItems create should stay closed')
+assert.ok(lockdownOrdersBlock.includes('allow create, update, delete: if false;'), 'orders writes should stay closed')
+assert.ok(lockdownOrderItemsBlock.includes('allow create, update, delete: if false;'), 'orderItems writes should stay closed')
 assert.ok(
   !lockdownOrdersBlock.includes('allow create: if true;'),
   'lockdown preview should not leave orders public create as a literal true'

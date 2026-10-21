@@ -3,15 +3,9 @@ import { withOrderCommandFailureLog } from './orderCommandFailureService'
 import {
   callOrderCommandFunction,
   callRegionalOrderSubmitFunction,
-  shouldUseOrderCommandFunctions,
 } from './orderFunctionCommandService'
-import {
-  completeCheckoutClient,
-  seatStaffOrderSessionClient,
-  startCustomerOrderSessionClient,
-  submitCustomerOrderItemsClient,
-  submitStaffOrderItemsClient,
-} from './orderClientCommandService'
+
+// 注文・会計は必ずサーバー（Functions）を通す。ブラウザから直接書く開発用の予備は 2026-10-22 に廃止（整理 第4章）。
 
 function compactOrderSubmitItems(items) {
   if (!Array.isArray(items)) return items
@@ -40,18 +34,14 @@ function compactOrderSubmitItems(items) {
   })
 }
 
-export async function startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
+// 人数分の自動追加はサーバーが店舗設定から読むので、画面からは送らない。
+export async function startCustomerOrderSession({ guestCount, storeId, tableId }) {
   return withOrderCommandFailureLog({
     commandType: 'start_customer_order_session',
     actorType: 'customer',
     storeId,
     tableId,
-  }, () => {
-    const payload = { guestAutoAdd, guestCount, storeId, tableId }
-    return shouldUseOrderCommandFunctions()
-      ? callOrderCommandFunction('startCustomerOrderSessionCommand', payload)
-      : startCustomerOrderSessionClient(payload)
-  })
+  }, () => callOrderCommandFunction('startCustomerOrderSessionCommand', { guestCount, storeId, tableId }))
 }
 
 export async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clientRequestId }) {
@@ -64,9 +54,7 @@ export async function submitCustomerOrderItems({ items, orderId, storeId, tableI
     orderId,
     clientRequestId: requestId,
   }, () => {
-    const payload = { items, orderId, storeId, tableId, clientRequestId: requestId }
-    if (!shouldUseOrderCommandFunctions()) return submitCustomerOrderItemsClient(payload)
-    const functionPayload = { ...payload, items: compactOrderSubmitItems(items) }
+    const functionPayload = { items: compactOrderSubmitItems(items), orderId, storeId, tableId, clientRequestId: requestId }
     return callRegionalOrderSubmitFunction(
       'submitCustomerOrderItemsCommandAsia',
       'submitCustomerOrderItemsCommand',
@@ -75,7 +63,8 @@ export async function submitCustomerOrderItems({ items, orderId, storeId, tableI
   })
 }
 
-export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeId, tableId, clientRequestId }) {
+// 操作したスタッフはサーバーが端末の記録から決める（画面からは送らない）。
+export async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRequestId }) {
   const requestId = clientRequestId || createOrderCommandRequestId('staff-order')
   return withOrderCommandFailureLog({
     commandType: 'staff_submit_items',
@@ -85,9 +74,7 @@ export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeI
     orderId,
     clientRequestId: requestId,
   }, () => {
-    const payload = { activeStaff, cart, orderId, storeId, tableId, clientRequestId: requestId }
-    if (!shouldUseOrderCommandFunctions()) return submitStaffOrderItemsClient(payload)
-    const functionPayload = { ...payload, cart: compactOrderSubmitItems(cart) }
+    const functionPayload = { cart: compactOrderSubmitItems(cart), orderId, storeId, tableId, clientRequestId: requestId }
     return callRegionalOrderSubmitFunction(
       'submitStaffOrderItemsCommandAsia',
       'submitStaffOrderItemsCommand',
@@ -96,17 +83,13 @@ export async function submitStaffOrderItems({ activeStaff, cart, orderId, storeI
   })
 }
 
-export async function seatStaffOrderSession({ table, tableId, seatCount, activeStaff }) {
+export async function seatStaffOrderSession({ table, tableId, seatCount }) {
   return withOrderCommandFailureLog({
     commandType: 'seat_staff_order_session',
     actorType: 'staff',
     storeId: table?.storeId,
     tableId,
-  }, () => {
-    return shouldUseOrderCommandFunctions()
-      ? callOrderCommandFunction('seatStaffOrderSessionCommand', { tableId, seatCount, activeStaff })
-      : seatStaffOrderSessionClient({ table, tableId, seatCount, activeStaff })
-  })
+  }, () => callOrderCommandFunction('seatStaffOrderSessionCommand', { tableId, seatCount }))
 }
 
 export async function completeCheckoutCommand({
@@ -126,7 +109,6 @@ export async function completeCheckoutCommand({
   total,
   received,
   change,
-  activeStaff,
 }) {
   return withOrderCommandFailureLog({
     commandType: 'complete_checkout',
@@ -152,10 +134,7 @@ export async function completeCheckoutCommand({
       total,
       received,
       change,
-      activeStaff,
     }
-    return shouldUseOrderCommandFunctions()
-      ? callOrderCommandFunction('completeCheckoutCommand', payload)
-      : completeCheckoutClient(payload)
+    return callOrderCommandFunction('completeCheckoutCommand', payload)
   })
 }

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { initializeApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator, signInAnonymously } from 'firebase/auth'
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions'
+import { connectFirestoreEmulator, doc as clientDoc, getFirestore as getClientFirestore, terminate as terminateClientFirestore, updateDoc as clientUpdateDoc } from 'firebase/firestore'
 
 const PROJECT_ID = 'demo-qr-functions-concurrency'
 const FUNCTIONS_HOST = '127.0.0.1'
@@ -159,7 +160,9 @@ function createStaffClient(name) {
   connectFunctionsEmulator(functions, FUNCTIONS_HOST, FUNCTIONS_PORT)
   connectFunctionsEmulator(asiaFunctions, FUNCTIONS_HOST, FUNCTIONS_PORT)
   connectAuthEmulator(auth, `http://${AUTH_HOST}:${AUTH_PORT}`, { disableWarnings: true })
-  return { app, asiaFunctions, auth, functions }
+  const firestore = getClientFirestore(app)
+  connectFirestoreEmulator(firestore, '127.0.0.1', 8080)
+  return { app, asiaFunctions, auth, firestore, functions }
 }
 
 function adminDb() {
@@ -379,19 +382,15 @@ async function runCustomerStartRace(db, publicFunctions, productId) {
   const tableId = `${runId}_race_table`
   const guestCount = 4
   await seedTable(db, tableId)
+  // 自動追加は店舗設定から読む（2026-10-22 第4章 K8）。
+  await db.collection('storeConfig').doc(storeId).set({
+    guestAutoAdd: { enabled: true, productId, productNameSnapshot: 'Race Auto Add' },
+  }, { merge: true })
 
   const settled = await Promise.allSettled(Array.from({ length: 50 }, () => (
-    call(publicFunctions, 'startCustomerOrderSessionCommand', {
-      guestAutoAdd: {
-        enabled: true,
-        productId,
-        productNameSnapshot: 'Race Auto Add',
-      },
-      guestCount,
-      storeId,
-      tableId,
-    })
+    call(publicFunctions, 'startCustomerOrderSessionCommand', { guestCount, storeId, tableId })
   )))
+  await db.collection('storeConfig').doc(storeId).set({ guestAutoAdd: { enabled: false } }, { merge: true })
   const rejected = settled.filter(result => result.status === 'rejected')
   assert.equal(
     rejected.length,
@@ -583,8 +582,10 @@ async function runStaffSubmitDedup(db, staffFunctions, productId, drinkProductId
 
   const items = await queryBy(db, 'orderItems', 'clientRequestId', requestId)
   assert.equal(items.length, payload.cart.length, 'duplicate staff submit should create one set of item docs')
-  assert.ok(items.every(item => item.orderedByStaffId === staff.id), 'staff submit should store staff id on order items')
-  assert.ok(items.every(item => item.orderedByStaffName === staff.name), 'staff submit should store staff name on order items')
+  // 操作した人はサーバーが端末の記録から決める。画面が送った activeStaff（staff）は使わない（2026-10-22 第4章 K5）。
+  assert.ok(items.every(item => item.orderedByStaffId === managerMemberId), 'staff submit should store the server-resolved staff id')
+  assert.ok(items.every(item => item.orderedByStaffName === 'Emulator Manager'), 'staff submit should store the server-resolved staff name')
+  assert.ok(items.every(item => item.orderedByStaffName !== staff.name), 'client-sent activeStaff name should be ignored')
   assert.equal((await tableData(db, tableId)).pendingCount, payload.cart.length, 'duplicate staff submit should increment pendingCount once')
   return { itemIds: items.map(item => item.id), orderId, tableId }
 }
@@ -736,6 +737,52 @@ async function runCancelPasscodeChecks(db, managerFunctions, floorFunctions, pro
   assert.equal(passcodeFailureLogs.length, 0, 'passcode mistakes should not be logged as order command failures')
   await call(managerFunctions, 'cancelOrderItemCommand', cancelPayload(lockedItemId))
   assert.equal((await itemData(db, lockedItemId)).itemStatus, 'cancelled', 'manageMenu staff should cancel while passcode is locked')
+}
+
+// 2026-10-22 整理 第4章 4-A：店舗コードだけの端末は不可・自動追加は店舗設定だけ・注文データは画面から書けない。
+async function runStaffActorAndLockdownChecks(db, managerClient, deviceOnlyClient, productId) {
+  const tableId = `${runId}_actor_table`
+  await seedTable(db, tableId)
+  const orderId = await call(managerClient.functions, 'seatStaffOrderSessionCommand', { tableId, seatCount: 2, activeStaff: { id: 'fake', name: '偽名' } })
+  const seatAction = (await queryBy(db, 'staffActions', 'targetId', tableId)).find(action => action.actionType === 'seat_guests')
+  assert.equal(seatAction?.actorStaffName, 'Emulator Manager', 'seat action should record the server-resolved staff')
+
+  await expectCallableError('staff-not-selected', () => (
+    call(deviceOnlyClient.functions, 'submitStaffOrderItemsCommand', {
+      cart: [cartItem(productId)], orderId, storeId, tableId, clientRequestId: `${runId}_device_only`,
+    })
+  ), 'store-code-only device submitting staff order')
+  await expectCallableError('staff-not-selected', () => (
+    call(deviceOnlyClient.functions, 'completeCheckoutCommand', checkoutPayload({ orderId, tableId }))
+  ), 'store-code-only device closing checkout')
+
+  // お客様の端末が自動追加を送っても、店舗設定が OFF なら追加しない。
+  const autoTableId = `${runId}_auto_add_client_table`
+  await seedTable(db, autoTableId)
+  const clientAutoOrderId = await call(publicClient.functions, 'startCustomerOrderSessionCommand', {
+    guestAutoAdd: { enabled: true, productId, productNameSnapshot: 'client' }, guestCount: 3, storeId, tableId: autoTableId,
+  })
+  assert.equal((await queryBy(db, 'orderItems', 'orderId', clientAutoOrderId)).length, 0, 'client guestAutoAdd should be ignored')
+  // 店舗設定が ON なら、人数分を追加する。
+  await db.collection('storeConfig').doc(storeId).set({ guestAutoAdd: { enabled: true, productId, productNameSnapshot: 'Emulator Ramen' } }, { merge: true })
+  const configTableId = `${runId}_auto_add_config_table`
+  await seedTable(db, configTableId)
+  const configAutoOrderId = await call(publicClient.functions, 'startCustomerOrderSessionCommand', { guestCount: 3, storeId, tableId: configTableId })
+  const autoItems = await queryBy(db, 'orderItems', 'orderId', configAutoOrderId)
+  assert.equal(autoItems.length, 1, 'store config guestAutoAdd should add one item')
+  assert.equal(autoItems[0].quantity, 3, 'store config guestAutoAdd should add guest count quantity')
+  await db.collection('storeConfig').doc(storeId).set({ guestAutoAdd: { enabled: false } }, { merge: true })
+
+  // 注文明細は画面（スタッフ端末）から直接書き換えられない。
+  const [item] = autoItems
+  let directWriteError = null
+  try {
+    await clientUpdateDoc(clientDoc(managerClient.firestore, 'orderItems', item.id), { itemStatus: 'cancelled' })
+  } catch (error) {
+    directWriteError = error
+  }
+  assert.equal(directWriteError?.code, 'permission-denied', 'client should not update orderItems directly')
+  assert.notEqual((await itemData(db, item.id)).itemStatus, 'cancelled')
 }
 
 async function runLateSubmitAfterCheckout(db, publicFunctions, staffFunctions, productId) {
@@ -1123,6 +1170,10 @@ await createStaffSession(db, staffCredential.user.uid)
 await runStaffSubmitDedup(db, staffClient.functions, products.productId, products.drinkProductId)
 await runAsiaStaffSubmitDedup(db, staffClient.functions, staffClient.asiaFunctions, products.productId, products.drinkProductId)
 await runItemStatusCounterChecks(db, staffClient.functions, products.productId)
+const deviceOnlyClient = createStaffClient(`device-only-${runId}`)
+const deviceOnlyCredential = await signInAnonymously(deviceOnlyClient.auth)
+await db.collection('staffSessions').doc(deviceOnlyCredential.user.uid).set({ storeId, code: `${runId}_staff_code`, createdAt: FieldValue.serverTimestamp() })
+await runStaffActorAndLockdownChecks(db, staffClient, deviceOnlyClient, products.productId)
 const floorClient = createStaffClient(`floor-${runId}`)
 const floorCredential = await signInAnonymously(floorClient.auth)
 await createFloorStaffSession(db, floorCredential.user.uid)
@@ -1137,4 +1188,6 @@ await runStoreScopeRejects(db, publicClient.functions, products.productId, produ
 await runPendingAggregateTriggerChecks(db)
 await runReservationNotificationTriggerCheck(db)
 
+// 画面側 Firestore の接続を閉じないと、チェックが終わってもプロセスが残る。
+await Promise.all([staffClient, deviceOnlyClient, floorClient].map(client => terminateClientFirestore(client.firestore)))
 console.log(`order Functions emulator concurrency and trigger checks passed on Node ${process.version}`)

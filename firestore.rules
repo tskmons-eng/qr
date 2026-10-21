@@ -2,8 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // メールは大文字・小文字を区別しない（2026-10-22 L6）。許可メール・店舗管理者メールの文書IDは小文字で保存している。
+    // スーパー管理者のメールは src/lib/ownerIdentity.js・functions/orderCommandAuth.js と同じ（scripts/check-cancel-passcode.mjs で一致を確かめる）。
+    function authEmail() {
+      return request.auth.token.get('email', '').lower();
+    }
+
     function isSuper() {
-      return request.auth != null && request.auth.token.email == 'tsk.mons@gmail.com';
+      return request.auth != null && authEmail() == 'tsk.mons@gmail.com';
     }
 
     function isGoogle() {
@@ -13,13 +19,13 @@ service cloud.firestore {
 
     function isAllowedOwner() {
       return isGoogle()
-        && exists(/databases/$(database)/documents/allowedEmails/$(request.auth.token.email));
+        && exists(/databases/$(database)/documents/allowedEmails/$(authEmail()));
     }
 
     function isStoreAdminEmail(storeId) {
       return isGoogle()
-        && exists(/databases/$(database)/documents/storeAdminEmails/$(request.auth.token.email))
-        && get(/databases/$(database)/documents/storeAdminEmails/$(request.auth.token.email)).data.storeId == storeId;
+        && exists(/databases/$(database)/documents/storeAdminEmails/$(authEmail()))
+        && get(/databases/$(database)/documents/storeAdminEmails/$(authEmail())).data.storeId == storeId;
     }
 
     function isOwnerOf(storeId) {
@@ -27,7 +33,7 @@ service cloud.firestore {
         && request.auth.uid == storeId
         && (
           !exists(/databases/$(database)/documents/stores/$(storeId))
-          || get(/databases/$(database)/documents/stores/$(storeId)).data.get('ownerEmail', request.auth.token.email) == request.auth.token.email
+          || string(get(/databases/$(database)/documents/stores/$(storeId)).data.get('ownerEmail', authEmail())).lower() == authEmail()
         );
     }
 
@@ -88,21 +94,10 @@ service cloud.firestore {
         : presetPermissionDefault(canonicalStaffPreset(memberData), permission, legacyDefault);
     }
 
+    // 個別の ON/OFF があればそれを守り、無いときだけ権限の型の既定値を使う（画面の staffPermissions.js と同じ。2026-10-22 L5）。
     function staffPermission(storeId, permission, legacyDefault) {
       return canonicalStaffMemberExists(storeId)
         && canonicalStaffPermission(currentStaffMemberData(), permission, legacyDefault) == true;
-    }
-
-    function staffPreset() {
-      return canonicalStaffPreset(currentStaffMemberData());
-    }
-
-    function staffIsManager(storeId) {
-      return canonicalStaffMemberExists(storeId) && staffPreset() == 'manager';
-    }
-
-    function staffIsOperations(storeId) {
-      return canonicalStaffMemberExists(storeId) && staffPreset() == 'operations';
     }
 
     function canManageMenu(storeId) {
@@ -118,29 +113,19 @@ service cloud.firestore {
     }
 
     function canManageTables(storeId) {
-      return canManageStore(storeId)
-        || staffPermission(storeId, 'manageTables', false)
-        || staffIsManager(storeId)
-        || staffIsOperations(storeId);
+      return canManageStore(storeId) || staffPermission(storeId, 'manageTables', false);
     }
 
     function canManageReservations(storeId) {
-      return canManageStore(storeId)
-        || staffPermission(storeId, 'manageReservations', false)
-        || staffIsManager(storeId)
-        || staffIsOperations(storeId);
+      return canManageStore(storeId) || staffPermission(storeId, 'manageReservations', false);
     }
 
     function canViewHistory(storeId) {
-      return canManageStore(storeId)
-        || staffPermission(storeId, 'viewHistory', false)
-        || staffIsManager(storeId);
+      return canManageStore(storeId) || staffPermission(storeId, 'viewHistory', false);
     }
 
     function canManageSettings(storeId) {
-      return canManageStore(storeId)
-        || staffPermission(storeId, 'manageSettings', false)
-        || staffIsManager(storeId);
+      return canManageStore(storeId) || staffPermission(storeId, 'manageSettings', false);
     }
 
     function keepsTableManagementFields() {
@@ -691,12 +676,12 @@ service cloud.firestore {
 
     // 許可メール（オーナーが管理）
     match /allowedEmails/{email} {
-      allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
+      allow read: if isSuper() || (isGoogle() && authEmail() == email);
       allow write: if isSuper();
     }
 
     match /storeAdminEmails/{email} {
-      allow read: if isSuper() || (isGoogle() && request.auth.token.email == email);
+      allow read: if isSuper() || (isGoogle() && authEmail() == email);
       allow write: if isSuper();
     }
 
@@ -786,26 +771,23 @@ service cloud.firestore {
     }
 
     // 注文（作成は Cloud Functions のコマンドだけ）
+    // 書き換え・削除も Cloud Functions だけ（2026-10-22 整理 第4章 K7。画面から直接書く予備は廃止済み）。
     match /orders/{orderId} {
       allow read: if true;
-      allow create: if false;
-      allow update: if canAccess(resource.data.storeId);
-      allow delete: if canAccess(resource.data.storeId);
+      allow create, update, delete: if false;
     }
 
     // 注文アイテム（作成は Cloud Functions のコマンドだけ）
     match /orderItems/{itemId} {
       allow read: if true;
-      allow create: if false;
-      allow update: if canAccess(resource.data.storeId);
-      allow delete: if canAccess(resource.data.storeId);
+      allow create, update, delete: if false;
     }
 
     // 会計
     match /checks/{checkId} {
       allow read: if canCloseRegister(resource.data.storeId) || canViewHistory(resource.data.storeId);
-      allow create: if canAccess(request.resource.data.storeId);
-      allow update, delete: if canAccess(resource.data.storeId);
+      // 会計の作成は completeCheckoutCommand（Functions）だけ。
+      allow create, update, delete: if false;
     }
 
     // レジ締め

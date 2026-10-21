@@ -6,8 +6,9 @@ function getAuthToken(request) {
   return request.auth?.token ?? null
 }
 
+// メールは大文字・小文字を区別しない（L6）。
 function getEmail(request) {
-  return getAuthToken(request)?.email ?? ''
+  return String(getAuthToken(request)?.email ?? '').trim().toLowerCase()
 }
 
 function isGoogle(request) {
@@ -36,7 +37,7 @@ async function isOwnerOf(db, request, storeId) {
   if (!isGoogle(request) || request.auth.uid !== storeId) return false
   const storeSnap = await db.collection('stores').doc(storeId).get()
   if (!storeSnap.exists) return true
-  const ownerEmail = storeSnap.data()?.ownerEmail ?? getEmail(request)
+  const ownerEmail = String(storeSnap.data()?.ownerEmail ?? getEmail(request)).trim().toLowerCase()
   return ownerEmail === getEmail(request)
 }
 
@@ -44,14 +45,6 @@ async function isStaffOf(db, request, storeId) {
   if (!isAnonymousStaff(request)) return false
   const sessionSnap = await db.collection('staffSessions').doc(request.auth.uid).get()
   return sessionSnap.exists && sessionSnap.data()?.storeId === storeId
-}
-
-async function canAccessStore(db, request, storeId) {
-  if (!storeId) return false
-  if (isSuper(request)) return true
-  return (await isOwnerOf(db, request, storeId)) ||
-    (await isStoreAdminEmail(db, request, storeId)) ||
-    (await isStaffOf(db, request, storeId))
 }
 
 // 店舗管理者（スーパー管理者・オーナー・店舗管理者メール）。スタッフ端末は含まない。
@@ -73,13 +66,45 @@ async function loadActiveStaffMember(db, request, storeId) {
   return { id: memberSnap.id, ...memberSnap.data() }
 }
 
+// スタッフの操作をしてよい「誰か」をサーバーで決める（2026-10-22 整理 第4章 K5）。
+// 店長・オーナー（Google ログイン）か、スタッフを選んだ端末だけ。店舗コードで入っただけの端末は不可。
+// 操作した人の名前は画面の申告ではなく、ここで決めたものを記録に使う。1回の処理の中では結果を使い回す。
+const STORE_MANAGER_ACTOR_ID = 'store-manager'
+const actorCache = new WeakMap()
+
+async function computeStaffActor(db, request, storeId) {
+  if (!storeId) throw commandError('permission-denied', 'Store is required.')
+  if (await isStoreManager(db, request, storeId)) {
+    const token = getAuthToken(request) ?? {}
+    return {
+      id: STORE_MANAGER_ACTOR_ID,
+      name: String(token.name ?? '').trim() || getEmail(request).split('@')[0] || '管理者',
+      isStoreManager: true,
+    }
+  }
+  if (!isAnonymousStaff(request) || !(await isStaffOf(db, request, storeId))) {
+    throw commandError('permission-denied', 'You do not have access to this store.')
+  }
+  const member = await loadActiveStaffMember(db, request, storeId)
+  if (!member) throw commandError('staff-not-selected', 'Select a staff member before this operation.')
+  return { id: member.id, name: String(member.name ?? '').trim(), isStoreManager: false, member }
+}
+
+function resolveStaffActor(db, request, storeId) {
+  let byStore = actorCache.get(request)
+  if (!byStore) {
+    byStore = new Map()
+    actorCache.set(request, byStore)
+  }
+  if (!byStore.has(storeId)) byStore.set(storeId, computeStaffActor(db, request, storeId))
+  return byStore.get(storeId)
+}
+
 async function assertStoreAccess(db, request, storeId) {
   if (!request.auth) {
     throw commandError('unauthenticated', 'Authentication is required for this order command.')
   }
-  if (!await canAccessStore(db, request, storeId)) {
-    throw commandError('permission-denied', 'You do not have access to this store.')
-  }
+  return resolveStaffActor(db, request, storeId)
 }
 
 async function loadTableForAccess(db, request, tableId) {
@@ -124,8 +149,10 @@ async function assertOrderItemTargetsAccess(db, request, targets) {
 }
 
 module.exports = {
+  STORE_MANAGER_ACTOR_ID,
   assertOrderItemTargetsAccess,
   assertStoreAccess,
+  resolveStaffActor,
   getEmail,
   isStoreManager,
   loadActiveStaffMember,

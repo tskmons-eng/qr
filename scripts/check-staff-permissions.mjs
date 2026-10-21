@@ -105,14 +105,16 @@ assert.match(rules, /validCanonicalStaffPermissions\(/)
 assert.match(rules, /function canManageMenu\(storeId\)/)
 assert.match(rules, /function canCloseRegister\(storeId\)/)
 assert.match(rules, /function canManageStaff\(storeId\)/)
-assert.match(rules, /function staffIsManager\(storeId\)/)
-assert.match(rules, /function staffIsOperations\(storeId\)/)
 assert.match(rules, /function canManageTables\(storeId\)/)
 assert.match(rules, /function canManageReservations\(storeId\)/)
 assert.match(rules, /function canViewHistory\(storeId\)/)
 assert.match(rules, /function canManageSettings\(storeId\)/)
-assert.match(rules, /staffIsOperations\(storeId\)/)
-assert.match(rules, /staffIsManager\(storeId\)/)
+// 2026-10-22 整理 第4章 L5：権限の型（店長・現場責任者）で個別の OFF を上書きしない。画面と同じ判定にする。
+assert.doesNotMatch(rules, /staffIsManager|staffIsOperations/)
+for (const name of ['canManageTables', 'canManageReservations', 'canViewHistory', 'canManageSettings']) {
+  const permission = { canManageTables: 'manageTables', canManageReservations: 'manageReservations', canViewHistory: 'viewHistory', canManageSettings: 'manageSettings' }[name]
+  assert.match(rules, new RegExp(`function ${name}\(storeId\) \{\s*return canManageStore\(storeId\) \|\| staffPermission\(storeId, '${permission}', false\);\s*\}`), `${name} should respect per-staff OFF`)
+}
 assert.match(rules, /match \/products\/\{productId\}[\s\S]*allow create: if canManageMenu\(request\.resource\.data\.storeId\);/)
 assert.match(rules, /match \/tables\/\{tableId\}[\s\S]*allow create: if canManageTables\(request\.resource\.data\.storeId\);/)
 assert.match(rules, /match \/tableGroups\/\{groupId\}[\s\S]*allow create: if canManageTables\(request\.resource\.data\.storeId\);/)

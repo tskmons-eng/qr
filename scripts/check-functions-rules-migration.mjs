@@ -75,19 +75,18 @@ assert.ok(api.includes("ORDER_COMMAND_REGION = 'us-central1'"), 'Functions comma
 assert.ok(api.includes('options.region'), 'Functions command API should allow an explicit regional alias')
 assert.ok(api.includes('category-scope-mismatch'), 'Functions command API should map category scope errors')
 assert.ok(handlers.includes('category-scope-mismatch') && handlers.includes('category.storeId'), 'Functions handlers should reject cross-store categories')
-assert.ok(clientRuntime.includes("VITE_ORDER_COMMAND_RUNTIME"), 'client command runtime should read VITE_ORDER_COMMAND_RUNTIME')
-assert.ok(clientRuntime.includes('import.meta.env.PROD'), 'client command runtime should default Production builds to Functions')
-assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'client'"), 'client command runtime should support explicit client rollback')
-assert.ok(clientRuntime.includes("ORDER_COMMAND_RUNTIME === 'functions'"), 'client command runtime should support explicit Functions verification')
+// 2026-10-22 整理 第4章：ブラウザから直接書くモードは廃止。注文・会計は常に Functions を通す。
+assert.ok(!clientRuntime.includes('ORDER_COMMAND_RUNTIME'), 'client should not keep a direct-write runtime switch')
+assert.ok(!clientRuntime.includes('shouldUseOrderCommandFunctions'), 'client should always call Functions')
 
 assert.match(
   rules,
-  /match \/orders\/\{orderId\} \{[\s\S]*?allow create: if false;/,
+  /match \/orders\/\{orderId\} \{[\s\S]*?allow create, update, delete: if false;/,
   'orders create should stay closed to clients after Functions mainline'
 )
 assert.match(
   rules,
-  /match \/orderItems\/\{itemId\} \{[\s\S]*?allow create: if false;/,
+  /match \/orderItems\/\{itemId\} \{[\s\S]*?allow create, update, delete: if false;/,
   'orderItems create should stay closed to clients after Functions mainline'
 )
 

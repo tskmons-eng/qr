@@ -3,9 +3,7 @@ const { FieldValue, getFirestore } = require('firebase-admin/firestore')
 const { commandError } = require('./orderCommandShared')
 const {
   assertStoreAccess,
-  getEmail,
-  isStoreManager,
-  loadActiveStaffMember,
+  resolveStaffActor,
 } = require('./orderCommandAuth')
 
 // 取消パスコードは店の端末から読めない storeSecrets/{storeId} にハッシュで置き、照合はここだけで行う。
@@ -50,9 +48,8 @@ function cancelPasscodeMatches(passcode, secret) {
 
 // 取消してよいか。店舗管理者とメニュー管理の権限があるスタッフはパスコード不要、それ以外は店の共通パスコードが要る。
 async function assertCancelAllowed(db, request, storeId, passcode) {
-  if (await isStoreManager(db, request, storeId)) return
-  const member = await loadActiveStaffMember(db, request, storeId)
-  if (staffMemberHasPermission(member, 'manageMenu')) return
+  const actor = await resolveStaffActor(db, request, storeId)
+  if (actor.isStoreManager || staffMemberHasPermission(actor.member, 'manageMenu')) return
 
   // 4桁は総当たりされやすいので、続けて間違えたら一定時間ロックする。
   const secretRef = db.collection(SECRET_COLLECTION).doc(storeId)
@@ -83,11 +80,8 @@ async function setCancelPasscodeCommand({ storeId, passcode }, request) {
     throw commandError('invalid-cancel-passcode-format', 'Cancel passcode must be 4 to 8 digits.')
   }
   const db = getFirestore()
-  await assertStoreAccess(db, request, storeId)
-
-  const isManager = await isStoreManager(db, request, storeId)
-  const member = isManager ? null : await loadActiveStaffMember(db, request, storeId)
-  if (!isManager && !staffMemberHasPermission(member, 'manageSettings')) {
+  const actor = await assertStoreAccess(db, request, storeId)
+  if (!actor.isStoreManager && !staffMemberHasPermission(actor.member, 'manageSettings')) {
     throw commandError('permission-denied', 'You cannot change the cancel passcode.')
   }
 
@@ -97,7 +91,7 @@ async function setCancelPasscodeCommand({ storeId, passcode }, request) {
 
   const salt = randomBytes(16).toString('hex')
   const now = FieldValue.serverTimestamp()
-  const updatedByName = member?.name?.trim() || getEmail(request) || '管理者'
+  const updatedByName = actor.name || '管理者'
   const batch = db.batch()
   batch.set(db.collection(SECRET_COLLECTION).doc(storeId), {
     storeId,

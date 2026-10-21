@@ -16,6 +16,7 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['empty-order', 'invalid-argument'],
   ['unauthenticated', 'unauthenticated'],
   ['permission-denied', 'permission-denied'],
+  ['staff-not-selected', 'permission-denied'],
   ['invalid-cancel-passcode', 'permission-denied'],
   ['invalid-cancel-passcode-format', 'invalid-argument'],
   ['cancel-passcode-not-set', 'failed-precondition'],
