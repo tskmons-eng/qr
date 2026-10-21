@@ -48,7 +48,7 @@ export default function CancelPasscodeSettings({ storeId }) {
 
   return (
     <>
-      <h2 className="admin-settings__heading admin-settings__heading--spaced">取消パスコード</h2>
+      <h3 className="admin-settings__heading settings-group__subheading">取消パスコード</h3>
       <div className="admin-settings__panel admin-settings__passcode-panel">
         <div className="admin-settings__description">
           メニュー管理の権限がないスタッフが、席詳細や厨房で品目を取り消すときに入力します。

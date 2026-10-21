@@ -80,7 +80,7 @@
 
 .owner-summary-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -239,26 +239,6 @@
 .owner-store-admin-email__button:disabled {
   background: #cccccc;
   cursor: default;
-}
-
-.owner-store-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: var(--font-weight-label);
-  white-space: nowrap;
-}
-
-.owner-store-status.is-active {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.owner-store-status.is-paused {
-  color: #991b1b;
-  background: #fee2e2;
 }
 
 .owner-store-manage-button {

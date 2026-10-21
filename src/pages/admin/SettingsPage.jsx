@@ -1,28 +1,20 @@
 import { useEffect, useState } from 'react'
-import CancelPasscodeSettings from '../../components/admin/CancelPasscodeSettings'
-import CustomerDisplaySettings from '../../components/admin/CustomerDisplaySettings'
+import CustomerOrderSettings from '../../components/admin/CustomerOrderSettings'
 import DeviceSoundSettings from '../../components/admin/DeviceSoundSettings'
-import SettingsSaveButton from '../../components/admin/SettingsSaveButton'
-import StoreWorkflowSettings from '../../components/admin/StoreWorkflowSettings'
 import StoreCodeCard from '../../components/admin/StoreCodeCard'
-import TaxRateSettings from '../../components/admin/TaxRateSettings'
+import StoreOperationSettings from '../../components/admin/StoreOperationSettings'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStore } from '../../contexts/StoreContext'
-import {
-  CUSTOMER_SETTING_TOGGLES,
-  WORKFLOW_SETTING_TOGGLES,
-  TAX_PRESETS,
-} from '../../lib/settingsConfig'
+import useStoreConfigEditor from '../../hooks/useStoreConfigEditor'
 import { normalizeStoreName } from '../../lib/storeIdentity'
 import {
   loadStoreIdentity,
-  loadStoreConfig,
   loadStoreConfigProducts,
   saveStoreName,
-  saveStoreConfig,
 } from '../../services/settingsService'
 
-export default function SettingsPage({ notificationControls = null, onConfigSaved }) {
+// 設定画面：店舗情報／お客様の注文／お店の運用／この端末だけの設定。スイッチや選択は押したらすぐ保存する。
+export default function SettingsPage({ notificationControls = null }) {
   const { storeId } = useStore()
   const { user } = useAuth()
   const [storeCode, setStoreCode] = useState('')
@@ -32,10 +24,7 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
   const [storeNameSaved, setStoreNameSaved] = useState(false)
   const [storeNameError, setStoreNameError] = useState('')
   const [codeCopied, setCodeCopied] = useState(false)
-  const [config, setConfig] = useState(null)
-  const [taxInput, setTaxInput] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const { config, statuses, save } = useStoreConfigEditor(storeId)
   const [products, setProducts] = useState([])
   const storeNameChanged = storeIdentity
     ? normalizeStoreName(storeNameInput) !== storeIdentity.storeName
@@ -70,10 +59,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
 
   useEffect(() => {
     if (!storeId) return
-    loadStoreConfig(storeId).then(nextConfig => {
-      setConfig(nextConfig)
-      setTaxInput(String(nextConfig.taxRate))
-    })
     loadStoreConfigProducts(storeId).then(setProducts)
   }, [storeId])
 
@@ -104,46 +89,6 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
     }
   }
 
-  function handleToggle(key) {
-    setConfig(prev => ({ ...prev, [key]: !prev[key] }))
-    setSaved(false)
-  }
-
-  function handleGuestAutoAddChange(patch) {
-    setConfig(prev => ({
-      ...prev,
-      guestAutoAdd: {
-        ...(prev.guestAutoAdd ?? {}),
-        ...patch,
-      },
-    }))
-    setSaved(false)
-  }
-
-  function handleTaxPreset(value) {
-    setConfig(prev => ({ ...prev, taxRate: value }))
-    setTaxInput(String(value))
-    setSaved(false)
-  }
-
-  function handleTaxInput(value) {
-    setTaxInput(value)
-    const nextTaxRate = parseFloat(value)
-    if (!Number.isNaN(nextTaxRate) && nextTaxRate >= 0 && nextTaxRate <= 100) {
-      setConfig(prev => ({ ...prev, taxRate: nextTaxRate }))
-    }
-    setSaved(false)
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    await saveStoreConfig(storeId, config)
-    onConfigSaved?.(config)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   if (!config) return <p className="admin-settings__loading">読み込み中...</p>
 
   return (
@@ -166,32 +111,9 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
           onCopy={handleCopyCode}
         />
       )}
-      <CustomerDisplaySettings
-        toggles={CUSTOMER_SETTING_TOGGLES}
-        config={config}
-        onToggle={handleToggle}
-      />
-      <StoreWorkflowSettings
-        config={config}
-        products={products}
-        toggles={WORKFLOW_SETTING_TOGGLES}
-        onToggle={handleToggle}
-        onGuestAutoAddChange={handleGuestAutoAddChange}
-      />
-      <CancelPasscodeSettings storeId={storeId} />
+      <CustomerOrderSettings config={config} products={products} statuses={statuses} onSave={save} />
+      <StoreOperationSettings storeId={storeId} config={config} statuses={statuses} onSave={save} />
       <DeviceSoundSettings notificationControls={notificationControls} />
-      <TaxRateSettings
-        taxRate={config.taxRate}
-        taxInput={taxInput}
-        presets={TAX_PRESETS}
-        onPreset={handleTaxPreset}
-        onInput={handleTaxInput}
-      />
-      <SettingsSaveButton
-        saving={saving}
-        saved={saved}
-        onSave={handleSave}
-      />
     </div>
   )
 }

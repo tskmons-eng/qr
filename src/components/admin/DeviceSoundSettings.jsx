@@ -5,6 +5,7 @@ import {
   playSound,
   saveSoundPrefs,
 } from '../../lib/sounds'
+import SettingsGroup from './SettingsGroup'
 
 export default function DeviceSoundSettings({ notificationControls = null }) {
   const [staffPrefs, setStaffPrefs] = useState(loadSoundPrefs)
@@ -44,13 +45,18 @@ export default function DeviceSoundSettings({ notificationControls = null }) {
   }
 
   return (
-    <>
-      <h2 className="admin-settings__heading">呼び出し音設定</h2>
+    <SettingsGroup
+      title="この端末だけの設定"
+      scope="device"
+      lead="今さわっているスマホ・タブレットだけに効きます。ほかの端末やお店全体には影響しません。キッチンの通知音はキッチン画面の音の設定で変えます。"
+    >
       <div className="admin-settings__panel admin-settings__sound-panel">
-        <div className="admin-settings__description">
-          ホールで使う通知音を、この端末ごとに設定します。変更はすぐ保存されます。キッチンの通知音はキッチン画面の音の設定で変えます。
-        </div>
         <div className="admin-settings__sound-grid">
+          {!notificationControls && (
+            <div className="admin-settings__toggle-description">
+              この端末の通知（ブラウザ通知）は、スタッフ画面から設定を開いたときに切り替えられます。
+            </div>
+          )}
           {notificationControls && (
             <section className="admin-settings__sound-device">
               <div>
@@ -126,6 +132,6 @@ export default function DeviceSoundSettings({ notificationControls = null }) {
           ))}
         </div>
       </div>
-    </>
+    </SettingsGroup>
   )
 }

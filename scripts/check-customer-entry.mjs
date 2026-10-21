@@ -2,20 +2,16 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   applyCustomerOrderStartToTable,
-  CUSTOMER_ENTRY_CONFIG_DEFAULTS,
   getCustomerEntryStartPath,
-  normalizeCustomerStoreConfig,
   stepGuestCount,
 } from '../src/lib/customerEntry.js'
+import { GUEST_AUTO_ADD_DEFAULTS, STORE_CONFIG_DEFAULTS, normalizeStoreConfig } from '../src/lib/settingsConfig.js'
 
-assert.deepEqual(normalizeCustomerStoreConfig({ showItemPrice: false }), {
-  ...CUSTOMER_ENTRY_CONFIG_DEFAULTS,
-  showItemPrice: false,
-})
-assert.equal(CUSTOMER_ENTRY_CONFIG_DEFAULTS.customerMenuTapToAddEnabled, true)
-assert.equal(normalizeCustomerStoreConfig({ customerMenuTapToAddEnabled: false }).customerMenuTapToAddEnabled, false)
-assert.deepEqual(normalizeCustomerStoreConfig({ guestAutoAdd: { enabled: true, productId: 'p1' } }).guestAutoAdd, {
-  ...CUSTOMER_ENTRY_CONFIG_DEFAULTS.guestAutoAdd,
+// お客様画面も店舗設定の既定値は settingsConfig.js の1か所を使う（2026-10-21 整理 第2章）。
+assert.equal(STORE_CONFIG_DEFAULTS.customerMenuTapToAddEnabled, true)
+assert.equal(normalizeStoreConfig({ customerMenuTapToAddEnabled: false }).customerMenuTapToAddEnabled, false)
+assert.deepEqual(normalizeStoreConfig({ guestAutoAdd: { enabled: true, productId: 'p1' } }).guestAutoAdd, {
+  ...GUEST_AUTO_ADD_DEFAULTS,
   enabled: true,
   productId: 'p1',
 })
@@ -35,7 +31,10 @@ assert.deepEqual(applyCustomerOrderStartToTable({ id: 'table-1', tableName: 'A' 
 
 const orderEntrySource = readFileSync(new URL('../src/pages/order/OrderEntryPage.jsx', import.meta.url), 'utf8')
 assert.match(orderEntrySource, /const \[configLoading, setConfigLoading\] = useState\(true\)/)
-assert.match(orderEntrySource, /setStoreConfig\(CUSTOMER_ENTRY_CONFIG_DEFAULTS\)/)
+assert.match(orderEntrySource, /setStoreConfig\(STORE_CONFIG_DEFAULTS\)/)
+const customerEntryService = readFileSync(new URL('../src/services/customerEntryService.js', import.meta.url), 'utf8')
+assert.match(customerEntryService, /normalizeStoreConfig\(/)
+assert.doesNotMatch(readFileSync(new URL('../src/lib/customerEntry.js', import.meta.url), 'utf8'), /CONFIG_DEFAULTS/)
 assert.match(orderEntrySource, /if \(loading \|\| error \|\| !table\)/)
 assert.match(orderEntrySource, /<OrderEntryStatus loading=\{loading\} error=\{error\} \/>/)
 assert.match(orderEntrySource, /storeConfigLoading: configLoading/)

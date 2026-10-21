@@ -9,7 +9,7 @@ import {
   subscribeStaffTable,
   subscribeStaffTableOrderItems,
 } from '../../services/staffTableService'
-import { loadStoreConfig } from '../../services/settingsService'
+import useStoreConfig from '../../hooks/useStoreConfig'
 
 export default function RemainingPage() {
   const { tableId } = useParams()
@@ -17,10 +17,10 @@ export default function RemainingPage() {
   const location = useLocation()
   const [table, setTable] = useState(null)
   const [items, setItems] = useState([])
-  const [storeConfig, setStoreConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const activeOrderId = location.state?.orderId ?? table?.currentOrderId ?? null
   const activeStoreId = location.state?.storeId ?? table?.storeId ?? null
+  const storeConfig = useStoreConfig(activeStoreId)
 
   useEffect(() => {
     const unsub = subscribeStaffTable(tableId, nextTable => {
@@ -38,10 +38,6 @@ export default function RemainingPage() {
     return subscribeStaffTableOrderItems(activeOrderId, setItems)
   }, [activeOrderId])
 
-  useEffect(() => {
-    if (!activeStoreId) return
-    loadStoreConfig(activeStoreId).then(setStoreConfig)
-  }, [activeStoreId])
 
   async function markServed(item) {
     if (item.itemStatus !== 'ordered') return

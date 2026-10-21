@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { normalizeStoreConfig } from '../lib/settingsConfig'
 import { STORE_NAME_FALLBACK, normalizeStoreName, validateStoreName } from '../lib/storeIdentity'
@@ -50,9 +50,19 @@ export async function loadStoreConfigProducts(storeId) {
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 }
 
-export function saveStoreConfig(storeId, config) {
+// 店舗設定の変更をすぐ受け取る。管理画面で変えた設定が、開いたままのスタッフ画面・厨房にも反映される。
+export function subscribeStoreConfig(storeId, onNext, onError) {
+  return onSnapshot(
+    doc(db, 'storeConfig', storeId),
+    snap => onNext(normalizeStoreConfig(snap.exists() ? snap.data() : {})),
+    onError,
+  )
+}
+
+// 変えた項目だけを保存する（押したら保存）。guestAutoAdd のような入れ子も、渡した項目だけが上書きされる。
+export function saveStoreConfigPatch(storeId, patch) {
   return setDoc(doc(db, 'storeConfig', storeId), {
-    ...config,
+    ...patch,
     updatedAt: serverTimestamp(),
   }, { merge: true })
 }

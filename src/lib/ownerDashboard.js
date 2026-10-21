@@ -76,7 +76,6 @@ export function buildOwnerDashboardSnapshot({ stores, checks, orders }, date = n
       storeName: normalizeStoreName(store.storeName),
       storeCode: store.storeCode || '',
       ownerEmail: store.ownerEmail || '',
-      status: store.isOpen === false ? '停止中' : '稼働中',
       createdAt: store.createdAt,
       lastActivityAt,
       todaySales,
@@ -98,7 +97,6 @@ export function buildOwnerDashboardSnapshot({ stores, checks, orders }, date = n
     stores: sortedStores,
     summary: {
       storeCount: sortedStores.length,
-      activeStoreCount: sortedStores.filter(store => store.status === '稼働中').length,
       todaySales: sortedStores.reduce((sum, store) => sum + store.todaySales, 0),
       todayCheckCount: sortedStores.reduce((sum, store) => sum + store.todayCheckCount, 0),
       openOrderCount: sortedStores.reduce((sum, store) => sum + store.openOrderCount, 0),

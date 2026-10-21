@@ -32,7 +32,7 @@ import {
   subscribePendingKitchenItems,
 } from '../../services/kitchenService'
 import { subscribeTodayReservations } from '../../services/reservationService'
-import { loadStoreConfig } from '../../services/settingsService'
+import useStoreConfig from '../../hooks/useStoreConfig'
 
 export default function KitchenPage() {
   const { storeId, loading: storeLoading } = useStore()
@@ -43,7 +43,7 @@ export default function KitchenPage() {
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [showSoundSettings, setShowSoundSettings] = useState(false)
   const [filterGroup, setFilterGroup] = useState('all')
-  const [storeConfig, setStoreConfig] = useState(null)
+  const storeConfig = useStoreConfig(storeId)
   const [todayReservations, setTodayReservations] = useState([])
   const [commandError, setCommandError] = useState('')
   const [optimisticHiddenItemIds, setOptimisticHiddenItemIds] = useState(() => new Set())
@@ -73,10 +73,6 @@ export default function KitchenPage() {
     return subscribeTodayReservations(storeId, today, setTodayReservations)
   }, [storeId, today])
 
-  useEffect(() => {
-    if (!storeId) return
-    loadStoreConfig(storeId).then(setStoreConfig)
-  }, [storeId])
 
   useEffect(() => {
     if (!storeId) return undefined

@@ -1,4 +1,5 @@
 import { STORE_NAME_MAX_LENGTH } from '../../lib/storeIdentity'
+import SettingsGroup from './SettingsGroup'
 
 export default function StoreCodeCard({
   copied,
@@ -15,8 +16,7 @@ export default function StoreCodeCard({
   if (!storeCode && storeNameInput == null) return null
 
   return (
-    <>
-      <h2 className="admin-settings__heading">店舗情報</h2>
+    <SettingsGroup title="店舗情報">
       <div className="admin-settings__store-code-card admin-settings__store-identity-card">
         <div className="admin-settings__store-identity-main">
           <label className="admin-settings__store-name-label" htmlFor="admin-store-name">
@@ -62,6 +62,6 @@ export default function StoreCodeCard({
           </button>
         )}
       </div>
-    </>
+    </SettingsGroup>
   )
 }

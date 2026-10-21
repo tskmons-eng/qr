@@ -1,5 +1,5 @@
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
-import { normalizeCustomerStoreConfig } from '../lib/customerEntry'
+import { normalizeStoreConfig } from '../lib/settingsConfig'
 import { db } from '../lib/firebase'
 import { startCustomerOrderSession } from './orderCommandService'
 
@@ -17,7 +17,7 @@ export function subscribeCustomerTableByQrToken(qrToken, onNext, onError) {
 
 export async function loadCustomerStoreConfig(storeId) {
   const snap = await getDoc(doc(db, 'storeConfig', storeId))
-  return normalizeCustomerStoreConfig(snap.exists() ? snap.data() : {})
+  return normalizeStoreConfig(snap.exists() ? snap.data() : {})
 }
 
 export function createCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {

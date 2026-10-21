@@ -4,7 +4,6 @@ import { STORE_NAME_MAX_LENGTH, normalizeStoreName } from '../../lib/storeIdenti
 
 const summaryCards = [
   { key: 'storeCount', label: '登録店舗', format: value => `${value}件` },
-  { key: 'activeStoreCount', label: '稼働中', format: value => `${value}件` },
   { key: 'todaySales', label: '本日売上', format: formatOwnerCurrency },
   { key: 'todayCheckCount', label: '本日会計', format: value => `${value}件` },
   { key: 'openOrderCount', label: '未会計注文', format: value => `${value}件` },
@@ -93,7 +92,6 @@ function OwnerStoreTable({
           <tr>
             <th>店舗</th>
             <th>店舗コード</th>
-            <th>状態</th>
             <th>名義メール</th>
             <th>本日売上</th>
             <th>本日会計</th>
@@ -133,11 +131,6 @@ function OwnerStoreTable({
                 <div className="owner-store-table__id">{store.id}</div>
               </td>
               <td className="owner-store-table__code">{store.storeCode || '-'}</td>
-              <td>
-                <span className={`owner-store-status${store.status === '稼働中' ? ' is-active' : ' is-paused'}`}>
-                  {store.status}
-                </span>
-              </td>
               <td>
                 <div className="owner-store-admin-email">
                   <div className="owner-store-admin-email__field">

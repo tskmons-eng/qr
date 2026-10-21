@@ -4,7 +4,8 @@ import AppRouteLoading from '../../components/AppRouteLoading'
 import OrderEntryStatus from '../../components/order/OrderEntryStatus'
 import { CartProvider } from '../../contexts/CartContext'
 import { OrderProvider } from '../../contexts/OrderContext'
-import { CUSTOMER_ENTRY_CONFIG_DEFAULTS, getCustomerEntryStartPath } from '../../lib/customerEntry'
+import { getCustomerEntryStartPath } from '../../lib/customerEntry'
+import { STORE_CONFIG_DEFAULTS } from '../../lib/settingsConfig'
 import { loadCustomerStoreConfig, subscribeCustomerTableByQrToken } from '../../services/customerEntryService'
 import '../../styles/customer.css'
 
@@ -17,7 +18,7 @@ export default function OrderEntryPage() {
   const { qrToken } = useParams()
   const [table, setTable] = useState(null)
   const [orderId, setOrderId] = useState(null)
-  const [storeConfig, setStoreConfig] = useState(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
+  const [storeConfig, setStoreConfig] = useState(STORE_CONFIG_DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [configLoading, setConfigLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -29,7 +30,7 @@ export default function OrderEntryPage() {
     configRequestIdRef.current += 1
     setTable(null)
     setOrderId(null)
-    setStoreConfig(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
+    setStoreConfig(STORE_CONFIG_DEFAULTS)
     setLoading(true)
     setConfigLoading(true)
     setError(null)
@@ -50,7 +51,7 @@ export default function OrderEntryPage() {
 
       if (loadedConfigStoreIdRef.current !== nextTable.storeId) {
         loadedConfigStoreIdRef.current = nextTable.storeId
-        setStoreConfig(CUSTOMER_ENTRY_CONFIG_DEFAULTS)
+        setStoreConfig(STORE_CONFIG_DEFAULTS)
         setConfigLoading(true)
         const requestId = configRequestIdRef.current + 1
         configRequestIdRef.current = requestId

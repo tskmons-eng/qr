@@ -1,0 +1,97 @@
+.settings-group {
+  margin-bottom: 28px;
+}
+
+.settings-group__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.settings-group__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.settings-group__scope {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8eefc;
+  color: #2d4fa3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.settings-group__scope.is-device {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.settings-group__lead {
+  margin: 0 0 10px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-group__subheading {
+  margin-top: 16px;
+}
+
+.settings-row-status {
+  display: block;
+  min-height: 18px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.settings-row-status.is-saving {
+  color: #888;
+}
+
+.settings-row-status.is-saved {
+  color: #2e7d32;
+}
+
+.settings-row-status.is-error {
+  color: #c62828;
+}
+
+.admin-settings__toggle-row.is-disabled .admin-settings__toggle-label,
+.admin-settings__toggle-row.is-disabled .admin-settings__toggle-description {
+  color: #aaa;
+}
+
+.admin-settings__switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.settings-dependency {
+  margin-top: 4px;
+  color: #b26a00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-subsection {
+  padding: 14px 16px;
+  border-top: 1px solid #eee;
+}
+
+.settings-subsection__title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.settings-inline-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

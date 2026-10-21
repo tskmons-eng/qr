@@ -24,7 +24,7 @@ import {
   subscribeStaffTableOrderItems,
   updateTableGuestCount,
 } from '../../services/staffTableService'
-import { loadStoreConfig } from '../../services/settingsService'
+import useStoreConfig from '../../hooks/useStoreConfig'
 
 export default function TableDetailPage() {
   const { tableId } = useParams()
@@ -33,7 +33,7 @@ export default function TableDetailPage() {
   const { activeStaff } = useStaffMember()
   const [table, setTable] = useState(null)
   const [items, setItems] = useState([])
-  const [storeConfig, setStoreConfig] = useState(null)
+  const storeConfig = useStoreConfig(storeId)
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(() => Date.now())
   const [actionError, setActionError] = useState('')
@@ -80,10 +80,6 @@ export default function TableDetailPage() {
     return subscribeStaffTableOrderItems(table.currentOrderId, setItems)
   }, [table?.currentOrderId])
 
-  useEffect(() => {
-    if (!storeId) return
-    loadStoreConfig(storeId).then(setStoreConfig)
-  }, [storeId])
 
   async function markServed(item) {
     setActionError('')

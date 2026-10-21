@@ -33,7 +33,7 @@ const [
   readFile('src/pages/kitchen/KitchenPage.jsx', 'utf8'),
   readFile('src/pages/staff/TableDetailPage.jsx', 'utf8'),
   readFile('src/components/staff/TableCancelModal.jsx', 'utf8'),
-  readFile('src/pages/admin/SettingsPage.jsx', 'utf8'),
+  readFile('src/components/admin/StoreOperationSettings.jsx', 'utf8'),
   readFile('src/lib/orderCommandErrors.js', 'utf8'),
   readFile('package.json', 'utf8'),
 ])
@@ -96,6 +96,7 @@ for (const page of [kitchenPage, tableDetailPage]) {
 }
 assert.match(cancelModal, /取消パスコード/)
 assert.match(cancelModal, /disabled=\{cancelling \|\| blocked\}/)
+// 取消パスコードの欄は設定画面の「お店の運用」の中（2026-10-21 整理 第2章）。
 assert.match(settingsPage, /<CancelPasscodeSettings storeId=\{storeId\} \/>/)
 
 // 総当たり対策と、打ち間違いを失敗ログに混ぜないこと。

@@ -98,7 +98,6 @@ export function StoreProvider({ children }) {
         await setDoc(storeRef, {
           storeName: '店舗名未設定',
           storeCode: code,
-          isOpen: true,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         })

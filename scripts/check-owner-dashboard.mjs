@@ -39,7 +39,9 @@ const dashboard = buildOwnerDashboardSnapshot({
 }, date)
 
 assert.equal(dashboard.summary.storeCount, 2)
-assert.equal(dashboard.summary.activeStoreCount, 1)
+// 稼働状態（停止中／稼働中）は 2026-10-21 整理 第2章で廃止。データに isOpen が残っていても表示しない。
+assert.equal(dashboard.summary.activeStoreCount, undefined)
+assert.equal(dashboard.stores[0].status, undefined)
 assert.equal(dashboard.summary.todaySales, 4200)
 assert.equal(dashboard.summary.todayCheckCount, 2)
 assert.equal(dashboard.summary.openOrderCount, 1)

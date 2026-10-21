@@ -16,7 +16,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { activateStaffMemberSession } from '../../services/staffAuthService'
 import { getNewCallIds, respondToStaffCall, subscribePendingCalls } from '../../services/staffCallService'
-import { loadStoreConfig } from '../../services/settingsService'
+import useStoreConfig from '../../hooks/useStoreConfig'
 import ProductPage from '../admin/ProductPage'
 import SalesPage from '../admin/SalesPage'
 import StaffPage from '../admin/StaffPage'
@@ -67,7 +67,7 @@ export default function StaffLayout() {
 
   const [calls, setCalls] = useState([])
   const [notifStatus, setNotifStatus] = useState(() => hasRegisteredNotificationToken() ? 'ok' : 'none')
-  const [storeConfig, setStoreConfig] = useState(null)
+  const storeConfig = useStoreConfig(storeId)
   const prevCallIdsRef = useRef(null)
   const notificationsEnabled = storeConfig?.notificationsEnabled !== false
 
@@ -82,10 +82,6 @@ export default function StaffLayout() {
     }
   }
 
-  useEffect(() => {
-    if (!storeId) return
-    loadStoreConfig(storeId).then(setStoreConfig)
-  }, [storeId])
 
   useEffect(() => {
     if (storeConfig && !notificationsEnabled) {
@@ -270,7 +266,6 @@ export default function StaffLayout() {
               <StaffPermissionGate activeStaff={activeStaff} permission="manageSettings" elevated>
                 <SettingsPage
                   notificationControls={notificationControls}
-                  onConfigSaved={setStoreConfig}
                 />
               </StaffPermissionGate>
             } />

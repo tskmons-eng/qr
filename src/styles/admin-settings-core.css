@@ -135,8 +135,7 @@
   white-space: nowrap;
 }
 
-.admin-settings__copy-button.is-copied,
-.admin-settings__save.is-saved {
+.admin-settings__copy-button.is-copied {
   background: #16a34a;
   color: #fff;
 }
@@ -417,17 +416,6 @@
 .admin-settings__sound-volume {
   width: 44px;
   text-align: right;
-}
-
-.admin-settings__save {
-  padding: 11px 32px;
-  border: none;
-  border-radius: 8px;
-  background: #222;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 @media (max-width: 560px) {
