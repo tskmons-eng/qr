@@ -2,9 +2,11 @@
 # 本番（Firebase qrproduct-3340b）の状態を直接聞く。読むだけで、何も変えない。
 # 手元の記録は別PC・別セッションの分を知らないので、本番の状態を話す前に必ずこれを実行する。
 PROJECT=qrproduct-3340b
+# これまでの運用どおり、firebase コマンドが無ければ npx で公式の firebase-tools を使う。
 FB=firebase
 if ! command -v firebase >/dev/null 2>&1; then
-  FB=""
+  FB="npx --yes firebase-tools"
+  command -v npx >/dev/null 2>&1 || FB=""
 fi
 
 echo "== GitHub（origin）の最新"
@@ -13,8 +15,8 @@ git log -1 --format='%h %ad %s' --date=format:'%Y-%m-%d %H:%M' origin/main 2>/de
 git log -1 --format='%h %ad %s' --date=format:'%Y-%m-%d %H:%M' "@{u}" 2>/dev/null | sed 's/^/今のブランチの push 先: /'
 
 if [ -z "$FB" ]; then
-  echo "== Firebase CLI がこのPCに見つかりません。本番の状態は確かめられていません（推測で話さないこと）。"
-  echo "   ユーザー様に Firebase CLI の導入（npm install -g firebase-tools）とログインをお願いする。"
+  echo "== Firebase CLI も npx も見つかりません。本番の状態は確かめられていません（推測で話さないこと）。"
+  echo "   ユーザー様に Node.js（npx）と firebase login をお願いする。"
   exit 1
 fi
 

@@ -3,6 +3,12 @@
 本番に出したもの・日付・確認結果を新しい順に短く書く。
 2026-10-21 より前の記録は `docs/archive/reset-2026-10-21/plan.MD`。
 
+## 2026-10-21 税率の初期値を 10% にそろえる（K2）
+
+- 設定を保存していない店で、設定画面は 10%・会計は 0% と食い違っていたのを、`settingsConfig.js` の1か所（10%）にそろえた。金額は変わらず、会計の「内消費税」の表示だけが変わる。
+- コミット `607ffe6`。Hosting だけを `qrproduct-3340b` に公開。Functions・rules・データは変更なし。
+- 確認：`npm run check`・`npm run build` 成功。本番の `index` の配信ファイルが手元のビルドと一致。`/`・`/login`・`/staff`・`/admin`・`/order/test-token` はすべて 200。
+
 ## 2026-10-21 指示書の作り直し
 
 - 旧 `AGENTS.md`・`plan.MD`・`MAINTENANCE_PLAN.md` を `docs/archive/reset-2026-10-21/` へ移し、`AGENTS.md`・`CLAUDE.md` を作り直した（タグ `qr-before-md-reset-20261021`）。

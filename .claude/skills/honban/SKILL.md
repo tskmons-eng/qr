@@ -15,7 +15,8 @@ description: QRシステムの変更を確認・コミット・push・Firebase �
    **止まる場所**：1つでも失敗したら出さない。失敗した名前と内容をユーザー様に伝える。
 3. `git status --short --branch` で、自分の変更だけをコミットし push する。push できなければ止めて報告する。
 4. `bash scripts/prod-status.sh` で、出す前の本番の状態を見る。
-5. 変わったものだけを出す。
+5. 変わったものだけを出す。`firebase` コマンドが無いPCでは、下の `firebase` を `npx --yes firebase-tools` に置き換え、`--non-interactive` を付ける（これまでの運用）。
+   npx が `MODULE_NOT_FOUND` で落ちるときは、`%LOCALAPPDATA%\npm-cache\_npx\` の中の firebase-tools のキャッシュが壊れている。そのフォルダだけを消して取り直す。
    - 画面：`firebase deploy --only hosting --project qrproduct-3340b`
    - Functions：`firebase deploy --only functions:<名前> --project qrproduct-3340b`（対象を1本ずつ。全体デプロイはしない）
    - rules：`firebase deploy --only firestore:rules`（または `storage`）
