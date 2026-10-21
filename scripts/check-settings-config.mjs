@@ -93,4 +93,17 @@ assert.match(deviceSoundSettings, /この端末の通知/)
 assert.match(readFileSync(new URL('../src/lib/settingsConfig.js', import.meta.url), 'utf8'), /商品行タップで追加/)
 assert.doesNotMatch(staffAuthStyles, /sound-settings/)
 
+// 税率の既定値は settingsConfig.js の1か所だけ。設定画面と会計で同じ値を使う。
+assert.equal(STORE_CONFIG_DEFAULTS.taxRate, 10)
+assert.equal(normalizeStoreConfig({}).taxRate, 10)
+assert.equal(normalizeStoreConfig({ taxRate: 0 }).taxRate, 0)
+assert.equal(normalizeStoreConfig({ taxRate: '8' }).taxRate, 8)
+assert.equal(normalizeStoreConfig({ taxRate: null }).taxRate, 10)
+assert.equal(normalizeStoreConfig({ taxRate: 'abc' }).taxRate, 10)
+assert.equal(normalizeStoreConfig({ taxRate: 150 }).taxRate, 10)
+const checkoutService = readFileSync(new URL('../src/services/checkoutService.js', import.meta.url), 'utf8')
+assert.match(checkoutService, /normalizeStoreConfig\(/, 'checkout should read taxRate through normalizeStoreConfig')
+assert.doesNotMatch(checkoutService, /taxRate\s*\?\?/, 'checkout should not define its own taxRate default')
+assert.doesNotMatch(settingsPage, /taxRate\s*\?\?/, 'settings page should not define its own taxRate default')
+
 console.log('settings config checks passed')

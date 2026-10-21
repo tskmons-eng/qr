@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { normalizeStoreConfig } from '../lib/settingsConfig'
 import { completeCheckoutCommand } from './orderCommandService'
 
 export async function loadCheckoutData({ orderId, storeId }) {
@@ -14,7 +15,7 @@ export async function loadCheckoutData({ orderId, storeId }) {
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(item => item.itemStatus !== 'cancelled'),
     orderItemsRevision: orderSnap.exists() ? (orderSnap.data()?.orderItemsRevision ?? 0) : 0,
-    taxRate: configSnap?.exists() ? (configSnap.data()?.taxRate ?? 0) : 0,
+    taxRate: normalizeStoreConfig(configSnap?.exists() ? configSnap.data() : {}).taxRate,
   }
 }
 

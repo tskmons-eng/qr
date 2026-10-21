@@ -39,11 +39,19 @@ export function normalizeGuestAutoAdd(config = {}) {
   }
 }
 
+export function normalizeTaxRate(value) {
+  if (value === null || value === undefined || value === '') return STORE_CONFIG_DEFAULTS.taxRate
+  const taxRate = Number(value)
+  if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) return STORE_CONFIG_DEFAULTS.taxRate
+  return taxRate
+}
+
 export function normalizeStoreConfig(data = {}) {
   return {
     ...STORE_CONFIG_DEFAULTS,
     ...data,
     guestAutoAdd: normalizeGuestAutoAdd(data.guestAutoAdd),
+    taxRate: normalizeTaxRate(data.taxRate),
   }
 }
 

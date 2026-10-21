@@ -91,7 +91,7 @@ export default function SettingsPage({ notificationControls = null, onConfigSave
     if (!storeId) return
     loadStoreConfig(storeId).then(nextConfig => {
       setConfig(nextConfig)
-      setTaxInput(String(nextConfig.taxRate ?? 10))
+      setTaxInput(String(nextConfig.taxRate))
     })
     loadStoreConfigProducts(storeId).then(setProducts)
   }, [storeId])
