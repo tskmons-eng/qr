@@ -61,7 +61,9 @@ service cloud.firestore {
         && currentStaffSessionData().get('staffMemberId', null) is string
         && currentStaffSessionData().staffMemberId.size() > 0
         && exists(/databases/$(database)/documents/staffMembers/$(currentStaffSessionData().staffMemberId))
-        && get(/databases/$(database)/documents/staffMembers/$(currentStaffSessionData().staffMemberId)).data.storeId == storeId;
+        && get(/databases/$(database)/documents/staffMembers/$(currentStaffSessionData().staffMemberId)).data.storeId == storeId
+        // 4桁パスをサーバーで照合した記録だけを信じる（activateStaffSessionCommand が書く。2026-10-22 第4章 4-B）。
+        && currentStaffSessionData().get('verifiedStaffMemberId', null) == currentStaffSessionData().staffMemberId;
     }
 
     function currentStaffMemberData() {
@@ -175,81 +177,6 @@ service cloud.firestore {
       return data.keys().hasOnly(['storeId', 'code'])
         && data.keys().hasAll(['storeId', 'code'])
         && validStaffSessionBase(data);
-    }
-
-    function validCanonicalStaffPermissions(permissions, memberData) {
-      return permissions.keys().hasOnly([
-          'useKitchen',
-          'closeRegister',
-          'manageMenu',
-          'manageTables',
-          'manageReservations',
-          'viewHistory',
-          'manageSettings',
-          'manageStaff'
-        ])
-        && permissions.keys().hasAll([
-          'useKitchen',
-          'closeRegister',
-          'manageMenu',
-          'manageTables',
-          'manageReservations',
-          'viewHistory',
-          'manageSettings',
-          'manageStaff'
-        ])
-        && permissions.useKitchen is bool
-        && permissions.closeRegister is bool
-        && permissions.manageMenu is bool
-        && permissions.manageTables is bool
-        && permissions.manageReservations is bool
-        && permissions.viewHistory is bool
-        && permissions.manageSettings is bool
-        && permissions.manageStaff is bool
-        && permissions.useKitchen == canonicalStaffPermission(memberData, 'useKitchen', false)
-        && permissions.closeRegister == canonicalStaffPermission(memberData, 'closeRegister', false)
-        && permissions.manageMenu == canonicalStaffPermission(memberData, 'manageMenu', false)
-        && permissions.manageTables == canonicalStaffPermission(memberData, 'manageTables', false)
-        && permissions.manageReservations == canonicalStaffPermission(memberData, 'manageReservations', false)
-        && permissions.viewHistory == canonicalStaffPermission(memberData, 'viewHistory', false)
-        && permissions.manageSettings == canonicalStaffPermission(memberData, 'manageSettings', false)
-        && permissions.manageStaff == canonicalStaffPermission(memberData, 'manageStaff', false);
-    }
-
-    function validActivatedStaffSession(data) {
-      return data.keys().hasOnly([
-          'storeId',
-          'code',
-          'staffMemberId',
-          'staffName',
-          'permissionPreset',
-          'permissions',
-          'updatedAt'
-        ])
-        && data.keys().hasAll([
-          'storeId',
-          'code',
-          'staffMemberId',
-          'staffName',
-          'permissionPreset',
-          'permissions',
-          'updatedAt'
-        ])
-        && validStaffSessionBase(data)
-        && data.staffMemberId is string
-        && data.staffMemberId.size() > 0
-        && data.staffMemberId.size() <= 128
-        && exists(/databases/$(database)/documents/staffMembers/$(data.staffMemberId))
-        && get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data.storeId == data.storeId
-        && data.staffName == get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data.name
-        && data.permissionPreset == canonicalStaffPreset(
-          get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data
-        )
-        && validCanonicalStaffPermissions(
-          data.permissions,
-          get(/databases/$(database)/documents/staffMembers/$(data.staffMemberId)).data
-        )
-        && data.updatedAt == request.time;
     }
 
     function validSalesAuditFieldTypes(data, prefix) {
@@ -691,16 +618,10 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.auth.uid == uid
         && validStaffSessionEntry(request.resource.data);
+      // スタッフの選択（staffMemberId）を書けるのは activateStaffSessionCommand だけ。端末は店舗コードの入り直しだけ。
       allow update: if request.auth != null
         && request.auth.uid == uid
-        && (
-          validStaffSessionEntry(request.resource.data)
-          || (
-            request.resource.data.storeId == resource.data.storeId
-            && request.resource.data.code == resource.data.code
-            && validActivatedStaffSession(request.resource.data)
-          )
-        );
+        && validStaffSessionEntry(request.resource.data);
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
@@ -723,6 +644,11 @@ service cloud.firestore {
 
     // 取消パスコードのハッシュ。照合は Functions だけが行うので、画面からは読み書きさせない。
     match /storeSecrets/{storeId} {
+      allow read, write: if false;
+    }
+
+    // スタッフの4桁パスのハッシュ。照合・登録・変更は Functions だけ（2026-10-22 第4章 4-B）。
+    match /staffSecrets/{memberId} {
       allow read, write: if false;
     }
 
@@ -933,9 +859,11 @@ service cloud.firestore {
     // スタッフメンバー
     match /staffMembers/{memberId} {
       allow read: if canAccess(resource.data.storeId);
-      allow create: if canManageStaff(request.resource.data.storeId);
+      // 追加はパスと一緒に createStaffMemberCommand で。パス（code）は画面から書けない（2026-10-22 第4章 4-B）。
+      allow create: if false;
       allow update: if canManageStaff(resource.data.storeId)
-        && request.resource.data.storeId == resource.data.storeId;
+        && request.resource.data.storeId == resource.data.storeId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['code']);
       allow delete: if canManageStaff(resource.data.storeId);
     }
 

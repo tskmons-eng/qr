@@ -61,6 +61,8 @@ async function loadActiveStaffMember(db, request, storeId) {
   const sessionSnap = await db.collection('staffSessions').doc(request.auth.uid).get()
   const session = sessionSnap.exists ? sessionSnap.data() : null
   if (!session || session.storeId !== storeId || typeof session.staffMemberId !== 'string' || !session.staffMemberId) return null
+  // 4桁パスをサーバーで照合した記録だけを信じる（activateStaffSessionCommand が書く。2026-10-22 第4章 4-B）。
+  if (session.verifiedStaffMemberId !== session.staffMemberId) return null
   const memberSnap = await db.collection('staffMembers').doc(session.staffMemberId).get()
   if (!memberSnap.exists || memberSnap.data()?.storeId !== storeId) return null
   return { id: memberSnap.id, ...memberSnap.data() }

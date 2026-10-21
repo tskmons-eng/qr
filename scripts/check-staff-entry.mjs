@@ -44,8 +44,11 @@ assert.doesNotMatch(staffLoginScreen, /enterStaffStoreByCode/, 'store code entry
 // スタッフ0人の店の「管理者として入る」（パス無しで店長権限）は廃止。
 assert.doesNotMatch(staffLoginScreen, /管理者として入る|id: 'admin'/)
 // 4桁パスの後に入れなかったときは、必ず画面に理由を出す（K10 では何も出ずに止まっていた）。
-assert.match(staffLoginScreen, /await onLogin\(buildStaffLoginPayload\(selected\)\)/)
-assert.match(staffLoginScreen, /入れませんでした/)
+// パスの照合はサーバー。画面は入力したパスを渡すだけで、パスを持たない（2026-10-22 第4章 4-B）。
+assert.match(staffLoginScreen, /await onLogin\(buildStaffLoginPayload\(selected\), enteredCode\)/)
+assert.doesNotMatch(staffLoginScreen, /selected\.code/)
+assert.match(staffLoginScreen, /setError\(formatOrderCommandError\(loginError, \{ context: 'staffLogin' \}\)\.message\)/)
+assert.match(readFileSync(new URL('../src/lib/orderCommandErrors.js', import.meta.url), 'utf8'), /staffLogin: '入れませんでした/)
 // Google でログインした店長・オーナーは、許可を確かめたうえでスタッフを選ばずに「管理者」として入る。
 assert.match(staffLayout, /buildStoreManagerStaff\(user\)/)
 assert.match(staffLayout, /const activeStaff = storeManagerStaff \?\? storedStaff/)

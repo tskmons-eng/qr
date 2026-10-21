@@ -76,16 +76,16 @@ export default function StaffLayout() {
     return () => { active = false }
   }, [storeId])
 
-  // サーバーは端末の記録（staffSessions）で「誰が操作したか」を決める（2026-10-22 第4章）。
-  // 画面を開くたびに選択中のスタッフを記録し直し、古い端末の記録漏れを直す。記録できなければ選び直してもらう。
+  // サーバーは、4桁パスを照合した端末の記録（staffSessions）で「誰が操作したか」を決める（2026-10-22 第4章）。
+  // 画面を開くたびに、この端末で照合済みのスタッフかを確かめる。違えば（パスや権限が変わった・古い端末）選び直してもらう。
   const storedStaffId = storedStaff?.id
   useEffect(() => {
     if (!storeId || !storedStaff || storeManagerStaff) return
     activateStaffMemberSession({ storeId, staff: storedStaff }).catch(() => setActiveStaffPersisted(null))
   },[storeId, storedStaffId, storeManagerStaff])
 
-  async function handleStaffLogin(staff) {
-    await activateStaffMemberSession({ storeId, staff })
+  async function handleStaffLogin(staff, code) {
+    await activateStaffMemberSession({ storeId, staff, code })
     setActiveStaffPersisted(staff)
   }
 

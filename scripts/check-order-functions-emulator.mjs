@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url'
 import { initializeApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator, signInAnonymously } from 'firebase/auth'
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions'
-import { connectFirestoreEmulator, doc as clientDoc, getFirestore as getClientFirestore, terminate as terminateClientFirestore, updateDoc as clientUpdateDoc } from 'firebase/firestore'
+import { connectFirestoreEmulator, doc as clientDoc, getDoc as clientGetDoc, getFirestore as getClientFirestore, setDoc as clientSetDoc, terminate as terminateClientFirestore, updateDoc as clientUpdateDoc } from 'firebase/firestore'
+import { migrateStaffCodes } from './migrate-staff-codes.mjs'
 
 const PROJECT_ID = 'demo-qr-functions-concurrency'
 const FUNCTIONS_HOST = '127.0.0.1'
@@ -532,14 +533,15 @@ async function seedStaffMember(db, memberId, name, permissionPreset) {
   })
 }
 
-async function createFloorStaffSession(db, uid) {
+// ホールのスタッフは、本物と同じく店舗コードで入り、4桁パスをサーバーで照合して入る（2026-10-22 第4章 4-B）。
+async function createFloorStaffSession(db, uid, floorFunctions) {
   await seedStaffMember(db, floorMemberId, 'Emulator Floor', 'floor')
   await db.collection('staffSessions').doc(uid).set({
     storeId,
     code: `${runId}_staff_code`,
-    staffMemberId: floorMemberId,
     createdAt: FieldValue.serverTimestamp(),
   })
+  await call(floorFunctions, 'activateStaffSessionCommand', { storeId, staffMemberId: floorMemberId, code: '1111' })
 }
 
 async function createStaffSession(db, uid) {
@@ -548,6 +550,7 @@ async function createStaffSession(db, uid) {
     storeId,
     code: `${runId}_staff_code`,
     staffMemberId: managerMemberId,
+    verifiedStaffMemberId: managerMemberId,
     permissions: {
       useKitchen: true,
       closeRegister: true,
@@ -783,6 +786,115 @@ async function runStaffActorAndLockdownChecks(db, managerClient, deviceOnlyClien
   }
   assert.equal(directWriteError?.code, 'permission-denied', 'client should not update orderItems directly')
   assert.notEqual((await itemData(db, item.id)).itemStatus, 'cancelled')
+}
+
+// 2026-10-22 整理 第4章 4-B：4桁パスはサーバーで照合し、画面から読めない・書けない。
+const extraStaffClients = []
+
+async function newStoreCodeDevice(db, name) {
+  const client = createStaffClient(`${name}-${runId}`)
+  extraStaffClients.push(client)
+  const credential = await signInAnonymously(client.auth)
+  await db.collection('staffSessions').doc(credential.user.uid).set({ storeId, code: `${runId}_staff_code`, createdAt: FieldValue.serverTimestamp() })
+  return { client, uid: credential.user.uid }
+}
+
+async function runStaffPasscodeChecks(db, managerClient, floorClient, productId) {
+  // パスの照合を通った端末だけが記録される。移し替え前のパス（staffMembers.code）は初回に移って消える。
+  const floorMember = (await db.collection('staffMembers').doc(floorMemberId).get()).data()
+  assert.equal(floorMember.code, undefined, 'legacy staff code should be removed after the first sign-in')
+  assert.ok((await db.collection('staffSecrets').doc(floorMemberId).get()).data()?.codeHash, 'legacy staff code should be hashed into staffSecrets')
+
+  // 追加はパスと一緒に。ホールのスタッフ（スタッフ管理の権限なし）は追加できない。
+  const { staffMemberId: newMemberId } = await call(managerClient.functions, 'createStaffMemberCommand', {
+    storeId, name: 'Emulator New', code: '4321', permissionPreset: 'floor', permissions: { useKitchen: true },
+  })
+  const newMember = (await db.collection('staffMembers').doc(newMemberId).get()).data()
+  assert.equal(newMember.code, undefined, 'new staff member should not store the code')
+  assert.equal(newMember.permissions.manageStaff, false)
+  assert.ok((await db.collection('staffSecrets').doc(newMemberId).get()).data()?.codeHash)
+  await expectCallableError('permission-denied', () => call(floorClient.functions, 'createStaffMemberCommand', {
+    storeId, name: 'Not Allowed', code: '1234', permissionPreset: 'floor', permissions: {},
+  }), 'floor staff creating a staff member')
+
+  // 違うパスは数え、5回目でそのスタッフだけ10分ロック。ロック中は正しいパスでも入れない。
+  const device = await newStoreCodeDevice(db, 'passcode-device')
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    await expectCallableError('invalid-staff-code', () => call(device.client.functions, 'activateStaffSessionCommand', {
+      storeId, staffMemberId: newMemberId, code: '0000',
+    }), `wrong staff code attempt ${attempt}`)
+  }
+  await expectCallableError('staff-code-locked', () => call(device.client.functions, 'activateStaffSessionCommand', {
+    storeId, staffMemberId: newMemberId, code: '0000',
+  }), 'fifth wrong staff code')
+  await expectCallableError('staff-code-locked', () => call(device.client.functions, 'activateStaffSessionCommand', {
+    storeId, staffMemberId: newMemberId, code: '4321',
+  }), 'correct staff code while locked')
+  assert.equal((await db.collection('staffSessions').doc(device.uid).get()).data().staffMemberId, undefined, 'failed sign-in should not select a staff member')
+  await db.collection('staffSecrets').doc(newMemberId).update({ lockedUntilMs: 0 })
+
+  // 正しいパスで入る。同じ端末に戻るときはパス不要。パスを変えたら、もう一度パスが要る。
+  await expectCallableError('staff-code-required', () => call(device.client.functions, 'activateStaffSessionCommand', {
+    storeId, staffMemberId: newMemberId,
+  }), 'resume before sign-in')
+  await call(device.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: newMemberId, code: '4321' })
+  const session = (await db.collection('staffSessions').doc(device.uid).get()).data()
+  assert.equal(session.staffMemberId, newMemberId)
+  assert.equal(session.verifiedStaffMemberId, newMemberId)
+  await call(device.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: newMemberId })
+
+  const tableId = `${runId}_passcode_table`
+  await seedTable(db, tableId)
+  const orderId = await call(device.client.functions, 'seatStaffOrderSessionCommand', { tableId, seatCount: 1 })
+  await call(device.client.functions, 'submitStaffOrderItemsCommand', {
+    cart: [cartItem(productId)], orderId, storeId, tableId, clientRequestId: `${runId}_passcode_submit`,
+  })
+  const submitted = await queryBy(db, 'orderItems', 'orderId', orderId)
+  assert.ok(submitted.length > 0 && submitted.every(item => item.orderedByStaffName === 'Emulator New'), 'verified staff should be recorded on order items')
+
+  await expectCallableError('invalid-staff-code', () => call(managerClient.functions, 'setStaffCodeCommand', {
+    storeId, staffMemberId: newMemberId, currentCode: '9999', nextCode: '5678',
+  }), 'changing staff code with a wrong current code')
+  await expectCallableError('staff-code-unchanged', () => call(managerClient.functions, 'setStaffCodeCommand', {
+    storeId, staffMemberId: newMemberId, currentCode: '4321', nextCode: '4321',
+  }), 'changing staff code to the same code')
+  await call(managerClient.functions, 'setStaffCodeCommand', { storeId, staffMemberId: newMemberId, currentCode: '4321', nextCode: '5678' })
+  await expectCallableError('staff-code-required', () => call(device.client.functions, 'activateStaffSessionCommand', {
+    storeId, staffMemberId: newMemberId,
+  }), 'resume after the staff code changed')
+  await expectCallableError('invalid-staff-code', () => call(device.client.functions, 'activateStaffSessionCommand', {
+    storeId, staffMemberId: newMemberId, code: '4321',
+  }), 'old staff code after change')
+  await call(device.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: newMemberId, code: '5678' })
+
+  // 画面からは、スタッフの選択を書けない・パスのハッシュを読めない・パスを書き込めない。
+  const directSessionWrite = await clientSetDoc(clientDoc(device.client.firestore, 'staffSessions', device.uid), {
+    storeId, code: `${runId}_staff_code`, staffMemberId: managerMemberId, verifiedStaffMemberId: managerMemberId,
+  }, { merge: true }).then(() => null, error => error)
+  assert.equal(directSessionWrite?.code, 'permission-denied', 'client should not select a staff member without the server')
+  const directSecretRead = await clientGetDoc(clientDoc(device.client.firestore, 'staffSecrets', newMemberId)).then(() => null, error => error)
+  assert.equal(directSecretRead?.code, 'permission-denied', 'client should not read staff code hashes')
+  const directCodeWrite = await clientUpdateDoc(clientDoc(managerClient.firestore, 'staffMembers', newMemberId), { code: '1111' }).then(() => null, error => error)
+  assert.equal(directCodeWrite?.code, 'permission-denied', 'client should not write staff codes')
+
+  // 照合の印が無い古い端末の記録は信じない（もう一度パスで入ってもらう）。
+  const legacyDevice = await newStoreCodeDevice(db, 'legacy-device')
+  await db.collection('staffSessions').doc(legacyDevice.uid).update({ staffMemberId: managerMemberId })
+  await expectCallableError('staff-not-selected', () => call(legacyDevice.client.functions, 'seatStaffOrderSessionCommand', {
+    tableId, seatCount: 1,
+  }), 'legacy session without server verification')
+
+  // 一括の移し替え（本番で一度だけ使う）。試すだけでは書き込まない。
+  const legacyMemberId = `${runId}_legacy_member`
+  await seedStaffMember(db, legacyMemberId, 'Emulator Legacy', 'floor')
+  const dryRun = await migrateStaffCodes(db, FieldValue)
+  assert.ok(dryRun.migrated >= 1)
+  assert.equal((await db.collection('staffMembers').doc(legacyMemberId).get()).data().code, '1111', 'dry run should not write')
+  await migrateStaffCodes(db, FieldValue, { apply: true })
+  assert.equal((await db.collection('staffMembers').doc(legacyMemberId).get()).data().code, undefined)
+  const migratedDevice = await newStoreCodeDevice(db, 'migrated-device')
+  await call(migratedDevice.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: legacyMemberId, code: '1111' })
+  return device.client
 }
 
 async function runLateSubmitAfterCheckout(db, publicFunctions, staffFunctions, productId) {
@@ -1176,7 +1288,8 @@ await db.collection('staffSessions').doc(deviceOnlyCredential.user.uid).set({ st
 await runStaffActorAndLockdownChecks(db, staffClient, deviceOnlyClient, products.productId)
 const floorClient = createStaffClient(`floor-${runId}`)
 const floorCredential = await signInAnonymously(floorClient.auth)
-await createFloorStaffSession(db, floorCredential.user.uid)
+await createFloorStaffSession(db, floorCredential.user.uid, floorClient.functions)
+const passcodeDeviceClient = await runStaffPasscodeChecks(db, staffClient, floorClient, products.productId)
 await runCancelPasscodeChecks(db, staffClient.functions, floorClient.functions, products.productId)
 await runLateSubmitAfterCheckout(db, publicClient.functions, staffClient.functions, products.productId)
 await runDoubleCheckoutIdempotency(db, publicClient.functions, staffClient.functions)
@@ -1189,5 +1302,5 @@ await runPendingAggregateTriggerChecks(db)
 await runReservationNotificationTriggerCheck(db)
 
 // 画面側 Firestore の接続を閉じないと、チェックが終わってもプロセスが残る。
-await Promise.all([staffClient, deviceOnlyClient, floorClient].map(client => terminateClientFirestore(client.firestore)))
+await Promise.all([staffClient, deviceOnlyClient, floorClient, passcodeDeviceClient, ...extraStaffClients].map(client => terminateClientFirestore(client.firestore)))
 console.log(`order Functions emulator concurrency and trigger checks passed on Node ${process.version}`)

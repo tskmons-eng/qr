@@ -9,6 +9,7 @@ import {
   normalizeStaffMemberPermissions,
   setStaffPermissionValue,
 } from '../../lib/staffPermissions'
+import { formatOrderCommandError } from '../../lib/orderCommandErrors'
 import { normalizeStaffCode, validateStaffMemberForm } from '../../lib/staffMember'
 import { createStaffMember, deleteStaffMember, loadStaffMembers, updateStaffMemberCode, updateStaffMemberPermissions } from '../../services/staffAuthService'
 
@@ -51,6 +52,8 @@ export default function StaffPage() {
       setCode('')
       setPermissionPreset(DEFAULT_STAFF_PERMISSION_PRESET)
       await load()
+    } catch (addFailure) {
+      setError(formatOrderCommandError(addFailure).message)
     } finally {
       setAdding(false)
     }
@@ -103,30 +106,23 @@ export default function StaffPage() {
     setResetError('')
   }
 
+  // 旧パスの確認と新パスの保存はサーバーで行う（画面はパスを持たない。2026-10-22 第4章 4-B）。
   async function handleCodeReset(member) {
     const current = normalizeStaffCode(resetCurrentCode)
     const next = normalizeStaffCode(resetNextCode)
-    const existing = normalizeStaffCode(String(member.code ?? ''))
-
-    if (current !== existing) {
-      setResetError('旧パスが違います')
-      setResetCurrentCode('')
-      return
-    }
     if (!/^\d{4}$/.test(next)) {
       setResetError('新パスは4桁の数字にしてください')
       return
     }
-    if (next === existing) {
-      setResetError('新パスは旧パスと違う数字にしてください')
-      return
-    }
 
-    await updateStaffMemberCode({ memberId: member.id, code: next })
-    setMembers(prev => prev.map(existingMember => (
-      existingMember.id === member.id ? { ...existingMember, code: next } : existingMember
-    )))
-    cancelCodeReset()
+    try {
+      await updateStaffMemberCode({ storeId, memberId: member.id, currentCode: current, nextCode: next })
+      cancelCodeReset()
+    } catch (resetFailure) {
+      const { code: failureCode, message } = formatOrderCommandError(resetFailure)
+      setResetError(failureCode === 'invalid-staff-code' ? '旧パスが違います' : message)
+      setResetCurrentCode('')
+    }
   }
 
   return (

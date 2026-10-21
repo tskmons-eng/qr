@@ -23,6 +23,13 @@ const COMMAND_ERROR_MESSAGES = {
   'cancel-passcode-not-set': '取消パスコードが未設定です。メニュー管理の権限がある人に取り消してもらうか、店舗設定でパスコードを決めてください。',
   'cancel-passcode-locked': 'パスコードを続けて間違えたため、10分間取り消せません。メニュー管理の権限がある人に取り消してもらってください。',
   'store-not-found': '店舗が見つかりません。店舗コードを確認してください。',
+  'invalid-staff-code': 'パスが違います',
+  'invalid-staff-code-format': 'パスは4桁の数字にしてください',
+  'staff-code-locked': '5回続けて間違えたため、このスタッフは10分間入れません',
+  'staff-code-required': '4桁のパスを入力してください',
+  'staff-code-not-set': 'このスタッフはパスが未設定です。店長に設定してもらってください',
+  'staff-code-unchanged': '新パスは旧パスと違う数字にしてください',
+  'staff-member-not-found': 'スタッフが見つかりません。一覧を読み込み直してください',
   aborted: '同時操作がありました。もう一度お試しください。',
   unavailable: '通信が不安定です。少し待ってからもう一度お試しください。',
   'deadline-exceeded': '通信に時間がかかっています。もう一度お試しください。',
@@ -39,6 +46,7 @@ const CONTEXT_FALLBACK_MESSAGES = {
   checkout: '会計を完了できませんでした。席と注文の状態を確認してください。',
   itemAction: '注文状態を更新できませんでした。画面を更新して確認してください。',
   kitchenAction: 'キッチン操作に失敗しました。注文状態を確認してください。',
+  staffLogin: '入れませんでした。通信を確かめて、もう一度お試しください',
   general: '処理に失敗しました。もう一度お試しください。',
 }
 
@@ -67,6 +75,13 @@ const NON_RETRYABLE_CODES = new Set([
   'cancel-passcode-not-set',
   'cancel-passcode-locked',
   'store-not-found',
+  'invalid-staff-code',
+  'invalid-staff-code-format',
+  'staff-code-locked',
+  'staff-code-required',
+  'staff-code-not-set',
+  'staff-code-unchanged',
+  'staff-member-not-found',
 ])
 
 export function getOrderCommandErrorCode(error) {
@@ -78,6 +93,11 @@ const EXPECTED_OPERATOR_ERROR_CODES = new Set([
   'invalid-cancel-passcode',
   'invalid-cancel-passcode-format',
   'cancel-passcode-locked',
+  'invalid-staff-code',
+  'invalid-staff-code-format',
+  'staff-code-locked',
+  'staff-code-required',
+  'staff-code-unchanged',
 ])
 
 export function isExpectedOperatorError(error) {

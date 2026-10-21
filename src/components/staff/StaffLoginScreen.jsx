@@ -9,6 +9,7 @@ import {
   normalizeStaffCode,
   saveStaffAutoLoginPreference,
 } from '../../lib/staffMember'
+import { formatOrderCommandError } from '../../lib/orderCommandErrors'
 import { loadStaffMembers } from '../../services/staffAuthService'
 
 function buildStaffLoginPayload(member) {
@@ -69,20 +70,16 @@ export default function StaffLoginScreen({ storeId, storeName, onLogin, onLogout
     setError('')
   }
 
+  // パスの照合はサーバーで行う（画面はパスを持たない。2026-10-22 第4章 4-B）。
   async function handleVerify(enteredCode) {
-    if (normalizeStaffCode(String(selected.code ?? '')) !== enteredCode) {
-      setError('パスが違います')
-      setCode('')
-      return
-    }
     setVerifying(true)
     setError('')
     try {
-      await onLogin(buildStaffLoginPayload(selected))
+      await onLogin(buildStaffLoginPayload(selected), enteredCode)
       saveStaffAutoLoginPreference({ storeId, staff: selected })
     } catch (loginError) {
       // 入れなかったときは必ず理由を出す（以前は画面に何も出ず止まっていた）。
-      setError(loginError?.message ? `入れませんでした：${loginError.message}` : '入れませんでした。通信を確かめて、もう一度お試しください')
+      setError(formatOrderCommandError(loginError, { context: 'staffLogin' }).message)
       setCode('')
     } finally {
       setVerifying(false)

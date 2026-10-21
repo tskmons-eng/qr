@@ -6,6 +6,7 @@ const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestor
 const { createOrderCommandCallable } = require('./orderCommandApi')
 const orderCommandHandlers = require('./orderCommandHandlers')
 const cancelPasscode = require('./cancelPasscode')
+const staffPasscode = require('./staffPasscode')
 
 initializeApp()
 
@@ -65,6 +66,18 @@ exports.cancelOrderItemCommand = createOrderCommandCallable(orderCommandHandlers
 })
 exports.setCancelPasscodeCommand = createOrderCommandCallable(cancelPasscode.setCancelPasscodeCommand, {
   commandType: 'set_cancel_passcode',
+  actorType: 'staff',
+})
+exports.activateStaffSessionCommand = createOrderCommandCallable(staffPasscode.activateStaffSessionCommand, {
+  commandType: 'activate_staff_session',
+  actorType: 'staff',
+})
+exports.createStaffMemberCommand = createOrderCommandCallable(staffPasscode.createStaffMemberCommand, {
+  commandType: 'create_staff_member',
+  actorType: 'staff',
+})
+exports.setStaffCodeCommand = createOrderCommandCallable(staffPasscode.setStaffCodeCommand, {
+  commandType: 'set_staff_code',
   actorType: 'staff',
 })
 exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.moveTableOrderCommand, {

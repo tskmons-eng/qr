@@ -9,6 +9,7 @@ import {
 
 const require = createRequire(import.meta.url)
 const cancelPasscode = require('../functions/cancelPasscode.js')
+const staffPermission = require('../functions/staffPermission.js')
 
 const [
   rules,
@@ -50,15 +51,15 @@ const memberShapes = [
 ]
 for (const member of memberShapes) {
   const clientPermissions = normalizeStaffMemberPermissions(member, { ...LEGACY_STAFF_PERMISSIONS })
-  for (const key of ['manageMenu', 'manageSettings']) {
+  for (const key of ['manageMenu', 'manageSettings', 'manageStaff']) {
     assert.equal(
-      cancelPasscode.staffMemberHasPermission(member, key),
+      staffPermission.staffMemberHasPermission(member, key),
       clientPermissions[key] === true,
       `server ${key} should match client for ${JSON.stringify(member)}`,
     )
   }
 }
-assert.equal(cancelPasscode.staffMemberHasPermission(null, 'manageMenu'), false)
+assert.equal(staffPermission.staffMemberHasPermission(null, 'manageMenu'), false)
 
 // パスコードはハッシュで照合し、形式外・空・違う値は通さない。
 const salt = 'check-salt'
@@ -105,7 +106,7 @@ for (const code of ['invalid-cancel-passcode', 'invalid-cancel-passcode-format',
   assert.ok(cancelPasscode.EXPECTED_PASSCODE_ERROR_CODES.has(code), `functions should not log ${code} as a failure`)
   assert.match(errors, new RegExp(`'${code}'`), `client should know ${code}`)
 }
-assert.match(apiSource, /if \(!EXPECTED_PASSCODE_ERROR_CODES\.has\(error\?\.code\)\)/)
+assert.match(apiSource, /if \(!EXPECTED_PASSCODE_ERROR_CODES\.has\(error\?\.code\) && !EXPECTED_STAFF_CODE_ERROR_CODES\.has\(error\?\.code\)\)/)
 const [failureService, cancelHook] = await Promise.all([
   readFile('src/services/orderCommandFailureService.js', 'utf8'),
   readFile('src/hooks/useOrderItemCancel.js', 'utf8'),
