@@ -125,4 +125,10 @@ assert.match(checkoutService, /normalizeStoreConfig\(/, 'checkout should read ta
 assert.doesNotMatch(checkoutService, /taxRate\s*\?\?/, 'checkout should not define its own taxRate default')
 assert.doesNotMatch(settingsPage, /taxRate\s*\?\?/, 'settings page should not define its own taxRate default')
 
+// 手元のテスト環境（エミュレーター）への切り替えは、本番ビルドでは必ず無効。
+const localEmulator = readSource('src/lib/localEmulator.js')
+assert.match(localEmulator, /USE_LOCAL_EMULATORS = !import\.meta\.env\.PROD && import\.meta\.env\.VITE_USE_FIREBASE_EMULATORS === 'true'/)
+assert.match(localEmulator, /LOCAL_EMULATOR_PROJECT_ID = 'demo-/)
+assert.doesNotMatch(readSource('src/components/admin/CancelPasscodeSettings.jsx'), /設定を保存/)
+
 console.log('settings config checks passed')

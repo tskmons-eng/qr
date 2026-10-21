@@ -15,7 +15,7 @@ function validatePasscode(passcode, confirmation) {
   return ''
 }
 
-// 下の「設定を保存」とは別に、このボタンだけでサーバーへ保存する（ハッシュにして storeSecrets へ）。
+// このボタンを押したときだけサーバーへ保存する（ハッシュにして storeSecrets へ）。
 export default function CancelPasscodeSettings({ storeId }) {
   const { status, loaded, reload } = useCancelPasscodeStatus(storeId)
   const [passcode, setPasscode] = useState('')
@@ -106,7 +106,7 @@ export default function CancelPasscodeSettings({ storeId }) {
             {saving ? '保存中...' : saved ? '保存しました' : 'パスコードを保存'}
           </button>
         </div>
-        <div className="admin-settings__store-name-help">このボタンだけで保存されます（下の「設定を保存」とは別です）。</div>
+        <div className="admin-settings__store-name-help">パスコードは「パスコードを保存」を押したときだけ保存されます。</div>
       </div>
     </>
   )

@@ -1,5 +1,6 @@
-import { getFunctions, httpsCallable } from 'firebase/functions'
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
 import { app } from '../lib/firebase'
+import { LOCAL_EMULATOR_HOSTS, USE_LOCAL_EMULATORS } from '../lib/localEmulator'
 
 const ORDER_COMMAND_RUNTIME = import.meta.env.VITE_ORDER_COMMAND_RUNTIME
 const FUNCTIONS_REGION = import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION
@@ -23,10 +24,11 @@ function getOrderCommandFunctions(region = FUNCTIONS_REGION) {
   const normalizedRegion = region || null
   const cacheKey = normalizedRegion ?? '__default__'
   if (!functionsInstances.has(cacheKey)) {
-    functionsInstances.set(
-      cacheKey,
-      normalizedRegion ? getFunctions(app, normalizedRegion) : getFunctions(app),
-    )
+    const functions = normalizedRegion ? getFunctions(app, normalizedRegion) : getFunctions(app)
+    if (USE_LOCAL_EMULATORS) {
+      connectFunctionsEmulator(functions, LOCAL_EMULATOR_HOSTS.host, LOCAL_EMULATOR_HOSTS.functionsPort)
+    }
+    functionsInstances.set(cacheKey, functions)
   }
   return functionsInstances.get(cacheKey)
 }

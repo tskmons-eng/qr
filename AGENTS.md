@@ -76,6 +76,7 @@
 
 - 画面：React + Vite（`src/`）。サーバー：Firebase（Hosting、Firestore、Cloud Functions `functions/`、Storage）。`firebase.json` がまとめて管理。
 - 確認：広い変更は `npm run check` と `npm run build`。注文まわりは `npm run check:order-concurrency`、`npm run check:order-functions-emulator`。
+- 画面を実物で確かめるときは `npm run dev:local`（本番と切り離した手元のテスト環境。テスト用の店とログインの値は `scripts/seed-local-emulator.mjs`）。本番のサイトには AI はログインしない。
 - チェックスクリプトのいくつかは `docs/` の md の中身を読んで確かめている。`docs/` の md を動かす・書き換えるときは `scripts/` で参照を探してから。
 - 場面別のルールは `.claude/rules/` にある。Claude は該当ファイルを触ると自動で読む。**Codex は自分で読む**：画面（`src/pages`・`src/components`・`src/styles`・`src/hooks`）を触るときは `.claude/rules/ui.md`。理解確認の書き方は `.claude/skills/kakunin/SKILL.md`。
 
