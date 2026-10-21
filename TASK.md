@@ -71,3 +71,18 @@
 ## 章の分け方と本番に出す時点
 
 - 「決めてほしいこと」2で決める。各回とも、テスト環境と同時実行のチェックを通してから、営業時間外に出す。
+
+## 進み具合（2026-10-22 3時台）
+
+- 4-A：コミット `d03cb9e`（GitHub に push 済み）。チェック・ビルド・エミュレーター（2回連続）・テスト環境の実画面（ホール担当で着席→注文→提供済み→会計）を確認済み。
+  本番は未反映：Functions の公開が自動実行の安全確認で止められたため（止められた操作は回避しない）。
+- 4-B：コミット `acf0712`（push 済み・本番未反映）。エミュレーターと実画面（違うパス・正しいパス・読み込み直し・スタッフ追加・パス変更）で確認済み。
+- 4-B を出すと、スタッフの端末は全台、一度だけ4桁パスを入れ直す（照合済みの印が無い古い記録は信じないため）。パスの値は変わらない。
+
+## 本番に出す順番（ユーザー様の確認の後、営業時間外に）
+
+1. Functions：既存の呼び出し型14本＋新しい3本（`activateStaffSessionCommand`・`createStaffMemberCommand`・`setStaffCodeCommand`）を名前指定で。
+2. Hosting：Functions の直後に（間があくと、古い画面の端末はスタッフ操作が止まる）。
+3. パスの移し替え：`node scripts/migrate-staff-codes.mjs --project qrproduct-3340b` で件数を確かめ、`--apply` で実行。
+4. rules。
+5. `bash scripts/prod-status.sh`・`npm run audit:command-failures`、CHANGELOG へ記録、TASK.md を「なし」に戻す。
