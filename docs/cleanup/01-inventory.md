@@ -16,7 +16,7 @@ PLANS.md の1番。コードは変えずに調べた結果。ここからユー�
 | K7 | **注文データの書き換え・削除が画面側にも開いている**。`orders`・`orderItems` の update・delete が `canAccess` のまま | `firestore.rules:802-811` | 確認済み |
 | K8 | 人数分の自動追加は、お客様の端末から送られた設定をそのまま信じる（同じ店の商品に限る）。設定が OFF でも細工すれば追加できる | `functions/orderCommandHandlers.js:147-150,316` | 確認済み |
 | K9 | スタッフが0人の店では「管理者として入る」でパス無しに店長権限になれる | `src/components/staff/StaffLoginScreen.jsx:176-182` | 一部確認 |
-| K10 | Google 管理者が `/staff` でスタッフを選ぶと、rules に通らない可能性 | `src/services/staffAuthService.js:43` | 要確認 |
+| K10 | Google 管理者が `/staff` でスタッフを選ぶと、rules に弾かれて先へ進めない（画面に何も出ない） | `firestore.rules` の `validStaffSessionEntry`、`src/components/staff/StaffLoginScreen.jsx` | 確認済み（テスト環境 2026-10-22） |
 
 本番の `VITE_ORDER_COMMAND_RUNTIME` は未設定（＝本番ビルドは Functions を使う）ことを確認済み。
 
