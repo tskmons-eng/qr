@@ -1,3 +1,286 @@
-@import './staff-login.css';
-@import './staff-login-store-code.css';
-@import './staff-entry.css';
+/* 店舗コードでの入室・スタッフを選ぶ・4桁パス（2026-10-22 整理 第3章、すっきり明るい見た目）。 */
+.staff-auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 40px 16px;
+  background: var(--ui-bg-app);
+  color: var(--ui-text-main);
+}
+
+.staff-auth--with-header {
+  padding-top: 0;
+}
+
+.staff-auth__header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+  margin: 0 -16px 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.staff-auth__header-title {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-auth__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.staff-auth__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.staff-auth__lead {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.staff-auth__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  border-radius: var(--ui-radius-sheet);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-card);
+}
+
+.staff-auth__card-lead {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.staff-auth__empty {
+  align-items: center;
+  text-align: center;
+}
+
+.staff-auth__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.staff-auth__members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.staff-auth__member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 16px 8px;
+  border: none;
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-card);
+  color: var(--ui-text-main);
+  font: inherit;
+  cursor: pointer;
+}
+
+.staff-auth__avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.staff-auth__avatar--large {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+}
+
+.staff-auth__member-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-auth__member-role {
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.staff-auth__link {
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  color: var(--ui-text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 店舗コード（6つの枠） */
+.store-code-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.store-code-form__boxes {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  cursor: text;
+}
+
+.store-code-form__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  opacity: 0;
+}
+
+.store-code-form__box {
+  display: grid;
+  place-items: center;
+  height: 52px;
+  border: 1.5px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-bg-surface);
+  font-family: var(--font-number);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.store-code-form__box.is-filled {
+  border-color: var(--ui-brand);
+  background: var(--ui-brand-soft);
+}
+
+.store-code-form__input:focus ~ .store-code-form__box.is-next {
+  border-color: var(--ui-brand);
+  box-shadow: 0 0 0 3px var(--ui-brand-soft);
+}
+
+.store-code-form__remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.store-code-form__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* 4桁パスの数字ボタン */
+.passcode {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.passcode__dots {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.passcode__dot {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ui-border-control);
+  border-radius: 50%;
+}
+
+.passcode__dot.is-on {
+  border-color: var(--ui-brand);
+  background: var(--ui-brand);
+}
+
+.passcode__keys {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.passcode__key {
+  height: 58px;
+  border: none;
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-main);
+  font-family: var(--font-number);
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.passcode__key:disabled {
+  opacity: 0.5;
+}
+
+.passcode__key--muted {
+  background: transparent;
+  color: var(--ui-text-muted);
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 800;
+}

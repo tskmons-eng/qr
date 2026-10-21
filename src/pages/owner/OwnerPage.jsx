@@ -114,7 +114,7 @@ export default function OwnerPage() {
       setDashboardError('この操作はスーパー管理者だけが利用できます')
       return
     }
-    navigate('/admin/settings')
+    navigate('/staff/settings')
   }
 
   return (

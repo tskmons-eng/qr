@@ -8,7 +8,8 @@ import { consumeStaffGoogleRedirectResult, signInStaffWithEmail, signInStaffWith
 const GOOGLE_LOGIN_ERROR_MESSAGE = 'Googleログインに失敗しました'
 const GOOGLE_LOGIN_START_MESSAGE = 'Google認証画面を開いています'
 const GOOGLE_LOGIN_REDIRECT_MESSAGE = 'Google認証画面へ移動しています。切り替わらない場合はもう一度押してください'
-const DEFAULT_LOGIN_REDIRECT = '/admin'
+// 管理画面はスタッフ画面に一本化した（2026-10-22）。Google でログインした店長はスタッフ画面に「管理者」として入る。
+const DEFAULT_LOGIN_REDIRECT = '/staff'
 const LOGIN_REDIRECT_STORAGE_KEY = 'staffLoginRedirect'
 
 function isSafeLoginRedirect(next) {
@@ -16,9 +17,7 @@ function isSafeLoginRedirect(next) {
     !next ||
     !next.startsWith('/') ||
     next.startsWith('//') ||
-    next.startsWith('/login') ||
-    next === '/staff' ||
-    next.startsWith('/staff/')
+    next.startsWith('/login')
   ) {
     return false
   }

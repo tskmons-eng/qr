@@ -2,7 +2,6 @@
 .money-strong,
 .total-strong,
 :is(
-  .admin-layout__store-code-value,
   .admin-sales-summary__value,
   .admin-sales-check__total,
   .admin-sales-history__total,

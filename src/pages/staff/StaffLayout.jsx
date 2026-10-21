@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
 import { loadSoundPrefs, playSound } from '../../lib/sounds'
 import { hasRegisteredNotificationToken, removeRegisteredNotificationToken, requestAndRegisterToken } from '../../lib/messaging'
-import { clearStaffAutoLoginPreference } from '../../lib/staffMember'
+import { buildStoreManagerStaff, clearStaffAutoLoginPreference } from '../../lib/staffMember'
 import { hasStaffPermission } from '../../lib/staffPermissions'
 import StaffCallBanner from '../../components/staff/StaffCallBanner'
 import StaffReservationWaitController from '../../components/staff/StaffReservationWaitController'
@@ -15,6 +15,7 @@ import StaffLoginScreen from '../../components/staff/StaffLoginScreen'
 import { useAuth } from '../../contexts/AuthContext'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { activateStaffMemberSession } from '../../services/staffAuthService'
+import { loadStoreIdentity } from '../../services/settingsService'
 import { getNewCallIds, respondToStaffCall, subscribePendingCalls } from '../../services/staffCallService'
 import useStoreConfig from '../../hooks/useStoreConfig'
 import ProductPage from '../admin/ProductPage'
@@ -44,21 +45,36 @@ const ELEVATED_PERMISSION_DEFAULTS = {
   manageStaff: false,
 }
 
-const STAFF_ADMIN_LOGIN_PATH = `/login?next=${encodeURIComponent('/admin/staff')}`
+const STAFF_ADMIN_LOGIN_PATH = `/login?next=${encodeURIComponent('/staff/staff-admin')}`
 
 export default function StaffLayout() {
   const navigate = useNavigate()
-  const { storeId, loading: storeLoading, clearDeviceStore } = useStore()
+  const { storeId, loading: storeLoading, clearDeviceStore, ownerActiveStoreId, clearOwnerStore } = useStore()
   const { user } = useAuth()
-  const [activeStaff, setActiveStaff] = useState(() => {
+  const [storedStaff, setStoredStaff] = useState(() => {
     try { return JSON.parse(localStorage.getItem('activeStaff')) } catch { return null }
   })
+  const [storeIdentity, setStoreIdentity] = useState(null)
+  // Google でログインした店長・オーナーは、スタッフを選ばずに「管理者」として入る（K10 の直し）。
+  const storeManagerStaff = useMemo(() => buildStoreManagerStaff(user), [user])
+  const activeStaff = storeManagerStaff ?? storedStaff
 
   function setActiveStaffPersisted(staff) {
     if (staff) localStorage.setItem('activeStaff', JSON.stringify(staff))
     else localStorage.removeItem('activeStaff')
-    setActiveStaff(staff)
+    setStoredStaff(staff)
   }
+
+  useEffect(() => {
+    // 店を切り替えたら、前の店の名前を出したままにしない。
+    setStoreIdentity(null)
+    if (!storeId) return undefined
+    let active = true
+    loadStoreIdentity(storeId)
+      .then(identity => { if (active) setStoreIdentity(identity) })
+      .catch(() => { if (active) setStoreIdentity(null) })
+    return () => { active = false }
+  }, [storeId])
 
   async function handleStaffLogin(staff) {
     await activateStaffMemberSession({ storeId, staff })
@@ -131,6 +147,11 @@ export default function StaffLayout() {
     navigate('/staff')
   }
 
+  function handleBackToOwner() {
+    clearOwnerStore()
+    navigate('/owner')
+  }
+
   function handleSwitchStaff() {
     clearStaffAutoLoginPreference(storeId)
     setActiveStaffPersisted(null)
@@ -158,12 +179,11 @@ export default function StaffLayout() {
     return (
       <StaffMemberContext.Provider value={{ activeStaff, setActiveStaff: setActiveStaffPersisted }}>
         <StaffLoginScreen
-          canOpenStaffAdmin={Boolean(user && !user.isAnonymous)}
-          forceAnonymousStoreEntry={Boolean(user && !user.isAnonymous)}
           storeId={storeId}
+          storeName={storeIdentity?.storeName ?? ''}
           onLogin={handleStaffLogin}
           onLogout={handleLogout}
-          onOpenStaffAdmin={() => navigate(user && !user.isAnonymous ? '/admin/staff' : STAFF_ADMIN_LOGIN_PATH)}
+          onOpenAdminLogin={() => navigate(STAFF_ADMIN_LOGIN_PATH)}
         />
       </StaffMemberContext.Provider>
     )
@@ -190,10 +210,17 @@ export default function StaffLayout() {
         <StaffPullRefreshIndicator phase={pullRefresh.phase} text={pullRefresh.text} />
 
         <div className="staff-shell__pull-content">
+          {ownerActiveStoreId && (
+            <div className="staff-shell__owner-band">
+              <span>代理管理中：{storeIdentity?.storeName || '店舗'}</span>
+              <button type="button" onClick={handleBackToOwner}>オーナー一覧へ</button>
+            </div>
+          )}
           <StaffShellHeader
             activeStaff={activeStaff}
+            storeName={storeIdentity?.storeName ?? ''}
+            storeCode={storeIdentity?.storeCode ?? ''}
             callCount={calls.length}
-            showAdmin={!user?.isAnonymous}
             canUseKitchen={canUseKitchen}
             canCloseRegister={canCloseRegister}
             canManageMenu={canManageMenu}
@@ -203,7 +230,7 @@ export default function StaffLayout() {
             canManageSettings={canManageSettings}
             canManageStaff={canManageStaff}
             onOpenOrders={() => navigate('/staff')}
-            onSwitchStaff={handleSwitchStaff}
+            onSwitchStaff={activeStaff.isStoreManager ? null : handleSwitchStaff}
             onOpenKitchen={() => navigate('/staff/kitchen')}
             onOpenSales={() => navigate('/staff/sales')}
             onOpenSalesAssignees={() => navigate('/staff/sales-assignees')}
@@ -213,7 +240,6 @@ export default function StaffLayout() {
             onOpenHistory={() => navigate('/staff/history')}
             onOpenSettings={() => navigate('/staff/settings')}
             onOpenStaffAdmin={() => navigate('/staff/staff-admin')}
-            onOpenAdmin={() => navigate('/admin')}
             onLogout={handleLogout}
           />
 

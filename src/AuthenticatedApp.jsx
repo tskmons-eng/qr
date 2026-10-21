@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import ApprovalGate from './components/ApprovalGate'
 import AppRouteLoading from './components/AppRouteLoading'
 import PrivateRoute from './components/PrivateRoute'
@@ -9,9 +9,39 @@ import { isSuperAdminEmail } from './lib/ownerIdentity'
 import './styles/authenticated.css'
 
 const StaffLayout = lazy(() => import('./pages/staff/StaffLayout'))
-const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const LoginPage = lazy(() => import('./pages/staff/LoginPage'))
 const OwnerPage = lazy(() => import('./pages/owner/OwnerPage'))
+
+// 旧「管理画面」(/admin) はスタッフ画面に一本化した（2026-10-22 整理 第3章）。古いブックマークは同じ画面へ案内する。
+const ADMIN_TO_STAFF_PATHS = {
+  products: '/staff/menu-admin',
+  categories: '/staff/menu-admin',
+  tables: '/staff/tables',
+  staff: '/staff/staff-admin',
+  sales: '/staff/sales',
+  reservations: '/staff/reservations',
+  history: '/staff/history',
+  settings: '/staff/settings',
+}
+
+function AdminRedirect() {
+  const section = (useParams()['*'] ?? '').split('/')[0]
+  return <Navigate to={ADMIN_TO_STAFF_PATHS[section] ?? '/staff'} replace />
+}
+
+// Google やメールでログインした人は、許可された店長・オーナーだけがスタッフ画面に「管理者」として入れる。
+// 店舗コードで入ったスタッフ端末（匿名）は今までどおり。
+function StaffRoute() {
+  const { user } = useAuth()
+  if (user && !user.isAnonymous) {
+    return (
+      <ApprovalGate>
+        <StaffLayout />
+      </ApprovalGate>
+    )
+  }
+  return <StaffLayout />
+}
 
 function OwnerRoute({ children }) {
   const { user } = useAuth()
@@ -34,14 +64,8 @@ export default function AuthenticatedApp() {
                 </OwnerRoute>
               </PrivateRoute>
             } />
-            <Route path="/staff/*" element={<StaffLayout />} />
-            <Route path="/admin/*" element={
-              <PrivateRoute>
-                <ApprovalGate>
-                  <AdminLayout />
-                </ApprovalGate>
-              </PrivateRoute>
-            } />
+            <Route path="/staff/*" element={<StaffRoute />} />
+            <Route path="/admin/*" element={<AdminRedirect />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>

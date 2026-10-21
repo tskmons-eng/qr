@@ -1,0 +1,72 @@
+/* 新しい見た目「すっきり明るい」の共通部品（2026-10-22）。色・角丸・影は tokens.css の --ui-* だけを使う。 */
+.ui-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--ui-radius-control);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ui-button--primary {
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
+}
+
+.ui-button--soft {
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-main);
+}
+
+.ui-button--surface {
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+}
+
+.ui-button--ghost {
+  background: transparent;
+  color: var(--ui-text-muted);
+}
+
+.ui-button--icon {
+  width: 40px;
+  padding: 0;
+}
+
+.ui-button--block {
+  width: 100%;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ui-badge--admin {
+  background: var(--ui-badge-admin-bg);
+  color: var(--ui-badge-admin-text);
+}
+
+.staff-icon {
+  width: 18px;
+  height: 18px;
+}

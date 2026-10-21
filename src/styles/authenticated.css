@@ -8,7 +8,9 @@
 @import './suggestion-sheet.css';
 @import './staff-table-detail.css';
 @import './staff-auth.css';
+@import './ui-base.css';
 @import './staff-shell.css';
+@import './staff-shell-header.css';
 @import './staff-reservation-wait.css';
 @import './staff-table-list.css';
 @import './staff-remaining.css';

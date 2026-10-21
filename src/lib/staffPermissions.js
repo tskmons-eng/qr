@@ -183,3 +183,15 @@ export function setStaffPermissionValue(permissions, key, enabled) {
     [key]: enabled === true,
   }
 }
+
+// スタッフを選ぶ画面などに出す短い役割名。
+const STAFF_ROLE_SHORT_LABELS = {
+  manager: '店長',
+  operations: '現場責任者',
+  menuLead: 'メニュー担当',
+  floor: 'スタッフ',
+}
+
+export function getStaffRoleShortLabel(member) {
+  return STAFF_ROLE_SHORT_LABELS[member?.permissionPreset] ?? 'スタッフ'
+}

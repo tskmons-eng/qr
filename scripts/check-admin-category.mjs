@@ -21,9 +21,11 @@ function assertHas16pxFontSize(selector) {
 }
 
 // カテゴリー管理は商品画面のカテゴリータブだけ（旧 /admin/categories は 2026-10-21 に削除）。
-const adminLayout = readFileSync(new URL('../src/pages/admin/AdminLayout.jsx', import.meta.url), 'utf8')
-assert.doesNotMatch(adminLayout, /CategoryPage|path="categories"/, 'old category page should stay removed')
-assert.match(adminLayout, /<Navigate to="\/admin\/products" replace \/>/, 'admin entry should open the product page')
+// 2026-10-22 整理 第3章：管理画面はスタッフ画面に一本化。古い /admin/products・/admin/categories はメニュー管理へ案内する。
+const authenticatedApp = readFileSync(new URL('../src/AuthenticatedApp.jsx', import.meta.url), 'utf8')
+assert.doesNotMatch(authenticatedApp, /CategoryPage/, 'old category page should stay removed')
+assert.match(authenticatedApp, /products: '\/staff\/menu-admin'/)
+assert.match(authenticatedApp, /categories: '\/staff\/menu-admin'/)
 
 assertHas16pxFontSize('.category-add-form .admin-text-input')
 assertHas16pxFontSize('.category-group-select')

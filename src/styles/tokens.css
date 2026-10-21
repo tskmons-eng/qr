@@ -27,4 +27,28 @@
   --font-weight-body: 500;
   --font-weight-label: 700;
   --font-weight-number-strong: 900;
+
+  /* 新しい見た目「すっきり明るい」（2026-10-22）。作り直した画面から順にこちらを使う。.claude/rules/ui.md 3章 */
+  --ui-bg-app: #f4f6f8;
+  --ui-bg-surface: #ffffff;
+  --ui-bg-subtle: #f1f3f5;
+  --ui-text-main: #1f2328;
+  --ui-text-muted: #6b7280;
+  --ui-border-subtle: #e6e8eb;
+  --ui-border-control: #d6dae0;
+  --ui-brand: #2f6fed;
+  --ui-brand-strong: #1f56c9;
+  --ui-brand-soft: #e9f0fe;
+  --ui-on-brand: #ffffff;
+  --ui-badge-admin-bg: #fff4d6;
+  --ui-badge-admin-text: #8a5a00;
+  --ui-danger: #dc2626;
+  --ui-danger-soft: #fef2f2;
+  --ui-backdrop: rgba(16, 24, 40, 0.35);
+  --ui-radius-control: 10px;
+  --ui-radius-panel: 14px;
+  --ui-radius-sheet: 20px;
+  --ui-radius-pill: 999px;
+  --ui-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.07);
+  --ui-shadow-pop: 0 16px 40px rgba(16, 24, 40, 0.16);
 }

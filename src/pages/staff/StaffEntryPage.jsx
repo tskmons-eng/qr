@@ -1,69 +1,21 @@
-import { useEffect, useState } from 'react'
-import StaffEntryForm from '../../components/staff/StaffEntryForm'
-import {
-  canEnterStaffStore,
-  getSavedStaffStoreCode,
-  normalizeStaffStoreCode,
-  saveStaffStoreCodePreference,
-} from '../../lib/staffEntry'
-import { enterStaffStoreByCode } from '../../services/staffEntryService'
+import StoreCodeEntryForm from '../../components/staff/StoreCodeEntryForm'
+import useStoreCodeEntry from '../../hooks/useStoreCodeEntry'
 
+// 最初の入室画面。保存済みの店舗コードがあれば自動で入る。
 export default function StaffEntryPage() {
-  const [code, setCode] = useState('')
-  const [rememberCode, setRememberCode] = useState(true)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [autoEntering, setAutoEntering] = useState(false)
-
-  useEffect(() => {
-    const savedCode = getSavedStaffStoreCode()
-    if (!savedCode) return
-    setCode(savedCode)
-    setAutoEntering(true)
-    enterStore(savedCode, true).finally(() => setAutoEntering(false))
-  }, [])
-
-  async function enterStore(rawCode, remember) {
-    const upper = rawCode.trim().toUpperCase()
-    if (!canEnterStaffStore(upper)) return false
-
-    setLoading(true)
-    setError('')
-    try {
-      const result = await enterStaffStoreByCode(upper)
-      if (!result.ok) {
-        saveStaffStoreCodePreference({ code: upper, remember: false })
-        setError('店舗コードが正しくありません')
-        setLoading(false)
-        return false
-      }
-
-      localStorage.setItem('deviceStoreId', result.storeId)
-      saveStaffStoreCodePreference({ code: upper, remember })
-      window.location.href = '/staff'
-      return true
-    } catch (err) {
-      setError(err?.code || err?.message || 'エラーが発生しました。もう一度試してください')
-      setLoading(false)
-      return false
-    }
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    await enterStore(code, rememberCode)
-  }
+  const entry = useStoreCodeEntry({ autoEnterSaved: true })
 
   return (
-    <StaffEntryForm
-      autoEntering={autoEntering}
-      code={code}
-      error={error}
-      loading={loading}
-      rememberCode={rememberCode}
-      onCodeChange={value => setCode(normalizeStaffStoreCode(value))}
-      onRememberChange={setRememberCode}
-      onSubmit={handleSubmit}
-    />
+    <div className="staff-auth">
+      <div className="staff-auth__brand">
+        <h1 className="staff-auth__title">スタッフ画面</h1>
+        <p className="staff-auth__lead">
+          {entry.autoEntering ? '保存済みの店舗コードで入室しています...' : '店舗コードを入力してください'}
+        </p>
+      </div>
+      <div className="staff-auth__card">
+        <StoreCodeEntryForm entry={entry} autoFocus />
+      </div>
+    </div>
   )
 }

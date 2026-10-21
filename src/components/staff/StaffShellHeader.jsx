@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import StaffIcon from './StaffIcon'
 
+// スタッフ画面の上の帯と「店舗管理」。管理の画面はここに一本化した（2026-10-22 整理 第3章）。
+// 見た目は「すっきり明るい」（.claude/rules/ui.md 3章）。スマホでは店舗管理が下から出るシートになる。
 export default function StaffShellHeader({
   activeStaff,
+  storeName,
+  storeCode,
   callCount,
   canCloseRegister,
   canManageMenu,
@@ -11,7 +17,6 @@ export default function StaffShellHeader({
   canManageTables,
   canUseKitchen,
   canViewHistory,
-  showAdmin,
   onOpenOrders,
   onSwitchStaff,
   onOpenKitchen,
@@ -23,37 +28,32 @@ export default function StaffShellHeader({
   onOpenStaffAdmin,
   onOpenSales,
   onOpenTables,
-  onOpenAdmin,
   onLogout,
 }) {
   const [managementOpen, setManagementOpen] = useState(false)
-  const managementRef = useRef(null)
+  const [codeCopied, setCodeCopied] = useState(false)
+  const sheetRef = useRef(null)
   const managementButtonRef = useRef(null)
   const managementItems = [
-    canCloseRegister && { key: 'sales', label: 'レジ締め', description: '日次締めと売上履歴', onSelect: onOpenSales },
+    canCloseRegister && { key: 'sales', icon: 'cash', label: 'レジ締め', description: '日次締めと売上履歴', onSelect: onOpenSales },
     !canCloseRegister && canManageStaff && {
       key: 'sales-assignees',
+      icon: 'cash',
       label: '売上担当',
-      description: '会計に設定する担当者の管理',
+      description: '会計に設定する担当者',
       onSelect: onOpenSalesAssignees,
     },
-    canManageTables && { key: 'tables', label: '席', description: '席とQRコード管理', onSelect: onOpenTables },
-    canManageReservations && { key: 'reservations', label: '予約', description: '予約表と来店予定', onSelect: onOpenReservations },
-    canManageMenu && { key: 'menu', label: 'メニュー', description: '商品・カテゴリ編集', onSelect: onOpenMenuAdmin },
-    canViewHistory && { key: 'history', label: '操作ログ', description: 'スタッフ操作ログの確認', onSelect: onOpenHistory },
-    canManageSettings && { key: 'settings', label: '設定', description: '店舗設定と通知設定', onSelect: onOpenSettings },
-    canManageStaff && { key: 'staff', label: 'スタッフ', description: 'スタッフと権限管理', onSelect: onOpenStaffAdmin },
-    showAdmin && { key: 'admin', label: '管理画面', description: '管理者向け全体画面', onSelect: onOpenAdmin },
+    canManageTables && { key: 'tables', icon: 'seat', label: '席', description: '席とQRコード', onSelect: onOpenTables },
+    canManageReservations && { key: 'reservations', icon: 'calendar', label: '予約', description: '予約表と来店予定', onSelect: onOpenReservations },
+    canManageMenu && { key: 'menu', icon: 'menu', label: 'メニュー', description: '商品・カテゴリ', onSelect: onOpenMenuAdmin },
+    canViewHistory && { key: 'history', icon: 'log', label: '操作ログ', description: 'スタッフの操作', onSelect: onOpenHistory },
+    canManageSettings && { key: 'settings', icon: 'gear', label: '設定', description: '店舗と端末の設定', onSelect: onOpenSettings },
+    canManageStaff && { key: 'staff', icon: 'people', label: 'スタッフ', description: 'スタッフと権限', onSelect: onOpenStaffAdmin },
   ].filter(Boolean)
   const hasManagementItems = managementItems.length > 0
 
   useEffect(() => {
     if (!managementOpen) return undefined
-
-    function handlePointerDown(event) {
-      if (managementRef.current?.contains(event.target)) return
-      setManagementOpen(false)
-    }
 
     function handleKeyDown(event) {
       if (event.key !== 'Escape') return
@@ -61,12 +61,9 @@ export default function StaffShellHeader({
       managementButtonRef.current?.focus()
     }
 
-    document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
+    sheetRef.current?.focus()
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [managementOpen])
 
   function handleManagementSelect(item) {
@@ -74,62 +71,110 @@ export default function StaffShellHeader({
     item.onSelect()
   }
 
+  function handleCopyCode() {
+    navigator.clipboard?.writeText(storeCode).then(() => {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+    })
+  }
+
   return (
-    <header className="staff-shell__header">
-      <div className="staff-shell__brand">
-        <h1 className="staff-shell__title">スタッフ</h1>
-        {callCount > 0 && <span className="staff-shell__call-count">{callCount}</span>}
+    <header className="staff-topbar">
+      <div className="staff-topbar__store">
+        <span className="staff-topbar__store-name">
+          {storeName || 'スタッフ'}
+          {callCount > 0 && <span className="staff-topbar__call-count" aria-label={`呼び出し ${callCount}件`}>{callCount}</span>}
+        </span>
+        <span className="staff-topbar__who">
+          <span className="staff-topbar__who-name">{activeStaff.name}</span>
+          {activeStaff.isStoreManager && <span className="ui-badge ui-badge--admin">管理者</span>}
+        </span>
       </div>
-      <div className="staff-shell__actions">
-        <span className="staff-shell__staff-name">{activeStaff.name}</span>
-        <button
-          type="button"
-          onClick={onOpenOrders}
-          className="staff-shell__button staff-shell__button--primary"
-        >
+      <div className="staff-topbar__actions">
+        <button type="button" onClick={onOpenOrders} className="ui-button ui-button--primary">
           注文
         </button>
-        <button type="button" onClick={onSwitchStaff} className="staff-shell__button staff-shell__button--compact">
-          切替
-        </button>
         {canUseKitchen && (
-          <button type="button" onClick={onOpenKitchen} className="staff-shell__button">
-            キッチン
+          <button type="button" onClick={onOpenKitchen} className="ui-button ui-button--soft ui-button--icon" aria-label="キッチン">
+            <StaffIcon name="kitchen" />
           </button>
         )}
-        {hasManagementItems && (
-          <div className="staff-shell__management" ref={managementRef}>
-            <button
-              ref={managementButtonRef}
-              type="button"
-              onClick={() => setManagementOpen(open => !open)}
-              className="staff-shell__button staff-shell__button--management"
-              aria-controls="staff-shell-management-actions"
-              aria-expanded={managementOpen}
-            >
-              店舗管理
-            </button>
-            {managementOpen && (
-              <div id="staff-shell-management-actions" className="staff-shell__management-menu">
-                {managementItems.map(item => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className="staff-shell__management-item"
-                    onClick={() => handleManagementSelect(item)}
-                  >
-                    <span className="staff-shell__management-label">{item.label}</span>
-                    <span className="staff-shell__management-description">{item.description}</span>
-                  </button>
-                ))}
+        {onSwitchStaff && (
+          <button type="button" onClick={onSwitchStaff} className="ui-button ui-button--soft">
+            切替
+          </button>
+        )}
+        {hasManagementItems ? (
+          <button
+            ref={managementButtonRef}
+            type="button"
+            onClick={() => setManagementOpen(true)}
+            className="ui-button ui-button--soft"
+            aria-haspopup="dialog"
+            aria-expanded={managementOpen}
+          >
+            <StaffIcon name="grid" />
+            店舗管理
+          </button>
+        ) : (
+          <button type="button" onClick={onLogout} className="ui-button ui-button--ghost">
+            ログアウト
+          </button>
+        )}
+      </div>
+
+      {/* 上の帯や引っぱって更新の枠の重なり順に閉じ込められないよう、ページの直下に出す。 */}
+      {managementOpen && createPortal((
+        <>
+          <div className="staff-sheet-backdrop" onClick={() => setManagementOpen(false)} />
+          <div
+            ref={sheetRef}
+            className="staff-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="店舗管理"
+            tabIndex={-1}
+          >
+            <div className="staff-sheet__grip" />
+            <div className="staff-sheet__head">
+              <h2 className="staff-sheet__title">店舗管理</h2>
+              <button type="button" onClick={() => setManagementOpen(false)} className="ui-button ui-button--ghost">
+                閉じる
+              </button>
+            </div>
+            {storeCode && (
+              <div className="staff-sheet__store-code">
+                <div>
+                  <small>店舗コード</small>
+                  <strong>{storeCode}</strong>
+                </div>
+                <button type="button" onClick={handleCopyCode} className="ui-button ui-button--surface">
+                  {codeCopied ? 'コピー済み' : 'コピー'}
+                </button>
               </div>
             )}
+            <div className="staff-sheet__grid">
+              {managementItems.map(item => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className="staff-sheet__tile"
+                  onClick={() => handleManagementSelect(item)}
+                >
+                  <span className="staff-sheet__tile-icon"><StaffIcon name={item.icon} /></span>
+                  <span className="staff-sheet__tile-label">{item.label}</span>
+                  <span className="staff-sheet__tile-description">{item.description}</span>
+                </button>
+              ))}
+            </div>
+            <div className="staff-sheet__footer">
+              <button type="button" onClick={onLogout} className="ui-button ui-button--ghost">
+                ログアウト
+              </button>
+            </div>
           </div>
-        )}
-        <button type="button" onClick={onLogout} className="staff-shell__button">
-          ログアウト
-        </button>
-      </div>
+        </>
+      ), document.body)}
     </header>
   )
 }

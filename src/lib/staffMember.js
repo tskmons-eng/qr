@@ -1,3 +1,5 @@
+import { buildStaffPermissionsFromPreset } from './staffPermissions.js'
+
 export function normalizeStaffCode(value) {
   return value.replace(/\D/g, '').slice(0, 4)
 }
@@ -53,4 +55,20 @@ export function validateStaffMemberForm({ name, code }) {
   if (!name.trim()) return '名前を入力してください'
   if (!/^\d{4}$/.test(code)) return 'コードは4桁の数字にしてください'
   return ''
+}
+
+// Google やメールでログインした店長・オーナーは、スタッフを選ばずに「管理者」としてスタッフ画面に入る（2026-10-22 整理 第3章）。
+// サーバー（rules・Functions）は店舗管理者として扱うので、スタッフの記録（staffSessions）は作らない。
+export const STORE_MANAGER_STAFF_ID = 'store-manager'
+
+export function buildStoreManagerStaff(user) {
+  if (!user || user.isAnonymous) return null
+  const name = user.displayName?.trim() || user.email?.split('@')[0] || '管理者'
+  return {
+    id: STORE_MANAGER_STAFF_ID,
+    name,
+    permissionPreset: 'manager',
+    permissions: buildStaffPermissionsFromPreset('manager'),
+    isStoreManager: true,
+  }
 }
