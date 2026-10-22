@@ -37,7 +37,8 @@ paths:
 
 - 文字は `src/styles/tokens.css` の `--font-main`（M PLUS Rounded 1c）。ラベルとボタンは太字、合計など大事な数字は太さ 900 と等幅数字（`--font-number`）。
 - `style={{ ... }}` の直書きはしない（見た目は CSS のクラスで）。
-- ブラウザ標準の `prompt` / `alert` は使わず、既存のモーダル・トグルを使う。
+- ブラウザ標準の `prompt` / `alert` / `confirm` は使わず、既存のモーダル・トグルを使う。
+- この章の3つ（`style` の直書き・ブラウザ標準の確認窓・色の直書き）は `npm run check:ui-rules` が自動で止める。今ある違反は `scripts/ui-rules-baseline.json` に記録済みで、新しいファイルは0件、今あるファイルは増やせない（ユーザー様 2026-10-22）。直して減ったら `npm run check:ui-rules -- --update-baseline`。基準を増やす方向に書き換えない。
 
 ## 5. 表示だけ直す近道をしない
 
