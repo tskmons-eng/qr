@@ -19,3 +19,11 @@ export function saveStaffStoreCodePreference({ code, remember, storage = localSt
     storage.removeItem(SAVED_STAFF_STORE_CODE_KEY)
   }
 }
+
+// スタッフの端末で読む二次元コードの行き先（2026-10-23）。読むと店舗コードが入る。店舗コードと同じ扱いなので店の外に貼らない。
+export const STAFF_JOINED_BY_QR_KEY = 'staffJoinedByQr'
+
+export function buildStaffJoinUrl(code, origin = window.location.origin) {
+  return `${origin}/join/${encodeURIComponent(code)}`
+}
+

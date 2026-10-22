@@ -195,3 +195,35 @@ const STAFF_ROLE_SHORT_LABELS = {
 export function getStaffRoleShortLabel(member) {
   return STAFF_ROLE_SHORT_LABELS[member?.permissionPreset] ?? 'スタッフ'
 }
+
+// スタッフ管理の作り直し（2026-10-23）。
+// 新しく追加するスタッフの最初の役割（いちばん弱い役割から。ユーザー様の選択）。
+// DEFAULT_STAFF_PERMISSION_PRESET は「役割が分からないとき」の扱いでサーバーと揃えているので、別に持つ。
+export const NEW_STAFF_PERMISSION_PRESET = 'floor'
+
+// 役割を選ぶカードに出す一言（弱い順）。
+export const STAFF_ROLE_CARDS = [
+  { key: 'floor', label: '通常スタッフ', hint: '注文・席の対応とキッチン' },
+  { key: 'operations', label: '現場責任者', hint: '＋レジ締め・席・予約の管理' },
+  { key: 'menuLead', label: 'メニュー担当', hint: '＋商品・分類の登録と修正' },
+  { key: 'manager', label: '店舗管理者', hint: 'すべて（設定・スタッフも）' },
+]
+
+// 一覧・詳細に出す役割の名前。権限の項目も役割も無いスタッフは「以前の設定」。
+export function getStaffRoleDisplay(member) {
+  // 役割の名前が無い（または legacy）ときだけ「以前の設定」。知らない名前のときは、実際の権限から役割を決める。
+  const preset = member?.permissionPreset
+  if (!member?.permissions && (!preset || preset === 'legacy')) return { key: 'legacy', label: '以前の設定' }
+  const key = getStaffPresetKeyFromPermissions(normalizeStaffMemberPermissions(member))
+  if (key === 'custom') return { key, label: '個別設定' }
+  return { key, label: STAFF_ROLE_CARDS.find(card => card.key === key)?.label ?? '個別設定' }
+}
+
+// できること・できないことを短い名前で。
+export function describeStaffAccess(member) {
+  const permissions = normalizeStaffMemberPermissions(member)
+  const can = STAFF_PERMISSION_DEFINITIONS.filter(definition => permissions[definition.key]).map(definition => definition.label)
+  const cannot = STAFF_PERMISSION_DEFINITIONS.filter(definition => !permissions[definition.key]).map(definition => definition.label)
+  return { can, cannot }
+}
+

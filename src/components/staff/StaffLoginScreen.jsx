@@ -9,6 +9,7 @@ import {
   normalizeStaffCode,
   saveStaffAutoLoginPreference,
 } from '../../lib/staffMember'
+import { STAFF_JOINED_BY_QR_KEY } from '../../lib/staffEntry'
 import { formatOrderCommandError } from '../../lib/orderCommandErrors'
 import { loadStaffMembers } from '../../services/staffAuthService'
 
@@ -36,6 +37,8 @@ export default function StaffLoginScreen({ storeId, storeName, onLogin, onLogout
   const [verifying, setVerifying] = useState(false)
   const [storeSwitchOpen, setStoreSwitchOpen] = useState(false)
   const storeEntry = useStoreCodeEntry({ currentStoreId: storeId })
+  // 二次元コードで入ってきたときだけ、入れたことを知らせる（2026-10-23）。
+  const [joinedCode] = useState(() => sessionStorage.getItem(STAFF_JOINED_BY_QR_KEY))
 
   useEffect(() => {
     let active = true
@@ -77,6 +80,7 @@ export default function StaffLoginScreen({ storeId, storeName, onLogin, onLogout
     try {
       await onLogin(buildStaffLoginPayload(selected), enteredCode)
       saveStaffAutoLoginPreference({ storeId, staff: selected })
+      sessionStorage.removeItem(STAFF_JOINED_BY_QR_KEY)
     } catch (loginError) {
       // 入れなかったときは必ず理由を出す（以前は画面に何も出ず止まっていた）。
       setError(formatOrderCommandError(loginError, { context: 'staffLogin' }).message)
@@ -108,6 +112,7 @@ export default function StaffLoginScreen({ storeId, storeName, onLogin, onLogout
         </div>
       ) : !selected ? (
         <>
+          {joinedCode && <p className="staff-auth__joined">✓ 二次元コードで店に入りました（店舗コード {joinedCode}）</p>}
           <div className="staff-auth__brand">
             <p className="staff-auth__lead">あなたは誰ですか？</p>
           </div>

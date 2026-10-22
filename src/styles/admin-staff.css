@@ -1,236 +1,364 @@
-.admin-staff__heading {
-  margin: 0 0 16px;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.admin-staff__panel {
-  margin-bottom: 20px;
-  padding: 16px;
-  border: 1px solid #eee;
-  border-radius: 10px;
-  background: #fff;
-}
-
-.admin-staff__section-title {
-  margin-bottom: 12px;
-  color: #555;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.admin-staff__form {
+/* スタッフ管理（2026-10-23 作り直し。すっきり明るい・余白少なめ）。色は tokens.css の共通の値だけ。 */
+.admin-staff {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 8px 8px 80px;
+  color: var(--ui-text-main);
 }
 
-.admin-staff__name-input,
-.admin-staff__code-input,
-.admin-staff__role-select {
-  box-sizing: border-box;
-  padding: 9px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.admin-staff__name-input {
-  flex: 2;
-  min-width: 120px;
-}
-
-.admin-staff__code-input {
-  flex: 1;
-  min-width: 100px;
-  letter-spacing: 4px;
-  text-align: center;
-}
-
-.admin-staff__role-select {
-  flex: 1.3;
-  min-width: 160px;
-  background: #fff;
-}
-
-.admin-staff__add-button {
-  padding: 9px 20px;
-  border: none;
-  border-radius: 8px;
-  background: #222;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.admin-staff__add-button:disabled {
-  cursor: default;
-}
-
-.admin-staff__error {
-  margin-top: 8px;
-  color: #dc2626;
-  font-size: 13px;
-}
-
-.admin-staff__permission-hint {
-  margin-top: 12px;
-  color: #555;
-  font-size: 12px;
-}
-
-.admin-staff__permission-hint summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.admin-staff__permission-hint p {
-  margin: 8px 0;
-}
-
-.admin-staff__permission-hint ul {
-  margin: 0;
-  padding-left: 18px;
+.admin-staff__heading {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 2px;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .admin-staff__status {
-  padding: 32px;
-  color: #999;
+  margin: 0;
+  padding: 16px 0;
+  color: var(--ui-text-muted);
+  font-size: 13px;
   text-align: center;
 }
 
-.admin-staff__status--empty {
-  color: #bbb;
-}
-
 .admin-staff__list {
-  overflow: hidden;
-  border: 1px solid #eee;
-  border-radius: 10px;
-  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .admin-staff__row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 13px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  text-align: left;
 }
 
-.admin-staff__row.is-last {
-  border-bottom: none;
-}
-
-.admin-staff__member-name {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.admin-staff__masked-code {
-  margin-left: 10px;
-  color: #aaa;
-  font-size: 13px;
-  letter-spacing: 3px;
-}
-
-.admin-staff__permission-summary {
-  display: block;
-  margin-top: 4px;
-  color: #777;
+.admin-staff__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
   font-size: 12px;
+  font-weight: 900;
 }
 
-.admin-staff__row-actions {
+.admin-staff__main {
   display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-staff__main b {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-staff__main span {
+  overflow: hidden;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-staff__role {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-subtle);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-staff__role--manager {
+  background: var(--ui-badge-admin-bg);
+  color: var(--ui-badge-admin-text);
+}
+
+.admin-staff__role--operations {
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+}
+
+.admin-staff__role--legacy {
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
+}
+
+.admin-staff__chev {
+  color: var(--ui-text-muted);
+  font-weight: 900;
+}
+
+/* スタッフの端末での入り方 */
+.staff-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+}
+
+.staff-entry-card__qr {
+  flex: none;
+  padding: 4px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 6px;
+  background: var(--ui-bg-surface);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.staff-entry-card__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.staff-entry-card__text b {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.staff-entry-card__text strong {
+  font-family: var(--font-number);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 4px;
+}
+
+.staff-entry-card__text span {
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.staff-entry-card__large {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-}
-
-.admin-staff__role-select--row {
-  width: 160px;
-  min-width: 0;
-  padding: 6px 9px;
-  font-size: 12px;
-}
-
-.admin-staff__row-hint {
-  position: relative;
-  color: #555;
-  font-size: 12px;
-}
-
-.admin-staff__row-hint summary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  cursor: pointer;
-  list-style: none;
-  font-weight: 700;
-}
-
-.admin-staff__row-hint p {
-  position: absolute;
-  right: 0;
-  z-index: 5;
-  width: 260px;
-  margin: 6px 0 0;
-  padding: 10px;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-}
-
-.admin-staff__reset-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.admin-staff__reset-input {
-  width: 110px;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 13px;
-  letter-spacing: 3px;
+  padding: 4px 0 8px;
   text-align: center;
 }
 
-.admin-staff__reset,
-.admin-staff__reset-save,
-.admin-staff__reset-cancel {
-  padding: 5px 10px;
-  border-radius: 6px;
-  cursor: pointer;
+.staff-entry-card__large strong {
+  font-family: var(--font-number);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 6px;
+}
+
+.staff-entry-card__large span {
+  color: var(--ui-text-muted);
   font-size: 12px;
 }
 
-.admin-staff__reset,
-.admin-staff__reset-cancel {
-  border: 1px solid #d1d5db;
-  background: #fff;
-  color: #374151;
+/* 役割のカード（追加と詳細で共通） */
+.staff-role-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
 }
 
-.admin-staff__reset-save {
-  border: none;
-  background: #111827;
-  color: #fff;
-}
-
-.admin-staff__delete {
-  padding: 5px 12px;
-  border: 1px solid #fca5a5;
-  border-radius: 6px;
-  background: #fff;
-  color: #dc2626;
+.staff-role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
+  text-align: left;
+}
+
+.staff-role-card b {
   font-size: 12px;
+  font-weight: 900;
+}
+
+.staff-role-card span {
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.staff-role-card.is-selected {
+  border: 2px solid var(--ui-brand);
+  background: var(--ui-brand-soft);
+}
+
+/* 追加・パス・削除のシートの中 */
+.staff-sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.staff-sheet-form__row {
+  display: flex;
+  gap: 6px;
+}
+
+.staff-sheet-form__field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.staff-sheet-form__field--pin {
+  flex: 0.7;
+}
+
+.staff-sheet-form__field input {
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
+  color: var(--ui-text-main);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.staff-sheet-form__field--pin input {
+  font-family: var(--font-number);
+  letter-spacing: 6px;
+}
+
+.staff-sheet-form__note {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.staff-sheet-form__error {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-sheet-form__buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.staff-sheet-form__buttons .ui-button {
+  flex: 1;
+}
+
+/* スタッフの詳細 */
+.staff-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.staff-detail__note {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.staff-detail__access {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.staff-detail__access b {
+  color: var(--ui-text-main);
+}
+
+.staff-detail__more,
+.staff-detail__line {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 2px;
+  border: 0;
+  border-top: 1px solid var(--ui-border-subtle);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.staff-detail__more {
+  color: var(--ui-brand);
+}
+
+.staff-detail__line {
+  color: var(--ui-text-main);
+}
+
+.staff-detail__line--danger {
+  color: var(--ui-danger);
+}
+
+.staff-detail__toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  padding: 0 2px 4px;
+}
+
+.staff-detail__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-detail__delete {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
 }

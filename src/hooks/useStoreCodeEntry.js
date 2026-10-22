@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   canEnterStaffStore,
   getSavedStaffStoreCode,
@@ -10,12 +10,15 @@ import { enterStaffStoreByCode } from '../services/staffEntryService'
 
 // 店舗コードでの入室。最初の入室画面と、スタッフを選ぶ画面の「別の店舗コードで入る」で共通に使う。
 // 店舗コードで入るときは、管理者のログインを流用せず必ず匿名のスタッフ端末として入り直す（AGENTS.md 5章）。
-export default function useStoreCodeEntry({ currentStoreId = null, autoEnterSaved = false } = {}) {
+// autoEnterCode：二次元コード（/join/<店舗コード>）から来たとき、その店舗コードですぐ入る。
+export default function useStoreCodeEntry({ currentStoreId = null, autoEnterSaved = false, autoEnterCode = null } = {}) {
   const [code, setCode] = useState(() => (autoEnterSaved ? getSavedStaffStoreCode() ?? '' : ''))
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [autoEntering, setAutoEntering] = useState(false)
+  // 自動の入室は1回だけ（開発時の二重実行で匿名ログインが2回走らないように）。
+  const autoEnterStarted = useRef(false)
 
   async function enter(rawCode = code, rememberCode = remember) {
     const normalized = normalizeStaffStoreCode(rawCode)
@@ -50,9 +53,18 @@ export default function useStoreCodeEntry({ currentStoreId = null, autoEnterSave
   }
 
   useEffect(() => {
-    if (!autoEnterSaved) return
+    if (!autoEnterCode || autoEnterStarted.current) return
+    autoEnterStarted.current = true
+    setCode(normalizeStaffStoreCode(autoEnterCode))
+    setAutoEntering(true)
+    enter(autoEnterCode, true).finally(() => setAutoEntering(false))
+  }, [autoEnterCode])
+
+  useEffect(() => {
+    if (!autoEnterSaved || autoEnterCode || autoEnterStarted.current) return
     const savedCode = getSavedStaffStoreCode()
     if (!savedCode) return
+    autoEnterStarted.current = true
     setAutoEntering(true)
     enter(savedCode, true).finally(() => setAutoEntering(false))
   }, [autoEnterSaved])
