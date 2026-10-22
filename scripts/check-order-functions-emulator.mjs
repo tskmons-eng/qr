@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initializeApp } from 'firebase/app'
-import { getAuth, connectAuthEmulator, signInAnonymously } from 'firebase/auth'
+import { getAuth, connectAuthEmulator, signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth'
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions'
 import { connectFirestoreEmulator, doc as clientDoc, getDoc as clientGetDoc, getFirestore as getClientFirestore, setDoc as clientSetDoc, terminate as terminateClientFirestore, updateDoc as clientUpdateDoc } from 'firebase/firestore'
 import { migrateStaffCodes } from './migrate-staff-codes.mjs'
@@ -125,6 +125,7 @@ if (process.env[INSIDE_ENV] !== '1') {
 const functionsRequire = createRequire(new URL('../functions/package.json', import.meta.url))
 const { initializeApp: initializeAdminApp, getApps } = functionsRequire('firebase-admin/app')
 const { getFirestore, FieldValue } = functionsRequire('firebase-admin/firestore')
+const { getAuth: getAdminAuth } = functionsRequire('firebase-admin/auth')
 
 process.env.GCLOUD_PROJECT = PROJECT_ID
 process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080'
@@ -904,6 +905,24 @@ async function runStaffPasscodeChecks(db, managerClient, floorClient, productId)
   assert.equal((await db.collection('staffMembers').doc(legacyChangeId).get()).data().code, undefined, 'legacy code should be moved even when the change is rejected')
   await call(managerClient.functions, 'setStaffCodeCommand', { storeId, staffMemberId: legacyChangeId, currentCode: '1111', nextCode: '2468' })
   await call(migratedDevice.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: legacyChangeId, code: '2468' })
+
+  // パスを忘れたスタッフ：店長・オーナー（Google ログイン）は今のパスなしで決め直せる（ロックも解ける）。
+  // スタッフ管理の権限を持つスタッフは、今のパスが要る（ユーザー様 2026-10-22）。
+  await expectCallableError('invalid-staff-code', () => call(managerClient.functions, 'setStaffCodeCommand', {
+    storeId, staffMemberId: legacyChangeId, nextCode: '1357',
+  }), 'staff manager resetting a code without the current code')
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await call(device.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: legacyChangeId, code: '0000' }).catch(() => null)
+  }
+  const ownerEmail = `owner-${runId}@example.test`
+  const ownerPassword = `pass-${runId}`
+  await getAdminAuth(getApps().find(existing => existing.name === 'order-functions-emulator')).createUser({ email: ownerEmail, password: ownerPassword, emailVerified: true })
+  await db.collection('storeAdminEmails').doc(ownerEmail).set({ storeId, email: ownerEmail })
+  const storeManagerClient = createStaffClient(`store-manager-${runId}`)
+  extraStaffClients.push(storeManagerClient)
+  await signInWithEmailAndPassword(storeManagerClient.auth, ownerEmail, ownerPassword)
+  await call(storeManagerClient.functions, 'setStaffCodeCommand', { storeId, staffMemberId: legacyChangeId, nextCode: '1357' })
+  await call(migratedDevice.client.functions, 'activateStaffSessionCommand', { storeId, staffMemberId: legacyChangeId, code: '1357' })
   return device.client
 }
 

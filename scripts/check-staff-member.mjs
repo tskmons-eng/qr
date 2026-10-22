@@ -46,7 +46,10 @@ const staffPermissionCss = readFileSync(new URL('../src/styles/admin-staff-permi
 
 assert.match(staffPage, /resetCurrentCode/)
 // 旧パスの確認はサーバー（setStaffCodeCommand）で行い、画面はパスを持たない（2026-10-22 第4章 4-B）。
-assert.match(staffPage, /updateStaffMemberCode\(\{ storeId, memberId: member\.id, currentCode: current, nextCode: next \}\)/)
+assert.match(staffPage, /updateStaffMemberCode\(\{ storeId, memberId: member\.id, currentCode: requireCurrentCode \? current : undefined, nextCode: next \}\)/)
+// 店長・オーナーには旧パス欄を出さない（今のパスなしで決め直せる。2026-10-22）。
+assert.match(staffPage, /const requireCurrentCode = !useStaffMember\(\)\?\.activeStaff\?\.isStoreManager/)
+assert.match(staffMemberList, /\{requireCurrentCode && \(/)
 assert.doesNotMatch(staffPage, /member\.code/)
 assert.match(staffMemberList, /onResetCurrentCodeChange/)
 assert.match(staffMemberList, /placeholder="旧パス"/)

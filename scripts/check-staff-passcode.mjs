@@ -49,6 +49,10 @@ for (const name of ['activateStaffSessionCommand', 'createStaffMemberCommand', '
   assert.match(functionsIndex, new RegExp(`exports\\.${name} = createOrderCommandCallable\\(staffPasscode\\.${name}`))
 }
 assert.match(auth, /session\.verifiedStaffMemberId !== session\.staffMemberId/)
+// 今のパスなしで決め直せるのは店長・オーナー（Google ログイン）だけ。
+const staffPasscodeSource = await readFile('functions/staffPasscode.js', 'utf8')
+assert.match(staffPasscodeSource, /const requiresCurrentCode = !actor\.isStoreManager/)
+assert.match(staffPasscodeSource, /if \(hasCode && requiresCurrentCode\) \{/)
 assert.match(rules, /match \/staffSecrets\/\{memberId\} \{\s*allow read, write: if false;/)
 assert.doesNotMatch(staffAuthService, /setDoc\(doc\(db, 'staffSessions'/, 'the client should not write the selected staff member')
 assert.match(staffAuthService, /callOrderCommandFunction\('activateStaffSessionCommand'/)

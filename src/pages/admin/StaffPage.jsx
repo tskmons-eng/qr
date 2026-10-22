@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import StaffMemberForm from '../../components/admin/StaffMemberForm'
 import StaffMemberList from '../../components/admin/StaffMemberList'
+import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { useStore } from '../../contexts/StoreContext'
 import {
   DEFAULT_STAFF_PERMISSION_PRESET,
@@ -15,6 +16,8 @@ import { createStaffMember, deleteStaffMember, loadStaffMembers, updateStaffMemb
 
 export default function StaffPage() {
   const { storeId } = useStore()
+  // 店長・オーナー（Google ログイン）は、今のパスなしで決め直せる。スタッフ管理の権限を持つスタッフは今のパスが要る。
+  const requireCurrentCode = !useStaffMember()?.activeStaff?.isStoreManager
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -116,7 +119,7 @@ export default function StaffPage() {
     }
 
     try {
-      await updateStaffMemberCode({ storeId, memberId: member.id, currentCode: current, nextCode: next })
+      await updateStaffMemberCode({ storeId, memberId: member.id, currentCode: requireCurrentCode ? current : undefined, nextCode: next })
       cancelCodeReset()
     } catch (resetFailure) {
       const { code: failureCode, message } = formatOrderCommandError(resetFailure)
@@ -143,6 +146,7 @@ export default function StaffPage() {
         loading={loading}
         members={members}
         resettingMemberId={resettingMemberId}
+        requireCurrentCode={requireCurrentCode}
         resetCurrentCode={resetCurrentCode}
         resetError={resetError}
         resetNextCode={resetNextCode}

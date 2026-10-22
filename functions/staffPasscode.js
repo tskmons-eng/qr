@@ -183,12 +183,14 @@ async function createStaffMemberCommand({ storeId, name, code, permissionPreset,
   return { ok: true, staffMemberId: memberRef.id }
 }
 
-// パスを変える。今のパスの確認は残す（AGENTS.md）。間違いは入るときと同じ回数で数え、ロックも共通。
+// パスを変える。スタッフ管理の権限を持つスタッフは今のパスの確認が要る（間違いは入るときと同じ回数で数え、ロックも共通）。
+// 店長・オーナー（Google ログイン）は、パスを忘れたスタッフのために今のパスなしで決め直せる（ロックも解ける。ユーザー様 2026-10-22）。
 async function setStaffCodeCommand({ storeId, staffMemberId, currentCode, nextCode }, request) {
   if (typeof staffMemberId !== 'string' || !staffMemberId) throw commandError('invalid-argument', 'Staff member is required.')
   assertStaffCodeFormat(nextCode)
   const db = getFirestore()
-  await assertCanManageStaff(db, request, storeId)
+  const actor = await assertCanManageStaff(db, request, storeId)
+  const requiresCurrentCode = !actor.isStoreManager
   const memberRef = db.collection('staffMembers').doc(staffMemberId)
   const secretRef = db.collection(STAFF_SECRET_COLLECTION).doc(staffMemberId)
 
@@ -196,7 +198,7 @@ async function setStaffCodeCommand({ storeId, staffMemberId, currentCode, nextCo
     const secretSnap = await transaction.get(secretRef)
     const member = await loadStoreMemberInTransaction(transaction, memberRef, storeId)
     const hasCode = Boolean(secretSnap.data()?.codeHash) || Boolean(resolveStaffSecret(null, member).secret)
-    if (hasCode) {
+    if (hasCode && requiresCurrentCode) {
       if (currentCode === nextCode) return 'staff-code-unchanged'
       const check = checkStaffCode({ secretSnap, member, storeId, code: currentCode })
       if (check.failure) {

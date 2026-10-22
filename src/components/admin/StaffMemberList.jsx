@@ -10,6 +10,7 @@ import {
 export default function StaffMemberList({
   loading,
   members,
+  requireCurrentCode,
   resetCurrentCode,
   resetError,
   resetNextCode,
@@ -49,14 +50,16 @@ export default function StaffMemberList({
               <span className="admin-staff__permission-summary">{permissionSummary}</span>
               {resetting && (
                 <div className="admin-staff__reset-row">
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    value={resetCurrentCode}
-                    onChange={event => onResetCurrentCodeChange(event.target.value)}
-                    placeholder="旧パス"
-                    className="admin-staff__reset-input"
-                  />
+                  {requireCurrentCode && (
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      value={resetCurrentCode}
+                      onChange={event => onResetCurrentCodeChange(event.target.value)}
+                      placeholder="旧パス"
+                      className="admin-staff__reset-input"
+                    />
+                  )}
                   <input
                     type="password"
                     inputMode="numeric"

@@ -2,11 +2,13 @@
 
 書き方は `.claude/skills/kakunin/SKILL.md`。「状態」が `OK` か `省略` でない間は、アプリのコードを書き換えられない（フックが止める）。
 
-状態：なし
-作業名：
-ユーザー様のOK：
+状態：省略
+作業名：4桁パスを忘れたスタッフの再設定（省略の理由：ユーザー様が仕様をそのまま指示。注文・会計・集計のデータには触らない）
+ユーザー様のOK：2026-10-22「When a staff member forgets their passcode, let a store manager or owner (Google login) set a new one without the current passcode. A staff member with the staff-management permission still needs the current passcode.」
 
 ## 何のために要るのか
+
+柱3。パスを忘れたスタッフを、削除・作り直しをせずに戻せるようにする。店長・オーナー（Google ログイン）だけは今のパスなしで新しいパスを決められる。スタッフ管理の権限を持つスタッフは、今までどおり今のパスが要る。
 
 ## 実際にどう使われるか
 
