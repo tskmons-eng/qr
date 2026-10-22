@@ -1,24 +1,27 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import StaffBottomNav from '../../components/StaffBottomNav'
-import StaffTableCard from '../../components/staff/StaffTableCard'
+import StaffTableCard, { StaffTableNeedRow, StaffVacantTableCell } from '../../components/staff/StaffTableCard'
 import StaffTableListEmpty from '../../components/staff/StaffTableListEmpty'
 import TodayReservationNoticeList from '../../components/staff/TodayReservationNoticeList'
 import { useStore } from '../../contexts/StoreContext'
 import useNow from '../../hooks/useNow'
 import { getNextReservationForTable, getTokyoDateString, getUnassignedTodayReservations } from '../../lib/reservationDisplay'
-import { getStaffTablePending } from '../../lib/staffTableList'
+import { STAFF_TABLE_FILTERS, buildStaffTableBoard } from '../../lib/staffTableList'
 import { buildTableGroupTabs, filterTablesByGroup } from '../../lib/tableGroups'
 import { tablesNeedPendingFallback } from '../../lib/tablePending'
 import { subscribeTodayReservations } from '../../services/reservationService'
 import { subscribeStaffPendingCounts, subscribeStaffTables } from '../../services/staffTableListService'
 import { subscribeTableGroups } from '../../services/tableGroupService'
 
-export default function TableListPage() {
+// 席一覧（2026-10-22 作り直し）：上＝対応が要る席、中＝利用中、下＝空席。
+// 呼び出しは StaffLayout が購読しているものを受け取る（購読を増やさない）。
+export default function TableListPage({ calls = [] }) {
   const { storeId } = useStore()
   const [tables, setTables] = useState([])
   const [groups, setGroups] = useState([])
   const [activeGroupId, setActiveGroupId] = useState('all')
+  const [activeFilter, setActiveFilter] = useState('all')
   const [pendingMap, setPendingMap] = useState({})
   const [todayReservations, setTodayReservations] = useState([])
   const navigate = useNavigate()
@@ -49,13 +52,12 @@ export default function TableListPage() {
     return subscribeTodayReservations(storeId, today, setTodayReservations)
   }, [storeId, today])
 
+  const unassignedReservations = getUnassignedTodayReservations(todayReservations, today)
+
   if (tables.length === 0) {
     return (
       <div className="staff-table-list">
-        <TodayReservationNoticeList
-          reservations={getUnassignedTodayReservations(todayReservations, today)}
-          tables={tables}
-        />
+        <TodayReservationNoticeList reservations={unassignedReservations} tables={tables} />
         <StaffTableListEmpty />
         <StaffBottomNav current="seat" />
       </div>
@@ -63,42 +65,89 @@ export default function TableListPage() {
   }
 
   const tabs = buildTableGroupTabs(groups)
-  const visibleTables = filterTablesByGroup(tables, activeGroupId)
+  const board = buildStaffTableBoard({ tables: filterTablesByGroup(tables, activeGroupId), pendingMap, calls })
+  const show = key => activeFilter === 'all' || activeFilter === key
+  const openTable = table => navigate(`table/${table.id}`)
+  const reservationFor = table => getNextReservationForTable(todayReservations, table.id, today)
 
   return (
     <div className="staff-table-list">
       {tabs.length > 1 && (
-        <div className="staff-table-list__tabs" role="tablist" aria-label="席グループ">
+        <div className="staff-table-list__chips" role="tablist" aria-label="席グループ">
           {tabs.map(tab => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveGroupId(tab.id)}
-              className={`staff-table-list__tab${activeGroupId === tab.id ? ' is-active' : ''}`}
+              className={`staff-table-list__chip${activeGroupId === tab.id ? ' is-active' : ''}`}
             >
               {tab.name}
             </button>
           ))}
         </div>
       )}
-      <div className="staff-table-list__grid">
-        <TodayReservationNoticeList
-          reservations={getUnassignedTodayReservations(todayReservations, today)}
-          tables={tables}
-        />
-        {visibleTables.map(table => (
-          <StaffTableCard
-            key={table.id}
-            table={table}
-            pending={getStaffTablePending(table, pendingMap)}
-            reservation={getNextReservationForTable(todayReservations, table.id, today)}
-            now={now}
-            onClick={() => navigate(`table/${table.id}`)}
-          />
+      <div className="staff-table-list__chips" role="tablist" aria-label="席の状態">
+        {STAFF_TABLE_FILTERS.map(filter => (
+          <button
+            key={filter.key}
+            type="button"
+            onClick={() => setActiveFilter(filter.key)}
+            className={`staff-table-list__chip${activeFilter === filter.key ? ' is-active' : ''}`}
+          >
+            {filter.label}<b>{board.counts[filter.key]}</b>
+          </button>
         ))}
       </div>
-      {visibleTables.length === 0 && (
-        <p className="staff-table-list__empty-group">このグループの席はまだありません</p>
+
+      <TodayReservationNoticeList reservations={unassignedReservations} tables={tables} />
+
+      {show('needs') && board.needs.length > 0 && (
+        <section className="staff-table-list__section" aria-label="対応が要る席">
+          <h2 className="staff-table-list__heading">対応が要る席<span>古い順</span></h2>
+          {board.needs.map(need => (
+            <StaffTableNeedRow key={need.table.id} need={need} now={now} onClick={() => openTable(need.table)} />
+          ))}
+        </section>
+      )}
+
+      {show('occupied') && board.occupied.length > 0 && (
+        <section className="staff-table-list__section" aria-label="利用中">
+          <h2 className="staff-table-list__heading">利用中 {board.occupied.length}</h2>
+          <div className="staff-table-list__grid">
+            {board.occupied.map(({ table, pending }) => (
+              <StaffTableCard
+                key={table.id}
+                table={table}
+                pending={pending}
+                reservation={reservationFor(table)}
+                now={now}
+                onClick={() => openTable(table)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {show('vacant') && board.vacant.length > 0 && (
+        <section className="staff-table-list__section" aria-label="空席">
+          <h2 className="staff-table-list__heading">空席 {board.vacant.length}（押すと着席）</h2>
+          <div className="staff-table-list__vacant">
+            {board.vacant.map(({ table }) => (
+              <StaffVacantTableCell
+                key={table.id}
+                table={table}
+                reservation={reservationFor(table)}
+                onClick={() => openTable(table)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {board.counts[activeFilter] === 0 && (
+        <p className="staff-table-list__empty-group">
+          {activeFilter === 'needs' ? '対応が要る席はありません' : 'この条件の席はありません'}
+        </p>
       )}
       <StaffBottomNav current="seat" />
     </div>

@@ -266,7 +266,7 @@ export default function StaffLayout() {
           />
 
           <Routes>
-            <Route index element={<TableListPage />} />
+            <Route index element={<TableListPage calls={calls} />} />
             <Route path="kitchen" element={
               <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
                 <KitchenPage />

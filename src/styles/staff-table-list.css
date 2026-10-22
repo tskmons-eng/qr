@@ -1,6 +1,7 @@
+/* 席一覧（2026-10-22 作り直し。すっきり明るい・余白少なめ）。色は tokens.css の共通の値だけ。 */
 .staff-table-list-empty {
-  padding: 48px;
-  color: #bbb;
+  padding: 40px 16px;
+  color: var(--ui-text-muted);
   text-align: center;
 }
 
@@ -10,86 +11,261 @@
 
 .staff-table-list {
   max-width: 600px;
+  min-height: 100%;
   margin: 0 auto;
-  padding: 16px 16px 88px;
+  padding: 8px 8px 80px;
+  background: var(--ui-bg-app);
 }
 
-.staff-table-list__tabs {
+.staff-table-list__chips {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   overflow-x: auto;
-  margin: -2px -16px 12px;
-  padding: 0 16px 2px;
+  margin-bottom: 6px;
   scrollbar-width: none;
 }
 
-.staff-table-list__tabs::-webkit-scrollbar {
+.staff-table-list__chips::-webkit-scrollbar {
   display: none;
 }
 
-.staff-table-list__tab {
+.staff-table-list__chip {
   flex: 0 0 auto;
-  min-height: 34px;
-  padding: 7px 13px;
-  border: 1px solid #d1d5db;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #374151;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-muted);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-table-list__chip b {
+  margin-left: 3px;
+  color: var(--ui-text-main);
+  font-weight: 900;
+}
+
+.staff-table-list__chip.is-active {
+  border-color: var(--ui-text-main);
+  background: var(--ui-text-main);
+  color: var(--ui-bg-surface);
+}
+
+.staff-table-list__chip.is-active b {
+  color: var(--ui-bg-surface);
+}
+
+.staff-table-list__section {
+  margin-top: 6px;
+}
+
+.staff-table-list__heading {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 2px 4px;
+  color: var(--ui-text-muted);
+  font-size: 11px;
   font-weight: 800;
 }
 
-.staff-table-list__tab.is-active {
-  border-color: #111827;
-  background: #111827;
-  color: #ffffff;
+.staff-table-list__heading span {
+  font-weight: 700;
 }
 
+/* 対応が要る席：1行 */
+.staff-table-need {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  border: 0;
+  border-left: 4px solid var(--ui-warn-line);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.staff-table-need--call {
+  border-left-color: var(--ui-danger);
+}
+
+.staff-table-need__name {
+  flex: 0 0 auto;
+  min-width: 36px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.staff-table-need__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-table-need__detail {
+  margin-left: 6px;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.staff-table-need__tag {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.staff-table-need__tag--call {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+}
+
+/* 利用中：3列 */
 .staff-table-list__grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
 }
 
+.staff-table-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 52px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.staff-table-card.has-pending {
+  box-shadow: inset 0 -3px 0 var(--ui-warn-line), var(--ui-shadow-flat);
+}
+
+.staff-table-card__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.staff-table-card__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-table-card__elapsed {
+  flex: 0 0 auto;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.staff-table-card__row--sub {
+  color: var(--ui-text-muted);
+  font-size: 11px;
+}
+
+.staff-table-card__pending {
+  color: var(--ui-warn);
+  font-weight: 800;
+}
+
+/* 空席：6列の小さなマス */
+.staff-table-list__vacant {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.staff-table-vacant {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 4px 2px;
+  border: 1px dashed var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.staff-table-vacant.has-reservation {
+  border-style: solid;
+  border-color: var(--ui-reserve-bg);
+}
+
+.staff-table-vacant__reserved {
+  color: var(--ui-reserve-text);
+  font-size: 9px;
+}
+
+/* 本日の予約（席の指定なし） */
 .today-reservations {
-  grid-column: 1 / -1;
-  padding: 12px;
-  border: 1px solid #facc15;
-  border-radius: 10px;
-  background: #fffbeb;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-reserve-bg);
 }
 
 .today-reservations__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .today-reservations__title {
-  color: #92400e;
-  font-size: 14px;
+  color: var(--ui-reserve-text);
+  font-size: 12px;
   font-weight: 900;
 }
 
 .today-reservations__count {
-  color: #a16207;
-  font-size: 12px;
+  color: var(--ui-reserve-text);
+  font-size: 11px;
   font-weight: 800;
 }
 
 .today-reservations__list {
   display: grid;
-  gap: 6px;
+  gap: 3px;
 }
 
 .today-reservations__item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  color: #111827;
+  gap: 4px;
+  color: var(--ui-text-main);
   font-size: 12px;
 }
 
@@ -99,136 +275,42 @@
 
 .today-reservations__meta,
 .today-reservations__wait {
-  padding: 2px 7px;
-  border-radius: 99px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-surface);
+  color: var(--ui-reserve-text);
+  font-size: 10px;
   font-weight: 800;
 }
 
 .today-reservations__wait {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.staff-table-list-card {
-  padding: 20px 16px;
-  border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  background: #f0fdf4;
-  cursor: pointer;
-  text-align: left;
-}
-
-.staff-table-list-card--occupied {
-  border-color: #fed7aa;
-  background: #fff7ed;
-}
-
-.staff-table-list-card--occupied-pending {
-  border-color: #93c5fd;
-  background: #eff6ff;
-}
-
-.staff-table-list-card--checkout-pending {
-  border-color: #fde68a;
-  background: #fefce8;
-}
-
-.staff-table-list-card__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.staff-table-list-card__name {
-  color: #222;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.staff-table-list-card__badges {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.staff-table-list-card__badge {
-  padding: 1px 7px;
-  border-radius: 99px;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.staff-table-list-card__badge--drink {
-  background: #0ea5e9;
-}
-
-.staff-table-list-card__badge--food {
-  background: #f97316;
-}
-
-.staff-table-list-card__badge--other {
-  background: #1d4ed8;
-}
-
-.staff-table-list-card__status {
-  color: #16a34a;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.staff-table-list-card--occupied .staff-table-list-card__status {
-  color: #c2410c;
-}
-
-.staff-table-list-card--occupied-pending .staff-table-list-card__status {
-  color: #1d4ed8;
-}
-
-.staff-table-list-card--checkout-pending .staff-table-list-card__status {
-  color: #a16207;
-}
-
-.staff-table-list-card__guest {
-  margin-top: 4px;
-  color: #888;
-  font-size: 12px;
-}
-
-.staff-table-list-card__elapsed {
-  margin-top: 2px;
-  color: #aaa;
-  font-size: 12px;
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
 }
 
 .table-reservation-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 8px;
+  gap: 4px;
   max-width: 100%;
-  padding: 3px 7px;
-  border-radius: 7px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--ui-reserve-bg);
+  color: var(--ui-reserve-text);
+  font-size: 10px;
   font-weight: 900;
 }
 
 .table-reservation-badge__label,
 .table-reservation-badge__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .staff-table-list__empty-group {
-  padding: 28px 0;
-  color: #999999;
+  padding: 24px 0;
+  color: var(--ui-text-muted);
   font-size: 13px;
   text-align: center;
 }

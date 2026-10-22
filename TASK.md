@@ -2,9 +2,9 @@
 
 書き方は `.claude/skills/kakunin/SKILL.md`。「状態」が `OK` か `省略` でない間は、アプリのコードを書き換えられない（フックが止める）。
 
-状態：確認待ち
+状態：OK
 作業名：画面の作り直し 第1回 — 席一覧（試作 `docs/cleanup/previews/redesign-phone.png` ①の形で）
-ユーザー様のOK：
+ユーザー様のOK：2026-10-22「The table list content in TASK.md is OK. Don't show per-table totals or wait times this time, and keep the header as is. Go ahead and implement.」
 
 ## 何のために要るのか
 
