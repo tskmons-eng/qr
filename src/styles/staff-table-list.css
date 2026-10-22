@@ -75,23 +75,49 @@
   font-weight: 700;
 }
 
-/* 対応が要る席：1行 */
+/* 対応が要る席：1行（左は席詳細へ、右は「対応」） */
 .staff-table-need {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
+  align-items: stretch;
   min-height: 42px;
   margin-bottom: 4px;
-  padding: 6px 10px;
-  border: 0;
+  overflow: hidden;
   border-left: 4px solid var(--ui-warn-line);
   border-radius: var(--ui-radius-compact);
   background: var(--ui-bg-surface);
   box-shadow: var(--ui-shadow-flat);
+}
+
+.staff-table-need__open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
   color: var(--ui-text-main);
   cursor: pointer;
   text-align: left;
+}
+
+.staff-table-need__respond {
+  flex: 0 0 auto;
+  min-width: 64px;
+  margin: 5px 5px 5px 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-warn-line);
+  color: var(--ui-bg-surface);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.staff-table-need__respond--call {
+  background: var(--ui-danger);
 }
 
 .staff-table-need--call {
@@ -130,11 +156,6 @@
   color: var(--ui-warn);
   font-size: 10px;
   font-weight: 800;
-}
-
-.staff-table-need__tag--call {
-  background: var(--ui-danger-soft);
-  color: var(--ui-danger);
 }
 
 /* 利用中：3列 */

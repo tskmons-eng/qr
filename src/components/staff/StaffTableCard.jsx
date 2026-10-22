@@ -3,7 +3,8 @@ import { TableReservationBadge } from './TodayReservationNoticeList'
 
 // 席一覧の部品（2026-10-22 作り直し。余白少なめ）。
 // 対応が要る席：1行。呼び出し・会計の依頼・未提供を短く並べる。
-export function StaffTableNeedRow({ need, now, onClick }) {
+// 呼び出し・会計の依頼がある行には「対応」ボタン（押しても一覧のまま。行を押すと席詳細）。
+export function StaffTableNeedRow({ need, now, onClick, onRespond }) {
   const { table, pending, hasCall, hasCheckoutRequest, pendingDetail, oldestCallAt } = need
   const tone = hasCall ? 'call' : hasCheckoutRequest ? 'checkout' : 'pending'
   const title = [
@@ -13,17 +14,28 @@ export function StaffTableNeedRow({ need, now, onClick }) {
   ].filter(Boolean).join('・')
   const detail = [oldestCallAt && formatAgo(oldestCallAt, now), need.hasPending && pendingDetail].filter(Boolean).join('　')
 
+  const hasCalls = need.calls?.length > 0
+
   return (
-    <button type="button" onClick={onClick} className={`staff-table-need staff-table-need--${tone}`}>
-      <span className="staff-table-need__name">{table.tableName}</span>
-      <span className="staff-table-need__title">
-        {title}
-        {detail && <span className="staff-table-need__detail">{detail}</span>}
-      </span>
-      {hasCall && <span className="staff-table-need__tag staff-table-need__tag--call">呼出</span>}
-      {hasCheckoutRequest && <span className="staff-table-need__tag">会計</span>}
-      {need.hasPending && !hasCall && !hasCheckoutRequest && <span className="staff-table-need__tag">未提供</span>}
-    </button>
+    <div className={`staff-table-need staff-table-need--${tone}`}>
+      <button type="button" onClick={onClick} className="staff-table-need__open">
+        <span className="staff-table-need__name">{table.tableName}</span>
+        <span className="staff-table-need__title">
+          {title}
+          {detail && <span className="staff-table-need__detail">{detail}</span>}
+        </span>
+        {!hasCalls && <span className="staff-table-need__tag">未提供</span>}
+      </button>
+      {hasCalls && (
+        <button
+          type="button"
+          onClick={() => onRespond(need.calls)}
+          className={`staff-table-need__respond${hasCall ? ' staff-table-need__respond--call' : ''}`}
+        >
+          対応
+        </button>
+      )}
+    </div>
   )
 }
 

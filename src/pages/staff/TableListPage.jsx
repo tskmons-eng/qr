@@ -15,8 +15,8 @@ import { subscribeStaffPendingCounts, subscribeStaffTables } from '../../service
 import { subscribeTableGroups } from '../../services/tableGroupService'
 
 // 席一覧（2026-10-22 作り直し）：上＝対応が要る席、中＝利用中、下＝空席。
-// 呼び出しは StaffLayout が購読しているものを受け取る（購読を増やさない）。
-export default function TableListPage({ calls = [] }) {
+// 呼び出しは StaffLayout が購読しているものを受け取る（購読を増やさない）。席一覧では上の帯を出さず、行の「対応」で済ませる。
+export default function TableListPage({ calls = [], onRespondCalls }) {
   const { storeId } = useStore()
   const [tables, setTables] = useState([])
   const [groups, setGroups] = useState([])
@@ -105,7 +105,13 @@ export default function TableListPage({ calls = [] }) {
         <section className="staff-table-list__section" aria-label="対応が要る席">
           <h2 className="staff-table-list__heading">対応が要る席<span>古い順</span></h2>
           {board.needs.map(need => (
-            <StaffTableNeedRow key={need.table.id} need={need} now={now} onClick={() => openTable(need.table)} />
+            <StaffTableNeedRow
+              key={need.table.id}
+              need={need}
+              now={now}
+              onClick={() => openTable(need.table)}
+              onRespond={onRespondCalls}
+            />
           ))}
         </section>
       )}

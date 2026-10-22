@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../../contexts/StoreContext'
 import { StaffMemberContext } from '../../contexts/StaffMemberContext'
 import { loadSoundPrefs, playSound } from '../../lib/sounds'
@@ -52,6 +52,7 @@ const STAFF_ADMIN_LOGIN_PATH = `/login?next=${encodeURIComponent('/staff/staff-a
 
 export default function StaffLayout() {
   const navigate = useNavigate()
+  const isTableListPage = useLocation().pathname.replace(/\/+$/, '') === '/staff'
   const { storeId, loading: storeLoading, clearDeviceStore, ownerActiveStoreId, clearOwnerStore } = useStore()
   const { user } = useAuth()
   const [storedStaff, setStoredStaff] = useState(() => {
@@ -180,6 +181,15 @@ export default function StaffLayout() {
     if (handled) navigate(`/staff/table/${call.tableId}`)
   }
 
+  // 席一覧の「対応」：その席の呼び出しをまとめて対応済みにし、一覧のままにする。
+  async function handleRespondCalls(tableCalls) {
+    await Promise.all(tableCalls.map(call => respondToStaffCall({
+      callId: call.id,
+      staffId: activeStaff?.id,
+      staffName: activeStaff?.name,
+    })))
+  }
+
   const pullRefresh = usePullToRefresh({
     enabled: Boolean(storeId && activeStaff),
     onRefresh: () => window.location.reload(),
@@ -257,7 +267,8 @@ export default function StaffLayout() {
             onLogout={handleLogout}
           />
 
-          <StaffCallBanner calls={calls} onRespond={handleRespond} />
+          {/* 席一覧は「対応が要る席」の行で対応するので、帯は出さない（ユーザー様 2026-10-22）。 */}
+          {!isTableListPage && <StaffCallBanner calls={calls} onRespond={handleRespond} />}
           <StaffReservationWaitController
             activeStaff={activeStaff}
             notificationsEnabled={notificationsEnabled}
@@ -266,7 +277,7 @@ export default function StaffLayout() {
           />
 
           <Routes>
-            <Route index element={<TableListPage calls={calls} />} />
+            <Route index element={<TableListPage calls={calls} onRespondCalls={handleRespondCalls} />} />
             <Route path="kitchen" element={
               <StaffPermissionGate activeStaff={activeStaff} permission="useKitchen">
                 <KitchenPage />

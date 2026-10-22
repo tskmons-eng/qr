@@ -83,6 +83,7 @@ export function buildStaffTableBoard({ tables, pendingMap = {}, calls = [] }) {
       ), null)
       needs.push({
         ...entry,
+        calls: tableCalls,
         hasCall: tableCalls.some(call => call.type !== 'checkout'),
         hasCheckoutRequest: tableCalls.some(call => call.type === 'checkout'),
         pendingDetail: describePending(pending),
@@ -91,6 +92,22 @@ export function buildStaffTableBoard({ tables, pendingMap = {}, calls = [] }) {
     }
     if (isVacantTable(table)) vacant.push(entry)
     else occupied.push(entry)
+  }
+
+  // 一覧に出ていない席（別の席グループ・削除済み）の呼び出しも、見落とさないよう行として出す。
+  const shownTableIds = new Set(tables.map(table => table.id))
+  for (const [tableId, tableCalls] of callsByTable) {
+    if (shownTableIds.has(tableId)) continue
+    needs.push({
+      table: { id: tableId, tableName: tableCalls[0].tableName ?? '' },
+      pending: { total: 0, drink: 0, food: 0 },
+      hasPending: false,
+      calls: tableCalls,
+      hasCall: tableCalls.some(call => call.type !== 'checkout'),
+      hasCheckoutRequest: tableCalls.some(call => call.type === 'checkout'),
+      pendingDetail: '',
+      oldestCallAt: Math.min(...tableCalls.map(call => call.createdAt?.seconds ?? 0)) || null,
+    })
   }
 
   // 呼び出しのある席を古い順に先、未提供だけの席は着席の古い順。
