@@ -163,7 +163,8 @@ assert.match(staffShellStyles, /overscroll-behavior-y: contain/)
 assert.doesNotMatch(staffShellHeader, /onToggleSoundSettings/)
 assert.doesNotMatch(staffShellHeader, /⚙/)
 // 2026-10-22 整理 第3章：管理の画面は「店舗管理」シートに一本化し、「管理画面」への入口は無くした。
-assert.match(staffShellHeader, /className="staff-sheet"/)
+// 店舗管理は共通の下から出るシート（BottomSheet）で出す。
+assert.match(staffShellHeader, /<BottomSheet[\s\S]*title="店舗管理"/)
 assert.doesNotMatch(staffShellHeader, /管理画面|onOpenAdmin/)
 assert.match(staffShellHeader, />\s*店舗管理\s*</)
 assert.match(staffShellHeader, /label: 'レジ締め'/)

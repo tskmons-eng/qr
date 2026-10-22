@@ -6,6 +6,14 @@ const {
 } = require('./orderCommandFailures')
 const { EXPECTED_PASSCODE_ERROR_CODES } = require('./cancelPasscode')
 const { EXPECTED_STAFF_CODE_ERROR_CODES } = require('./staffPasscode')
+const { EXPECTED_INVITE_ERROR_CODES } = require('./storeOnboarding')
+
+// 打ち間違い・ロック・古い招待などは利用者の操作の結果で、システムの失敗ではない。失敗ログには残さない。
+const EXPECTED_OPERATOR_ERROR_CODES = new Set([
+  ...EXPECTED_PASSCODE_ERROR_CODES,
+  ...EXPECTED_STAFF_CODE_ERROR_CODES,
+  ...EXPECTED_INVITE_ERROR_CODES,
+])
 
 const ORDER_COMMAND_REGION = 'us-central1'
 const ORDER_COMMAND_MAX_INSTANCES = 20
@@ -30,6 +38,12 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['staff-code-not-set', 'failed-precondition'],
   ['staff-code-unchanged', 'invalid-argument'],
   ['staff-member-not-found', 'not-found'],
+  ['store-code-unavailable', 'unavailable'],
+  ['invite-not-found', 'not-found'],
+  ['invite-used', 'failed-precondition'],
+  ['invite-expired', 'failed-precondition'],
+  ['invite-email-required', 'failed-precondition'],
+  ['email-already-assigned', 'failed-precondition'],
   ['reservation-not-found', 'not-found'],
   ['reservation-store-mismatch', 'failed-precondition'],
   ['reservation-closed', 'failed-precondition'],
@@ -146,7 +160,7 @@ function createOrderCommandCallable(handler, commandContext = {}, options = {}) 
       })
       return result
     } catch (error) {
-      if (!EXPECTED_PASSCODE_ERROR_CODES.has(error?.code) && !EXPECTED_STAFF_CODE_ERROR_CODES.has(error?.code)) {
+      if (!EXPECTED_OPERATOR_ERROR_CODES.has(error?.code)) {
         await recordOrderCommandFailure(
           buildOrderCommandFailureContext({
             commandContext,

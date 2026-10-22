@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { isSuperAdminEmail } from '../lib/ownerIdentity'
-import { isAllowedEmail, signOutCurrentUser } from '../services/authSessionService'
+import { isAllowedEmail } from '../services/authSessionService'
+import NoStoreScreen from './NoStoreScreen'
 
 export default function ApprovalGate({ children }) {
   const { user } = useAuth()
@@ -23,22 +24,8 @@ export default function ApprovalGate({ children }) {
     </div>
   )
 
-  if (status === 'denied') return (
-    <div className="approval-gate-denied">
-      <div className="approval-gate-denied__icon">🚫</div>
-      <h2 className="approval-gate-denied__title">アクセスできません</h2>
-      <p className="approval-gate-denied__message">このメールアドレスは許可されていません</p>
-      <p className="approval-gate-denied__email">{user.email}</p>
-      <p className="approval-gate-denied__help">↑ このメールを設定画面で許可してください</p>
-      <button
-        type="button"
-        onClick={signOutCurrentUser}
-        className="approval-gate-denied__logout"
-      >
-        ログアウト
-      </button>
-    </div>
-  )
+  // 許可されていない人には、店が無い人と同じ案内を出す（招待リンクで入る。2026-10-22 店舗登録）。
+  if (status === 'denied') return <NoStoreScreen />
 
   return children
 }

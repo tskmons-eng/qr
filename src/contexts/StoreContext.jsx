@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { isSuperAdminEmail } from '../lib/ownerIdentity'
 import { useAuth } from './AuthContext'
@@ -7,20 +7,18 @@ import { useAuth } from './AuthContext'
 const StoreContext = createContext(null)
 const OWNER_ACTIVE_STORE_ID_KEY = 'ownerActiveStoreId'
 
-function generateCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
-
 export function StoreProvider({ children }) {
   const { user } = useAuth()
   const [storeId, setStoreId] = useState(null)
   const [ownerActiveStoreId, setOwnerActiveStoreId] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Google でログインしたが、割り当てられた店が無い（店は運営者が作り、招待リンクで店長になる。2026-10-22）。
+  const [storeMissing, setStoreMissing] = useState(false)
 
   useEffect(() => {
     if (user === undefined) return
     setLoading(true)
+    setStoreMissing(false)
 
     if (!user) {
       localStorage.removeItem(OWNER_ACTIVE_STORE_ID_KEY)
@@ -90,36 +88,22 @@ export function StoreProvider({ children }) {
         }
       }
 
-      const storeRef = doc(db, 'stores', user.uid)
-      const snap = await getDoc(storeRef)
-      let code
-      if (!snap.exists()) {
-        code = generateCode()
-        await setDoc(storeRef, {
-          storeName: '店舗名未設定',
-          storeCode: code,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        })
-      } else if (!snap.data().storeCode) {
-        code = generateCode()
-        await updateDoc(storeRef, { storeCode: code, updatedAt: serverTimestamp() })
-      } else {
-        code = snap.data().storeCode
-      }
-      // storeCodes マッピングを常に保証する
-      await setDoc(doc(db, 'storeCodes', code), {
-        storeId: user.uid,
-        createdAt: serverTimestamp(),
-      }, { merge: true })
-      setStoreId(user.uid)
+      // 以前の形の店（店の ID がオーナーの uid）はそのまま使う。店はもう画面からは作らない（Functions の createStoreCommand だけ）。
+      const legacySnap = await getDoc(doc(db, 'stores', user.uid))
       setOwnerActiveStoreId(null)
+      if (legacySnap.exists()) {
+        setStoreId(user.uid)
+      } else {
+        setStoreId(null)
+        setStoreMissing(true)
+      }
       setLoading(false)
     }
 
     initStore().catch(e => {
       console.error('initStore failed:', e)
-      setStoreId(user.uid)
+      setStoreId(null)
+      setStoreMissing(true)
       setLoading(false)
     })
   }, [user])
@@ -155,6 +139,7 @@ export function StoreProvider({ children }) {
     <StoreContext.Provider
       value={{
         storeId,
+        storeMissing,
         loading,
         ownerActiveStoreId,
         activateOwnerStore,

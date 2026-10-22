@@ -106,7 +106,8 @@ for (const code of ['invalid-cancel-passcode', 'invalid-cancel-passcode-format',
   assert.ok(cancelPasscode.EXPECTED_PASSCODE_ERROR_CODES.has(code), `functions should not log ${code} as a failure`)
   assert.match(errors, new RegExp(`'${code}'`), `client should know ${code}`)
 }
-assert.match(apiSource, /if \(!EXPECTED_PASSCODE_ERROR_CODES\.has\(error\?\.code\) && !EXPECTED_STAFF_CODE_ERROR_CODES\.has\(error\?\.code\)\)/)
+assert.match(apiSource, /\.\.\.EXPECTED_PASSCODE_ERROR_CODES,/)
+assert.match(apiSource, /if \(!EXPECTED_OPERATOR_ERROR_CODES\.has\(error\?\.code\)\)/)
 const [failureService, cancelHook] = await Promise.all([
   readFile('src/services/orderCommandFailureService.js', 'utf8'),
   readFile('src/hooks/useOrderItemCancel.js', 'utf8'),

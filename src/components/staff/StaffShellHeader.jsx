@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useRef, useState } from 'react'
+import BottomSheet from '../ui/BottomSheet'
 import StaffIcon from './StaffIcon'
 
 // スタッフ画面の上の帯と「店舗管理」。管理の画面はここに一本化した（2026-10-22 整理 第3章）。
@@ -32,7 +32,6 @@ export default function StaffShellHeader({
 }) {
   const [managementOpen, setManagementOpen] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
-  const sheetRef = useRef(null)
   const managementButtonRef = useRef(null)
   const managementItems = [
     canCloseRegister && { key: 'sales', icon: 'cash', label: 'レジ締め', description: '日次締めと売上履歴', onSelect: onOpenSales },
@@ -51,20 +50,6 @@ export default function StaffShellHeader({
     canManageStaff && { key: 'staff', icon: 'people', label: 'スタッフ', description: 'スタッフと権限', onSelect: onOpenStaffAdmin },
   ].filter(Boolean)
   const hasManagementItems = managementItems.length > 0
-
-  useEffect(() => {
-    if (!managementOpen) return undefined
-
-    function handleKeyDown(event) {
-      if (event.key !== 'Escape') return
-      setManagementOpen(false)
-      managementButtonRef.current?.focus()
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    sheetRef.current?.focus()
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [managementOpen])
 
   function handleManagementSelect(item) {
     setManagementOpen(false)
@@ -123,58 +108,43 @@ export default function StaffShellHeader({
         )}
       </div>
 
-      {/* 上の帯や引っぱって更新の枠の重なり順に閉じ込められないよう、ページの直下に出す。 */}
-      {managementOpen && createPortal((
-        <>
-          <div className="staff-sheet-backdrop" onClick={() => setManagementOpen(false)} />
-          <div
-            ref={sheetRef}
-            className="staff-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="店舗管理"
-            tabIndex={-1}
-          >
-            <div className="staff-sheet__grip" />
-            <div className="staff-sheet__head">
-              <h2 className="staff-sheet__title">店舗管理</h2>
-              <button type="button" onClick={() => setManagementOpen(false)} className="ui-button ui-button--ghost">
-                閉じる
-              </button>
+      <BottomSheet
+        open={managementOpen}
+        title="店舗管理"
+        onClose={() => setManagementOpen(false)}
+        returnFocusRef={managementButtonRef}
+      >
+        {storeCode && (
+          <div className="staff-sheet__store-code">
+            <div>
+              <small>店舗コード</small>
+              <strong>{storeCode}</strong>
             </div>
-            {storeCode && (
-              <div className="staff-sheet__store-code">
-                <div>
-                  <small>店舗コード</small>
-                  <strong>{storeCode}</strong>
-                </div>
-                <button type="button" onClick={handleCopyCode} className="ui-button ui-button--surface">
-                  {codeCopied ? 'コピー済み' : 'コピー'}
-                </button>
-              </div>
-            )}
-            <div className="staff-sheet__grid">
-              {managementItems.map(item => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className="staff-sheet__tile"
-                  onClick={() => handleManagementSelect(item)}
-                >
-                  <span className="staff-sheet__tile-icon"><StaffIcon name={item.icon} /></span>
-                  <span className="staff-sheet__tile-label">{item.label}</span>
-                  <span className="staff-sheet__tile-description">{item.description}</span>
-                </button>
-              ))}
-            </div>
-            <div className="staff-sheet__footer">
-              <button type="button" onClick={onLogout} className="ui-button ui-button--ghost">
-                ログアウト
-              </button>
-            </div>
+            <button type="button" onClick={handleCopyCode} className="ui-button ui-button--surface">
+              {codeCopied ? 'コピー済み' : 'コピー'}
+            </button>
           </div>
-        </>
-      ), document.body)}
+        )}
+        <div className="staff-sheet__grid">
+          {managementItems.map(item => (
+            <button
+              key={item.key}
+              type="button"
+              className="staff-sheet__tile"
+              onClick={() => handleManagementSelect(item)}
+            >
+              <span className="staff-sheet__tile-icon"><StaffIcon name={item.icon} /></span>
+              <span className="staff-sheet__tile-label">{item.label}</span>
+              <span className="staff-sheet__tile-description">{item.description}</span>
+            </button>
+          ))}
+        </div>
+        <div className="staff-sheet__footer">
+          <button type="button" onClick={onLogout} className="ui-button ui-button--ghost">
+            ログアウト
+          </button>
+        </div>
+      </BottomSheet>
     </header>
   )
 }

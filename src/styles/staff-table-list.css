@@ -335,3 +335,138 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* はじめの準備（2026-10-22 店舗登録） */
+.store-setup {
+  overflow: hidden;
+  margin-bottom: 8px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+}
+
+.store-setup__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+.store-setup__head b {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.store-setup__bar {
+  overflow: hidden;
+  width: 90px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ui-bg-subtle);
+}
+
+.store-setup__bar-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--color-action-success);
+}
+
+.store-setup__bar-fill--1 { width: 25%; }
+.store-setup__bar-fill--2 { width: 50%; }
+.store-setup__bar-fill--3 { width: 75%; }
+.store-setup__bar-fill--4 { width: 100%; }
+
+.store-setup__count {
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.store-setup__step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: transparent;
+  color: var(--ui-text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.store-setup__step.is-current {
+  background: var(--ui-brand-soft);
+}
+
+.store-setup__num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.store-setup__step.is-done .store-setup__num {
+  background: var(--ui-bg-subtle);
+  color: var(--color-action-success);
+}
+
+.store-setup__step.is-current .store-setup__num {
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
+}
+
+.store-setup__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.store-setup__text b {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.store-setup__step.is-done .store-setup__text b {
+  color: var(--ui-text-muted);
+}
+
+.store-setup__text span {
+  overflow: hidden;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-setup__go {
+  flex: none;
+  color: var(--ui-brand);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.store-setup__step.is-current .store-setup__go {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
+}
+
+.store-setup__finish {
+  margin: 6px;
+  width: calc(100% - 12px);
+}

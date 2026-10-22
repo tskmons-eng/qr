@@ -76,6 +76,9 @@ export function buildOwnerDashboardSnapshot({ stores, checks, orders }, date = n
       storeName: normalizeStoreName(store.storeName),
       storeCode: store.storeCode || '',
       ownerEmail: store.ownerEmail || '',
+      managerInviteExpiresAtMs: Number(store.managerInviteExpiresAtMs) || 0,
+      // 運営者が「店舗を追加」で作った店か（以前の形の店は、店の ID がオーナーの Google アカウント）。
+      createdByOperator: Boolean(store.createdBy),
       createdAt: store.createdAt,
       lastActivityAt,
       todaySales,
@@ -102,4 +105,15 @@ export function buildOwnerDashboardSnapshot({ stores, checks, orders }, date = n
       openOrderCount: sortedStores.reduce((sum, store) => sum + store.openOrderCount, 0),
     },
   }
+}
+
+// 店長の状態（2026-10-22 店舗登録）：店長メールがあれば「店長」、無ければ招待の残り日数か「店長なし」。
+export function describeOwnerStoreManager(store, nowMs = Date.now()) {
+  if (store.ownerEmail) return { state: 'assigned', label: store.ownerEmail }
+  if (store.managerInviteExpiresAtMs > nowMs) {
+    const days = Math.max(1, Math.ceil((store.managerInviteExpiresAtMs - nowMs) / (24 * 60 * 60 * 1000)))
+    return { state: 'invited', label: `店長：招待中（あと${days}日）` }
+  }
+  if (store.createdByOperator === false) return { state: 'assigned', label: '店長：最初のオーナー（Google）' }
+  return { state: 'none', label: '店長：まだいません' }
 }

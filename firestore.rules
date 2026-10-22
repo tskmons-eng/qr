@@ -628,18 +628,26 @@ service cloud.firestore {
     // 店舗コード
     match /storeCodes/{code} {
       allow read: if request.auth != null;
-      allow write: if (isSuper() || isAllowedOwner())
-                   && request.resource.data.storeId == request.auth.uid;
+      // 店舗コードは createStoreCommand（Functions）が重複を確かめて作る。画面からは書けない（2026-10-22 店舗登録）。
+      allow write: if false;
     }
 
     // 店舗
     match /stores/{storeId} {
       allow read: if canAccess(storeId);
-      allow create: if isSuper() || isAllowedOwner();
-      // 取消パスコードの設定状況は setCancelPasscodeCommand だけが書く。
+      // 店舗は createStoreCommand（Functions）だけが作る（2026-10-22 店舗登録）。
+      allow create: if false;
+      // 取消パスコードの設定状況・店舗コード・店長の招待は Functions だけが書く。
       allow update: if canManageStore(storeId)
-        && request.resource.data.get('cancelPasscodeStatus', null) == resource.data.get('cancelPasscodeStatus', null);
+        && request.resource.data.get('cancelPasscodeStatus', null) == resource.data.get('cancelPasscodeStatus', null)
+        && request.resource.data.get('storeCode', null) == resource.data.get('storeCode', null)
+        && request.resource.data.get('managerInviteId', null) == resource.data.get('managerInviteId', null);
       allow delete: if canManageStore(storeId);
+    }
+
+    // 店長用の招待（秘密の値のハッシュ）。Functions だけが読み書きする（2026-10-22 店舗登録）。
+    match /storeInvites/{inviteId} {
+      allow read, write: if false;
     }
 
     // 取消パスコードのハッシュ。照合は Functions だけが行うので、画面からは読み書きさせない。

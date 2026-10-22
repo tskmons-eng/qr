@@ -1,36 +1,31 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import OwnerAllowedEmailForm from '../../components/owner/OwnerAllowedEmailForm'
-import OwnerAllowedEmailList from '../../components/owner/OwnerAllowedEmailList'
 import OwnerHeader from '../../components/owner/OwnerHeader'
 import OwnerStoreDashboard from '../../components/owner/OwnerStoreDashboard'
+import OwnerStoreInviteSheet from '../../components/owner/OwnerStoreInviteSheet'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStore } from '../../contexts/StoreContext'
-import { normalizeOwnerEmail, validateOwnerEmail } from '../../lib/ownerAccess'
+import { formatOrderCommandError } from '../../lib/orderCommandErrors'
 import { signOutCurrentUser } from '../../services/authSessionService'
 import { loadOwnerDashboardData, updateStoreAdminEmail, updateStoreName } from '../../services/ownerDashboardService'
-import {
-  addOwnerAllowedEmail,
-  removeOwnerAllowedEmail,
-  subscribeOwnerAllowedEmails,
-} from '../../services/ownerAccessService'
+import { createStore, reissueStoreInvite } from '../../services/storeOnboardingService'
 
+// 運営者の画面（2026-10-22 店舗登録で作り直し）。店は「店舗を追加」で店舗名だけ入れて作り、店長には招待を渡す。
+// 許可メールのタブは無くした（店長は招待で入る）。
 export default function OwnerPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { activateOwnerStore, ownerActiveStoreId } = useStore()
-  const [activeTab, setActiveTab] = useState('stores')
-  const [allowed, setAllowed] = useState([])
   const [dashboard, setDashboard] = useState(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [dashboardError, setDashboardError] = useState('')
   const [ownerEmailSavingStoreId, setOwnerEmailSavingStoreId] = useState('')
   const [storeNameSavingStoreId, setStoreNameSavingStoreId] = useState('')
-  const [emailInput, setEmailInput] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [error, setError] = useState('')
-
-  useEffect(() => subscribeOwnerAllowedEmails(setAllowed), [])
+  const [inviteBusyStoreId, setInviteBusyStoreId] = useState('')
+  const [sheetMode, setSheetMode] = useState(null)
+  const [inviteResult, setInviteResult] = useState(null)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   useEffect(() => {
     loadDashboard()
@@ -48,29 +43,40 @@ export default function OwnerPage() {
     }
   }
 
-  async function handleAdd(event) {
-    event.preventDefault()
-    const email = normalizeOwnerEmail(emailInput)
-    const validationError = validateOwnerEmail(email)
-    if (validationError) {
-      setError(validationError)
-      return
-    }
+  function openCreateSheet() {
+    setCreateError('')
+    setInviteResult(null)
+    setSheetMode('create')
+  }
 
-    setAdding(true)
-    setError('')
+  async function handleCreateStore(storeName) {
+    setCreating(true)
+    setCreateError('')
     try {
-      await addOwnerAllowedEmail({ email, addedBy: user?.email ?? null })
-      setEmailInput('')
-    } catch {
-      setError('追加に失敗しました')
+      const result = await createStore({ storeName })
+      setInviteResult({ ...result, created: true })
+      setSheetMode('result')
+      loadDashboard()
+    } catch (createFailure) {
+      setCreateError(formatOrderCommandError(createFailure, { context: 'storeCreate' }).message)
     } finally {
-      setAdding(false)
+      setCreating(false)
     }
   }
 
-  function handleRemove(email) {
-    removeOwnerAllowedEmail(email)
+  async function handleIssueInvite(store) {
+    setInviteBusyStoreId(store.id)
+    setDashboardError('')
+    try {
+      const result = await reissueStoreInvite({ storeId: store.id })
+      setInviteResult({ ...result, created: false })
+      setSheetMode('result')
+      loadDashboard()
+    } catch (inviteFailure) {
+      setDashboardError(formatOrderCommandError(inviteFailure).message)
+    } finally {
+      setInviteBusyStoreId('')
+    }
   }
 
   async function handleStoreAdminEmailSave({ storeId, currentEmail, nextEmail }) {
@@ -85,7 +91,7 @@ export default function OwnerPage() {
       })
       await loadDashboard()
     } catch (saveError) {
-      setDashboardError(saveError.message || '店舗管理者メールの保存に失敗しました')
+      setDashboardError(saveError.message || '店長のメールの保存に失敗しました')
     } finally {
       setOwnerEmailSavingStoreId('')
     }
@@ -121,55 +127,30 @@ export default function OwnerPage() {
     <div className="owner-page">
       <OwnerHeader onSignOut={signOutCurrentUser} />
       <main className="owner-content">
-        <div className="owner-tabs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('stores')}
-            className={`owner-tab${activeTab === 'stores' ? ' is-active' : ''}`}
-          >
-            店舗一覧
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('emails')}
-            className={`owner-tab${activeTab === 'emails' ? ' is-active' : ''}`}
-          >
-            許可メール
-          </button>
-        </div>
-
-        {activeTab === 'stores' ? (
-          <OwnerStoreDashboard
-            dashboard={dashboard}
-            error={dashboardError}
-            loading={dashboardLoading}
-            ownerEmailSavingStoreId={ownerEmailSavingStoreId}
-            ownerActiveStoreId={ownerActiveStoreId}
-            storeNameSavingStoreId={storeNameSavingStoreId}
-            onManageStore={handleManageStore}
-            onOwnerEmailSave={handleStoreAdminEmailSave}
-            onStoreNameSave={handleStoreNameSave}
-            onRefresh={loadDashboard}
-          />
-        ) : (
-          <>
-            <OwnerAllowedEmailForm
-              adding={adding}
-              emailInput={emailInput}
-              error={error}
-              onChange={value => {
-                setEmailInput(value)
-                setError('')
-              }}
-              onSubmit={handleAdd}
-            />
-            <OwnerAllowedEmailList
-              allowedEmails={allowed}
-              onRemove={handleRemove}
-            />
-          </>
-        )}
+        <OwnerStoreDashboard
+          dashboard={dashboard}
+          error={dashboardError}
+          loading={dashboardLoading}
+          inviteBusyStoreId={inviteBusyStoreId}
+          ownerEmailSavingStoreId={ownerEmailSavingStoreId}
+          ownerActiveStoreId={ownerActiveStoreId}
+          storeNameSavingStoreId={storeNameSavingStoreId}
+          onAddStore={openCreateSheet}
+          onIssueInvite={handleIssueInvite}
+          onManageStore={handleManageStore}
+          onOwnerEmailSave={handleStoreAdminEmailSave}
+          onStoreNameSave={handleStoreNameSave}
+          onRefresh={loadDashboard}
+        />
       </main>
+      <OwnerStoreInviteSheet
+        mode={sheetMode}
+        result={inviteResult}
+        busy={creating}
+        error={createError}
+        onCreate={handleCreateStore}
+        onClose={() => setSheetMode(null)}
+      />
     </div>
   )
 }

@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import StaffBottomNav from '../../components/StaffBottomNav'
 import StaffTableCard, { StaffTableNeedRow, StaffVacantTableCell } from '../../components/staff/StaffTableCard'
 import StaffTableListEmpty from '../../components/staff/StaffTableListEmpty'
+import StoreSetupGuide from '../../components/staff/StoreSetupGuide'
+import { useStaffMember } from '../../contexts/StaffMemberContext'
 import TodayReservationNoticeList from '../../components/staff/TodayReservationNoticeList'
 import { useStore } from '../../contexts/StoreContext'
 import useNow from '../../hooks/useNow'
+import useStoreSetupGuide from '../../hooks/useStoreSetupGuide'
 import { getNextReservationForTable, getTokyoDateString, getUnassignedTodayReservations } from '../../lib/reservationDisplay'
 import { STAFF_TABLE_FILTERS, buildStaffTableBoard } from '../../lib/staffTableList'
 import { buildTableGroupTabs, filterTablesByGroup } from '../../lib/tableGroups'
@@ -19,6 +22,7 @@ import { subscribeTableGroups } from '../../services/tableGroupService'
 export default function TableListPage({ calls = [], onRespondCalls }) {
   const { storeId } = useStore()
   const [tables, setTables] = useState([])
+  const [tablesLoaded, setTablesLoaded] = useState(false)
   const [groups, setGroups] = useState([])
   const [activeGroupId, setActiveGroupId] = useState('all')
   const [activeFilter, setActiveFilter] = useState('all')
@@ -28,10 +32,26 @@ export default function TableListPage({ calls = [], onRespondCalls }) {
   const now = useNow()
   const today = getTokyoDateString()
   const usePendingFallback = tablesNeedPendingFallback(tables)
+  // 「はじめの準備」は店長・オーナー（Google ログイン）にだけ出す（2026-10-22 店舗登録）。
+  const isStoreManager = Boolean(useStaffMember()?.activeStaff?.isStoreManager)
+  // 席の読み込みが終わってから判断する（読み込み前の0席で「席を作る」が未完了に見えないように）。
+  const setupGuide = useStoreSetupGuide({ storeId, tableCount: tables.length, enabled: isStoreManager && tablesLoaded })
+  const setupGuideView = setupGuide.visible && (
+    <StoreSetupGuide
+      steps={setupGuide.steps}
+      canFinish={setupGuide.canFinish}
+      onOpen={step => navigate(step.path)}
+      onFinish={setupGuide.close}
+    />
+  )
 
   useEffect(() => {
     if (!storeId) return
-    return subscribeStaffTables(storeId, setTables)
+    setTablesLoaded(false)
+    return subscribeStaffTables(storeId, nextTables => {
+      setTables(nextTables)
+      setTablesLoaded(true)
+    })
   }, [storeId])
 
   useEffect(() => {
@@ -57,6 +77,7 @@ export default function TableListPage({ calls = [], onRespondCalls }) {
   if (tables.length === 0) {
     return (
       <div className="staff-table-list">
+        {setupGuideView}
         <TodayReservationNoticeList reservations={unassignedReservations} tables={tables} />
         <StaffTableListEmpty />
         <StaffBottomNav current="seat" />
@@ -99,6 +120,7 @@ export default function TableListPage({ calls = [], onRespondCalls }) {
         ))}
       </div>
 
+      {setupGuideView}
       <TodayReservationNoticeList reservations={unassignedReservations} tables={tables} />
 
       {show('needs') && board.needs.length > 0 && (

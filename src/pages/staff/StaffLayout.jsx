@@ -12,6 +12,7 @@ import StaffReservationWaitController from '../../components/staff/StaffReservat
 import StaffShellHeader from '../../components/staff/StaffShellHeader'
 import StaffPullRefreshIndicator from '../../components/staff/StaffPullRefreshIndicator'
 import StaffEntryPage from './StaffEntryPage'
+import NoStoreScreen from '../../components/NoStoreScreen'
 import StaffLoginScreen from '../../components/staff/StaffLoginScreen'
 import { useAuth } from '../../contexts/AuthContext'
 import { signOutCurrentUser } from '../../services/authSessionService'
@@ -53,7 +54,7 @@ const STAFF_ADMIN_LOGIN_PATH = `/login?next=${encodeURIComponent('/staff/staff-a
 export default function StaffLayout() {
   const navigate = useNavigate()
   const isTableListPage = useLocation().pathname.replace(/\/+$/, '') === '/staff'
-  const { storeId, loading: storeLoading, clearDeviceStore, ownerActiveStoreId, clearOwnerStore } = useStore()
+  const { storeId, storeMissing, loading: storeLoading, clearDeviceStore, ownerActiveStoreId, clearOwnerStore } = useStore()
   const { user } = useAuth()
   const [storedStaff, setStoredStaff] = useState(() => {
     try { return JSON.parse(localStorage.getItem('activeStaff')) } catch { return null }
@@ -197,7 +198,7 @@ export default function StaffLayout() {
 
   if (user === undefined || storeLoading) return null
 
-  if (!storeId) return <StaffEntryPage />
+  if (!storeId) return storeMissing ? <NoStoreScreen /> : <StaffEntryPage />
 
   if (!activeStaff) {
     return (

@@ -30,6 +30,12 @@ const COMMAND_ERROR_MESSAGES = {
   'staff-code-not-set': 'このスタッフはパスが未設定です。店長に設定してもらってください',
   'staff-code-unchanged': '新パスは旧パスと違う数字にしてください',
   'staff-member-not-found': 'スタッフが見つかりません。一覧を読み込み直してください',
+  'invite-not-found': 'この招待リンクは使えません。運営者に招待を出し直してもらってください',
+  'invite-used': 'この招待はもう使われています。運営者に招待を出し直してもらってください',
+  'invite-expired': 'この招待は期限が切れています。運営者に招待を出し直してもらってください',
+  'invite-email-required': 'Google でログインしてから、もう一度お試しください',
+  'email-already-assigned': 'このアカウントは、すでに別の店の店長です。別の Google アカウントでログインしてください',
+  'store-code-unavailable': '店舗コードを決められませんでした。もう一度お試しください',
   aborted: '同時操作がありました。もう一度お試しください。',
   unavailable: '通信が不安定です。少し待ってからもう一度お試しください。',
   'deadline-exceeded': '通信に時間がかかっています。もう一度お試しください。',
@@ -47,6 +53,8 @@ const CONTEXT_FALLBACK_MESSAGES = {
   itemAction: '注文状態を更新できませんでした。画面を更新して確認してください。',
   kitchenAction: 'キッチン操作に失敗しました。注文状態を確認してください。',
   staffLogin: '入れませんでした。通信を確かめて、もう一度お試しください',
+  storeInvite: '招待を確かめられませんでした。通信を確かめて、もう一度お試しください',
+  storeCreate: '店舗を作れませんでした。もう一度お試しください',
   general: '処理に失敗しました。もう一度お試しください。',
 }
 
@@ -82,6 +90,11 @@ const NON_RETRYABLE_CODES = new Set([
   'staff-code-not-set',
   'staff-code-unchanged',
   'staff-member-not-found',
+  'invite-not-found',
+  'invite-used',
+  'invite-expired',
+  'invite-email-required',
+  'email-already-assigned',
 ])
 
 export function getOrderCommandErrorCode(error) {

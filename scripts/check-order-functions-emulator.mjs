@@ -926,6 +926,94 @@ async function runStaffPasscodeChecks(db, managerClient, floorClient, productId)
   return device.client
 }
 
+// 2026-10-22 店舗登録：運営者が店舗名だけで店を作り、店長は招待リンクで入る。画面からは店も店舗コードも作れない。
+async function signInWithEmailClient(name, email) {
+  const password = `pass-${runId}`
+  const adminAuth = getAdminAuth(getApps().find(existing => existing.name === 'order-functions-emulator'))
+  await adminAuth.createUser({ email, password, emailVerified: true }).catch(error => {
+    if (error?.code !== 'auth/email-already-exists') throw error
+  })
+  const client = createStaffClient(`${name}-${runId}`)
+  extraStaffClients.push(client)
+  await signInWithEmailAndPassword(client.auth, email, password)
+  return client
+}
+
+async function runStoreOnboardingChecks(db) {
+  const operator = await signInWithEmailClient('operator', 'tsk.mons@gmail.com')
+  const created = await call(operator.functions, 'createStoreCommand', { storeName: '  エミュ 一番  ' })
+  assert.equal(created.storeName, 'エミュ 一番')
+  assert.match(created.storeCode, /^[A-HJ-NP-Z2-9]{6}$/)
+  const store = (await db.collection('stores').doc(created.storeId).get()).data()
+  assert.equal(store.storeCode, created.storeCode)
+  assert.equal(store.setupGuideRequired, true)
+  assert.equal((await db.collection('storeCodes').doc(created.storeCode).get()).data().storeId, created.storeId)
+  const invite = (await db.collection('storeInvites').doc(created.inviteId).get()).data()
+  assert.notEqual(invite.tokenHash, created.token, 'invite token should be stored as a hash')
+
+  // 運営者でない人は店を作れない。画面から店舗コード・店を直接作れない。
+  const someone = await signInWithEmailClient('someone', `someone-${runId}@example.test`)
+  await expectCallableError('permission-denied', () => call(someone.functions, 'createStoreCommand', { storeName: 'x' }), 'non-operator creating a store')
+  const directCode = await clientSetDoc(clientDoc(someone.firestore, 'storeCodes', 'HIJACK'), { storeId: someone.auth.currentUser.uid }).then(() => null, error => error)
+  assert.equal(directCode?.code, 'permission-denied', 'client should not write store codes')
+  const directStore = await clientSetDoc(clientDoc(someone.firestore, 'stores', someone.auth.currentUser.uid), { storeName: 'x' }).then(() => null, error => error)
+  assert.equal(directStore?.code, 'permission-denied', 'client should not create stores')
+
+  // 招待の確認はログイン前でもできる（店名と期限だけ）。秘密の値が違えば見えない。
+  const preview = await call(publicClient.functions, 'previewStoreInviteCommand', { inviteId: created.inviteId, token: created.token })
+  assert.equal(preview.storeName, 'エミュ 一番')
+  assert.equal(preview.status, 'open')
+  await expectCallableError('invite-not-found', () => call(publicClient.functions, 'previewStoreInviteCommand', { inviteId: created.inviteId, token: 'wrong' }), 'preview with a wrong token')
+
+  // 店舗コードだけの端末（匿名）は招待を受け取れない。Google でログインした人が店長になる。
+  await expectCallableError('unauthenticated', () => call(publicClient.functions, 'claimStoreInviteCommand', { inviteId: created.inviteId, token: created.token }), 'claim without sign-in')
+  const anonymousDevice = await newStoreCodeDevice(db, 'invite-anonymous')
+  await expectCallableError('invite-email-required', () => call(anonymousDevice.client.functions, 'claimStoreInviteCommand', { inviteId: created.inviteId, token: created.token }), 'claim from a store-code-only device')
+  const managerEmail = `manager-${runId}@example.test`
+  const manager = await signInWithEmailClient('new-manager', managerEmail)
+  const claimed = await call(manager.functions, 'claimStoreInviteCommand', { inviteId: created.inviteId, token: created.token })
+  assert.equal(claimed.storeId, created.storeId)
+  assert.equal((await db.collection('storeAdminEmails').doc(managerEmail).get()).data().storeId, created.storeId)
+  assert.ok((await db.collection('allowedEmails').doc(managerEmail).get()).exists)
+  const claimedStore = (await db.collection('stores').doc(created.storeId).get()).data()
+  assert.equal(claimedStore.ownerEmail, managerEmail)
+  assert.equal(claimedStore.managerInviteId, undefined)
+  // 招待は1回だけ。
+  await expectCallableError('invite-used', () => call(someone.functions, 'claimStoreInviteCommand', { inviteId: created.inviteId, token: created.token }), 'claim a used invite')
+
+  // 出し直すと前の招待は使えない。別の店の店長は、別の店の招待を受け取れない。
+  const first = await call(operator.functions, 'reissueStoreInviteCommand', { storeId: created.storeId })
+  const second = await call(operator.functions, 'reissueStoreInviteCommand', { storeId: created.storeId })
+  await expectCallableError('invite-used', () => call(someone.functions, 'claimStoreInviteCommand', { inviteId: first.inviteId, token: first.token }), 'claim a replaced invite')
+  const otherStore = await call(operator.functions, 'createStoreCommand', { storeName: 'エミュ 二番' })
+  await expectCallableError('email-already-assigned', () => call(manager.functions, 'claimStoreInviteCommand', { inviteId: otherStore.inviteId, token: otherStore.token }), 'manager of another store claiming')
+  await call(someone.functions, 'claimStoreInviteCommand', { inviteId: second.inviteId, token: second.token })
+  assert.equal((await db.collection('storeAdminEmails').doc(`someone-${runId}@example.test`).get()).data().storeId, created.storeId)
+
+  // 以前の形の店（店の ID がオーナーの uid）の招待を受け取っても、元のオーナーのメール（権限）は書き換えない。
+  const legacyOwner = await signInWithEmailClient('legacy-owner', `legacy-owner-${runId}@example.test`)
+  const legacyStoreId = legacyOwner.auth.currentUser.uid
+  await db.collection('stores').doc(legacyStoreId).set({ storeName: '以前の店', storeCode: `L${runId.slice(-5)}`, ownerEmail: `legacy-owner-${runId}@example.test` })
+  const legacyStoreInvite = await call(operator.functions, 'reissueStoreInviteCommand', { storeId: legacyStoreId })
+  const helper = await signInWithEmailClient('legacy-helper', `legacy-helper-${runId}@example.test`)
+  await call(helper.functions, 'claimStoreInviteCommand', { inviteId: legacyStoreInvite.inviteId, token: legacyStoreInvite.token })
+  assert.equal((await db.collection('stores').doc(legacyStoreId).get()).data().ownerEmail, `legacy-owner-${runId}@example.test`, 'legacy owner email should be kept')
+  // 以前の形の店のオーナーは、別の店の招待を受け取れない。
+  const anotherInvite = await call(operator.functions, 'reissueStoreInviteCommand', { storeId: otherStore.storeId })
+  await expectCallableError('email-already-assigned', () => call(legacyOwner.functions, 'claimStoreInviteCommand', { inviteId: anotherInvite.inviteId, token: anotherInvite.token }), 'legacy owner claiming another store')
+
+  // 以前の形で店舗コードが無い店は、招待を出すときにコードが決まる。
+  await db.collection('stores').doc(`${runId}_legacy_no_code`).set({ storeName: '古い店' })
+  const legacyInvite = await call(operator.functions, 'reissueStoreInviteCommand', { storeId: `${runId}_legacy_no_code` })
+  assert.match(legacyInvite.storeCode, /^[A-HJ-NP-Z2-9]{6}$/)
+  assert.equal((await db.collection('storeCodes').doc(legacyInvite.storeCode).get()).data().storeId, `${runId}_legacy_no_code`)
+
+  // 期限切れ。
+  const expired = await call(operator.functions, 'reissueStoreInviteCommand', { storeId: otherStore.storeId })
+  await db.collection('storeInvites').doc(expired.inviteId).update({ expiresAtMs: Date.now() - 1000 })
+  await expectCallableError('invite-expired', () => call(someone.functions, 'claimStoreInviteCommand', { inviteId: expired.inviteId, token: expired.token }), 'claim an expired invite')
+}
+
 async function runLateSubmitAfterCheckout(db, publicFunctions, staffFunctions, productId) {
   const tableId = `${runId}_checkout_table`
   await seedTable(db, tableId)
@@ -1329,6 +1417,7 @@ await runReservationGuideCommand(db, staffClient.functions)
 await runStoreScopeRejects(db, publicClient.functions, products.productId, products.otherProductId, products.categoryMismatchProductId)
 await runPendingAggregateTriggerChecks(db)
 await runReservationNotificationTriggerCheck(db)
+await runStoreOnboardingChecks(db)
 
 // 画面側 Firestore の接続を閉じないと、チェックが終わってもプロセスが残る。
 await Promise.all([staffClient, deviceOnlyClient, floorClient, passcodeDeviceClient, ...extraStaffClients].map(client => terminateClientFirestore(client.firestore)))

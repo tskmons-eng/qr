@@ -7,6 +7,7 @@ const { createOrderCommandCallable } = require('./orderCommandApi')
 const orderCommandHandlers = require('./orderCommandHandlers')
 const cancelPasscode = require('./cancelPasscode')
 const staffPasscode = require('./staffPasscode')
+const storeOnboarding = require('./storeOnboarding')
 
 initializeApp()
 
@@ -79,6 +80,22 @@ exports.createStaffMemberCommand = createOrderCommandCallable(staffPasscode.crea
 exports.setStaffCodeCommand = createOrderCommandCallable(staffPasscode.setStaffCodeCommand, {
   commandType: 'set_staff_code',
   actorType: 'staff',
+})
+exports.createStoreCommand = createOrderCommandCallable(storeOnboarding.createStoreCommand, {
+  commandType: 'create_store',
+  actorType: 'staff',
+})
+exports.reissueStoreInviteCommand = createOrderCommandCallable(storeOnboarding.reissueStoreInviteCommand, {
+  commandType: 'reissue_store_invite',
+  actorType: 'staff',
+})
+exports.claimStoreInviteCommand = createOrderCommandCallable(storeOnboarding.claimStoreInviteCommand, {
+  commandType: 'claim_store_invite',
+  actorType: 'staff',
+})
+exports.previewStoreInviteCommand = createOrderCommandCallable(storeOnboarding.previewStoreInviteCommand, {
+  commandType: 'preview_store_invite',
+  actorType: 'customer',
 })
 exports.moveTableOrderCommand = createOrderCommandCallable(orderCommandHandlers.moveTableOrderCommand, {
   commandType: 'move_table_order',

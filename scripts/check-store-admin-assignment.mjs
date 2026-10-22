@@ -38,9 +38,10 @@ assert.doesNotMatch(
   updateStoreAdminEmailSource,
   /doc\(db, 'stores', (normalizedEmail|nextEmail)\)/
 )
-assert.match(ownerStoreDashboard, /<th>名義メール<\/th>/)
-assert.match(ownerStoreDashboard, /店舗ID・履歴はそのまま/)
-assert.match(ownerStoreDashboard, /<th>詳細<\/th>/)
+// 2026-10-22 店舗登録：店舗一覧は1行ずつ。押すと店長のメールの変更・招待の出し直し・管理。
+assert.match(ownerStoreDashboard, /店長のメール（直すときだけ/)
+assert.match(ownerStoreDashboard, /onIssueInvite\(store\)/)
+assert.match(ownerStoreDashboard, /詳細・管理/)
 assert.match(staffLayout, /clearOwnerStore/)
 assert.match(staffLayout, /loadStoreIdentity\(storeId\)/)
 assert.match(rules, /function isStoreAdminEmail\(storeId\)/)

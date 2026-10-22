@@ -1,147 +1,91 @@
+/* 運営者の画面（2026-10-22 店舗登録で作り直し。すっきり明るい・余白少なめ）。色は tokens.css の共通の値だけ。 */
 .owner-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--ui-bg-app);
+  color: var(--ui-text-main);
 }
 
 .owner-header {
-  background: #111111;
-  color: #ffffff;
-  padding: 12px 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
 }
 
 .owner-header__title {
   margin: 0;
-  font-size: 17px;
-}
-
-.owner-header__logout {
-  background: none;
-  border: 1px solid #555555;
-  color: #cccccc;
-  padding: 4px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .owner-content {
   max-width: 680px;
-  margin: 24px auto;
-  padding: 0 16px;
+  margin: 0 auto;
+  padding: 8px 8px 24px;
 }
 
-.owner-content__heading {
-  font-size: 15px;
-  font-weight: 700;
-  margin: 0 0 12px;
-}
-
-.owner-content__description {
-  font-size: 13px;
-  color: #888888;
-  margin: 0 0 16px;
-}
-
-.owner-email-form {
-  display: flex;
-  gap: 8px;
-  margin-bottom: var(--space-5);
-}
-
-.owner-email-form__input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 1px solid #dddddd;
-  border-radius: var(--radius-panel);
-  outline: none;
-}
-
-.owner-email-form__button {
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  background: #222222;
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-panel);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.owner-email-form__button:disabled {
-  background: #cccccc;
-  cursor: default;
-}
-
-.owner-email-form__error {
-  color: #dc2626;
-  font-size: 13px;
-  margin: 0 0 12px;
-}
-
-.owner-email-list {
+/* 店が無い人・招待を開いた人の画面（NoStoreScreen・StoreInvitePage） */
+.no-store {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.owner-email-list__empty {
-  color: #aaaaaa;
-  text-align: center;
-  margin-top: 32px;
-}
-
-.owner-email-card {
-  background: #ffffff;
-  border: 1px solid #e5e5e5;
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: center;
+  gap: 10px;
+  min-height: 100vh;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  background: var(--ui-bg-app);
+  color: var(--ui-text-main);
+  text-align: center;
 }
 
-.owner-email-card__main {
-  min-width: 0;
+.no-store__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-subtle);
+  font-size: 24px;
 }
 
-.owner-email-card__address {
-  font-weight: 600;
-  font-size: 15px;
-  overflow-wrap: anywhere;
+.no-store__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
 }
 
-.owner-email-card__date {
-  color: #bbbbbb;
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.owner-email-card__remove {
-  padding: 6px 14px;
+.no-store__lead {
+  margin: 0;
+  color: var(--ui-text-muted);
   font-size: 13px;
-  border: none;
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  background: #dc2626;
-  color: #ffffff;
-  font-weight: 600;
-  flex-shrink: 0;
+  line-height: 1.7;
 }
 
-@media (max-width: 560px) {
-  .owner-email-form {
-    flex-direction: column;
-  }
+.no-store__email {
+  padding: 4px 10px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-subtle);
+  font-size: 12px;
+  font-weight: 800;
+}
 
-  .owner-email-form__button {
-    width: 100%;
-  }
+.no-store__note {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+}
+
+.no-store__error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: 13px;
+  font-weight: 700;
 }

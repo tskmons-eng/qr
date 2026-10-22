@@ -11,6 +11,7 @@ import './styles/authenticated.css'
 const StaffLayout = lazy(() => import('./pages/staff/StaffLayout'))
 const LoginPage = lazy(() => import('./pages/staff/LoginPage'))
 const OwnerPage = lazy(() => import('./pages/owner/OwnerPage'))
+const StoreInvitePage = lazy(() => import('./pages/StoreInvitePage'))
 
 // 旧「管理画面」(/admin) はスタッフ画面に一本化した（2026-10-22 整理 第3章）。古いブックマークは同じ画面へ案内する。
 const ADMIN_TO_STAFF_PATHS = {
@@ -57,6 +58,7 @@ export default function AuthenticatedApp() {
         <Suspense fallback={<AppRouteLoading />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/invite/:inviteId/:token" element={<StoreInvitePage />} />
             <Route path="/owner" element={
               <PrivateRoute>
                 <OwnerRoute>

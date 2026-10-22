@@ -250,8 +250,9 @@ assertIncludes('storeIdentity', storeIdentity, 'STORE_NAME_MAX_LENGTH')
 assertIncludes('settingsService', settingsService, "updateDoc(doc(db, 'stores', storeId)")
 assertIncludes('ownerDashboardService', ownerDashboardService, 'export async function updateStoreName')
 assertIncludes('OwnerStoreDashboard', ownerStoreDashboard, 'owner-store-name-edit')
-assertIncludes('OwnerStoreDashboard', ownerStoreDashboard, '<th>名義メール</th>')
-assertIncludes('OwnerStoreDashboard', ownerStoreDashboard, '店舗ID・履歴はそのまま')
+// 2026-10-22 店舗登録で店舗一覧を1行ずつの形に作り直した。店長のメールは詳細で直せる。
+assertIncludes('OwnerStoreDashboard', ownerStoreDashboard, 'owner-store-admin-email__input')
+assertIncludes('OwnerStoreDashboard', ownerStoreDashboard, 'onIssueInvite(store)')
 
 assertIncludes('CustomerCategoryTabs', customerCategoryTabs, 'CATEGORY_GROUP_DESCRIPTIONS')
 assertIncludes('CustomerCategoryTabs', customerCategoryTabs, 'customer-category-tabs__marker')
