@@ -134,7 +134,7 @@ service cloud.firestore {
       return request.resource.data.storeId == resource.data.storeId
         && request.resource.data.tableName == resource.data.tableName
         && request.resource.data.qrToken == resource.data.qrToken
-        && request.resource.data.get('groupId', null) == resource.data.get('groupId', null);
+        && request.resource.data.get('sortOrder', null) == resource.data.get('sortOrder', null);
     }
 
     function canHandleReservationWait() {
@@ -666,15 +666,12 @@ service cloud.firestore {
       allow create: if canManageTables(request.resource.data.storeId);
       allow update: if canManageTables(resource.data.storeId)
                     || (canAccess(resource.data.storeId) && keepsTableManagementFields());
-      allow delete: if canManageTables(resource.data.storeId);
+      // 消せるのは空いていて注文の無い席だけ（2026-10-23 席設計）。履歴・売上の画面は席の名前を使っていない。
+      allow delete: if canManageTables(resource.data.storeId)
+                    && resource.data.get('status', 'vacant') == 'vacant'
+                    && resource.data.get('currentOrderId', null) == null;
     }
-
-    // 席グループ
-    match /tableGroups/{groupId} {
-      allow read: if canAccess(resource.data.storeId);
-      allow create: if canManageTables(request.resource.data.storeId);
-      allow update, delete: if canManageTables(resource.data.storeId);
-    }
+    // 席グループ（tableGroups）は 2026-10-23 席設計で無くした。決まりが無いので読み書きできない。
 
     // カテゴリー（お客さんも読める）
     match /categories/{categoryId} {

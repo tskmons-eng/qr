@@ -1,6 +1,7 @@
 import { addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { buildReservationScheduleFields } from '../lib/reservationDisplay'
+import { sortTables } from '../lib/tableOrder'
 
 export async function loadReservationAdminData(storeId) {
   const [reservationSnap, tableSnap] = await Promise.all([
@@ -10,9 +11,7 @@ export async function loadReservationAdminData(storeId) {
 
   return {
     reservations: reservationSnap.docs.map(record => ({ id: record.id, ...record.data() })),
-    tables: tableSnap.docs
-      .map(record => ({ id: record.id, ...record.data() }))
-      .sort((a, b) => a.tableName.localeCompare(b.tableName, 'ja')),
+    tables: sortTables(tableSnap.docs.map(record => ({ id: record.id, ...record.data() }))),
   }
 }
 

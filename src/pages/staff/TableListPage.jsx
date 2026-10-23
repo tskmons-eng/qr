@@ -11,11 +11,9 @@ import useNow from '../../hooks/useNow'
 import useStoreSetupGuide from '../../hooks/useStoreSetupGuide'
 import { getNextReservationForTable, getTokyoDateString, getUnassignedTodayReservations } from '../../lib/reservationDisplay'
 import { STAFF_TABLE_FILTERS, buildStaffTableBoard } from '../../lib/staffTableList'
-import { buildTableGroupTabs, filterTablesByGroup } from '../../lib/tableGroups'
 import { tablesNeedPendingFallback } from '../../lib/tablePending'
 import { subscribeTodayReservations } from '../../services/reservationService'
 import { subscribeStaffPendingCounts, subscribeStaffTables } from '../../services/staffTableListService'
-import { subscribeTableGroups } from '../../services/tableGroupService'
 
 // 席一覧（2026-10-22 作り直し）：上＝対応が要る席、中＝利用中、下＝空席。
 // 呼び出しは StaffLayout が購読しているものを受け取る（購読を増やさない）。席一覧では上の帯を出さず、行の「対応」で済ませる。
@@ -23,8 +21,6 @@ export default function TableListPage({ calls = [], onRespondCalls }) {
   const { storeId } = useStore()
   const [tables, setTables] = useState([])
   const [tablesLoaded, setTablesLoaded] = useState(false)
-  const [groups, setGroups] = useState([])
-  const [activeGroupId, setActiveGroupId] = useState('all')
   const [activeFilter, setActiveFilter] = useState('all')
   const [pendingMap, setPendingMap] = useState({})
   const [todayReservations, setTodayReservations] = useState([])
@@ -64,11 +60,6 @@ export default function TableListPage({ calls = [], onRespondCalls }) {
 
   useEffect(() => {
     if (!storeId) return
-    return subscribeTableGroups(storeId, setGroups)
-  }, [storeId])
-
-  useEffect(() => {
-    if (!storeId) return
     return subscribeTodayReservations(storeId, today, setTodayReservations)
   }, [storeId, today])
 
@@ -85,28 +76,13 @@ export default function TableListPage({ calls = [], onRespondCalls }) {
     )
   }
 
-  const tabs = buildTableGroupTabs(groups)
-  const board = buildStaffTableBoard({ tables: filterTablesByGroup(tables, activeGroupId), pendingMap, calls })
+  const board = buildStaffTableBoard({ tables, pendingMap, calls })
   const show = key => activeFilter === 'all' || activeFilter === key
   const openTable = table => navigate(`table/${table.id}`)
   const reservationFor = table => getNextReservationForTable(todayReservations, table.id, today)
 
   return (
     <div className="staff-table-list">
-      {tabs.length > 1 && (
-        <div className="staff-table-list__chips" role="tablist" aria-label="席グループ">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveGroupId(tab.id)}
-              className={`staff-table-list__chip${activeGroupId === tab.id ? ' is-active' : ''}`}
-            >
-              {tab.name}
-            </button>
-          ))}
-        </div>
-      )}
       <div className="staff-table-list__chips" role="tablist" aria-label="席の状態">
         {STAFF_TABLE_FILTERS.map(filter => (
           <button

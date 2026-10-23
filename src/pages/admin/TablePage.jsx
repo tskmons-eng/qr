@@ -1,206 +1,67 @@
-import { useEffect, useRef, useState } from 'react'
-import AdminTableGroupsPanel from '../../components/admin/AdminTableGroupsPanel'
-import AdminTableQrDialog from '../../components/admin/AdminTableQrDialog'
-import AdminTableRow from '../../components/admin/AdminTableRow'
+import { useState } from 'react'
+import TableAddSheet from '../../components/admin/TableAddSheet'
+import TableSetupList from '../../components/admin/TableSetupList'
+import TableSheet from '../../components/admin/TableSheet'
 import { useStore } from '../../contexts/StoreContext'
-import { getPublicOrderBaseUrl, normalizeTableName } from '../../lib/adminTable'
-import { normalizeTableGroupName } from '../../lib/tableGroups'
-import { downloadQrPosterPdf } from '../../lib/qrPosterPdf'
-import {
-  createAdminTable,
-  reissueAdminTableQr,
-  renameAdminTable,
-  subscribeAdminTables,
-} from '../../services/adminTableService'
-import {
-  createTableGroup,
-  deleteTableGroupAndClearTables,
-  renameTableGroup,
-  subscribeTableGroups,
-  updateTableGroupAssignment,
-} from '../../services/tableGroupService'
+import useTableAdmin from '../../hooks/useTableAdmin'
+import useTouchReorder from '../../hooks/useTouchReorder'
+import { getPublicOrderBaseUrl } from '../../lib/adminTable'
 
+// 席の管理（2026-10-23 席設計で作り直し）。1席1行、つまんで店の並びどおりに並べ替える。
+// 名前の変更・QR・削除は席を押したシートで、追加は「＋ 席」のシート（番号でまとめて作れる）。グループは無くした。
 export default function TablePage() {
   const { storeId } = useStore()
-  const [tables, setTables] = useState([])
-  const [groups, setGroups] = useState([])
-  const [newName, setNewName] = useState('')
-  const [newGroupName, setNewGroupName] = useState('')
+  const admin = useTableAdmin(storeId)
+  const [openTableId, setOpenTableId] = useState(null)
   const [adding, setAdding] = useState(false)
-  const [addingGroup, setAddingGroup] = useState(false)
-  const [qrTarget, setQrTarget] = useState(null)
-  const [generatingPdf, setGeneratingPdf] = useState(false)
-  const [editingTableId, setEditingTableId] = useState(null)
-  const [editingTableName, setEditingTableName] = useState('')
-  const [savingTableName, setSavingTableName] = useState(false)
-  const [editingGroupId, setEditingGroupId] = useState(null)
-  const [editingGroupName, setEditingGroupName] = useState('')
-  const qrCanvasRef = useRef(null)
+  const [listError, setListError] = useState('')
+  const reorder = useTouchReorder(async (type, dragId, targetId) => handleReorder(dragId, targetId))
   const baseUrl = getPublicOrderBaseUrl()
+  // シートは最新の席を見る（QR を作り直したとき・お客様が座ったときにすぐ変わる）。
+  const openTable = admin.tables.find(table => table.id === openTableId) ?? null
 
-  useEffect(() => {
-    if (!storeId) return
-    return subscribeAdminTables(storeId, setTables)
-  }, [storeId])
-
-  useEffect(() => {
-    if (!storeId) return
-    return subscribeTableGroups(storeId, setGroups)
-  }, [storeId])
-
-  async function handleAdd(event) {
-    event.preventDefault()
-    if (!normalizeTableName(newName)) return
-    setAdding(true)
-    try {
-      await createAdminTable({ storeId, tableName: newName })
-      setNewName('')
-    } finally {
-      setAdding(false)
-    }
-  }
-
-  async function reissueQr(table) {
-    if (!confirm(`「${table.tableName}」のQRを再発行しますか？\n古いQRは使えなくなります。`)) return
-    await reissueAdminTableQr(table.id)
-    setQrTarget(null)
-  }
-
-  function startEditTableName(table) {
-    setEditingTableId(table.id)
-    setEditingTableName(table.tableName ?? '')
-  }
-
-  function cancelEditTableName() {
-    setEditingTableId(null)
-    setEditingTableName('')
-  }
-
-  async function saveTableName(table) {
-    const name = normalizeTableName(editingTableName)
-    if (!name || savingTableName) return
-    setSavingTableName(true)
-    try {
-      await renameAdminTable(table.id, name)
-      cancelEditTableName()
-    } finally {
-      setSavingTableName(false)
-    }
-  }
-
-  async function handleDownloadPosterPdf(table) {
-    if (generatingPdf) return
-    setGeneratingPdf(true)
-    try {
-      await downloadQrPosterPdf(table, qrCanvasRef.current, baseUrl)
-    } catch (error) {
-      console.error(error)
-      alert('PDFの作成に失敗しました。もう一度お試しください。')
-    } finally {
-      setGeneratingPdf(false)
-    }
-  }
-
-  async function handleAddGroup(event) {
-    event.preventDefault()
-    if (!normalizeTableGroupName(newGroupName)) return
-    setAddingGroup(true)
-    try {
-      await createTableGroup({ storeId, name: newGroupName, sortOrder: groups.length })
-      setNewGroupName('')
-    } finally {
-      setAddingGroup(false)
-    }
-  }
-
-  function startEditGroup(group) {
-    setEditingGroupId(group.id)
-    setEditingGroupName(group.name ?? '')
-  }
-
-  function cancelEditGroup() {
-    setEditingGroupId(null)
-    setEditingGroupName('')
-  }
-
-  async function saveGroupName(group) {
-    const name = normalizeTableGroupName(editingGroupName)
-    if (!name) return
-    await renameTableGroup(group.id, name)
-    cancelEditGroup()
-  }
-
-  async function deleteGroup(group) {
-    if (!confirm(`「${group.name}」を削除しますか？\nこのグループ内の席は未設定に戻ります。注文や席は削除されません。`)) return
-    await deleteTableGroupAndClearTables({ groupId: group.id, storeId })
+  async function handleReorder(dragId, targetId) {
+    setListError((await admin.reorderTables(dragId, targetId)) ?? '')
   }
 
   return (
-    <div>
-      <h2 className="admin-page-title">席管理</h2>
-
-      <AdminTableGroupsPanel
-        editingGroupId={editingGroupId}
-        editingGroupName={editingGroupName}
-        groups={groups}
-        newGroupName={newGroupName}
-        saving={addingGroup}
-        onAddGroup={handleAddGroup}
-        onCancelEditGroup={cancelEditGroup}
-        onDeleteGroup={deleteGroup}
-        onEditGroupNameChange={setEditingGroupName}
-        onNewGroupNameChange={setNewGroupName}
-        onSaveGroupName={saveGroupName}
-        onStartEditGroup={startEditGroup}
-      />
-
-      <form onSubmit={handleAdd} className="admin-inline-form">
-        <input
-          value={newName}
-          onChange={event => setNewName(event.target.value)}
-          placeholder="席名（例: 1番テーブル）"
-          className="admin-text-input"
-        />
-        <button
-          type="submit"
-          disabled={adding}
-          className="button button-primary admin-form-submit"
-        >
-          追加
-        </button>
-      </form>
-
-      <AdminTableQrDialog
-        table={qrTarget}
-        baseUrl={baseUrl}
-        qrCanvasRef={qrCanvasRef}
-        generatingPdf={generatingPdf}
-        onDownloadPosterPdf={handleDownloadPosterPdf}
-        onReissueQr={reissueQr}
-        onClose={() => setQrTarget(null)}
-      />
-
-      <div className="admin-list-stack">
-        {tables.map(table => (
-          <AdminTableRow
-            key={table.id}
-            table={table}
-            editing={editingTableId === table.id}
-            editingTableName={editingTableName}
-            savingTableName={savingTableName}
-            groups={groups}
-            onStartEdit={startEditTableName}
-            onEditingNameChange={setEditingTableName}
-            onSaveName={saveTableName}
-            onCancelEdit={cancelEditTableName}
-            onShowQr={setQrTarget}
-            onGroupChange={(tableId, groupId) => updateTableGroupAssignment({ tableId, groupId })}
-          />
-        ))}
-        {tables.length === 0 && (
-          <p className="admin-empty-state">席がまだありません</p>
-        )}
+    <div className="table-admin">
+      <div className="table-admin__bar">
+        <span className="table-admin__hint">{admin.tables.length > 1 ? '⋮⋮ をつまんで、店の並びどおりに' : '席を作ると、ここに並びます'}</span>
+        <span className="table-admin__count">{admin.tables.length}席</span>
+        <button type="button" onClick={() => setAdding(true)} className="ui-button ui-button--primary">＋ 席</button>
       </div>
+      {(admin.loadError || listError) && <p className="table-sheet__error" role="alert">{admin.loadError || listError}</p>}
+      {admin.loading ? (
+        <p className="table-admin__empty">読み込み中...</p>
+      ) : admin.tables.length === 0 ? (
+        <p className="table-admin__empty">まだ席がありません。「＋ 席」から、番号でまとめて作れます。</p>
+      ) : (
+        <TableSetupList
+          tables={admin.tables}
+          touchDrag={reorder.touchDrag}
+          reorderHandlers={{
+            onDrop: handleReorder,
+            onTouchStart: reorder.startTouchReorder,
+            onTouchMove: reorder.moveTouchReorder,
+            onTouchEnd: reorder.finishTouchReorder,
+            onTouchCancel: reorder.cancelTouchReorder,
+          }}
+          onOpenTable={table => setOpenTableId(table.id)}
+        />
+      )}
+      {adding && <TableAddSheet tables={admin.tables} onAdd={admin.addTables} onClose={() => setAdding(false)} />}
+      {openTable && (
+        <TableSheet
+          key={openTable.id}
+          table={openTable}
+          baseUrl={baseUrl}
+          onRename={admin.renameTable}
+          onReissueQr={admin.reissueQr}
+          onDelete={admin.deleteTable}
+          onClose={() => setOpenTableId(null)}
+        />
+      )}
     </div>
   )
 }

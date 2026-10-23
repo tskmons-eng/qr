@@ -1,5 +1,6 @@
 import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import { sortTables } from '../lib/tableOrder'
 import { filterVisibleOrderItems, sortOrderItemsByOrderedAt } from '../lib/staffTableDetail'
 import { seatStaffOrderSession } from './orderCommandService'
 import {
@@ -68,10 +69,9 @@ export async function updateTableGuestCount({ table, tableId, guestCount, active
 
 export async function loadVacantTables({ storeId, currentTableId }) {
   const snap = await getDocs(query(collection(db, 'tables'), where('storeId', '==', storeId), where('status', '==', 'vacant')))
-  return snap.docs
+  return sortTables(snap.docs
     .map(docSnapshot => ({ id: docSnapshot.id, ...docSnapshot.data() }))
-    .filter(table => table.id !== currentTableId)
-    .sort((a, b) => a.tableName.localeCompare(b.tableName, 'ja'))
+    .filter(table => table.id !== currentTableId))
 }
 
 export async function moveTableOrder({ sourceTable, sourceTableId, targetTable, activeStaff }) {

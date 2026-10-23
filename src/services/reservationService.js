@@ -10,6 +10,7 @@ import {
   where,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { sortTables } from '../lib/tableOrder'
 import { sortReservationsByTime, sortWaitingReservations } from '../lib/reservationDisplay'
 import { withOrderCommandFailureLog } from './orderCommandFailureService'
 import { callOrderCommandFunction } from './orderFunctionCommandService'
@@ -53,14 +54,14 @@ export function subscribePendingReservationWaits(storeId, onChange) {
 export function subscribeReservationTables(storeId, onChange) {
   const tablesQuery = query(collection(db, 'tables'), where('storeId', '==', storeId))
   return onSnapshot(tablesQuery, snap => {
-    const tables = mapDocs(snap).sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0))
+    const tables = sortTables(mapDocs(snap))
     onChange(tables)
   })
 }
 
 export async function loadReservationTables(storeId) {
   const snap = await getDocs(query(collection(db, 'tables'), where('storeId', '==', storeId)))
-  return mapDocs(snap).sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0))
+  return sortTables(mapDocs(snap))
 }
 
 export async function dismissReservationWait({ reservationId, activeStaff }) {

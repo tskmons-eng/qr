@@ -1,7 +1,6 @@
 {
   "hard-coded-color src/components/staff/StaffGoogleLoginButton.jsx": 4,
   "browser-dialog src/components/staff/StaffReservationWaitController.jsx": 3,
-  "browser-dialog src/pages/admin/TablePage.jsx": 3,
   "inline-style src/pages/staff/StaffLayout.jsx": 1,
   "hard-coded-color src/styles/admin-core.css": 1,
   "hard-coded-color src/styles/admin-history.css": 46,
@@ -14,7 +13,6 @@
   "hard-coded-color src/styles/admin-settings-groups.css": 11,
   "hard-coded-color src/styles/admin-settings-passcode.css": 4,
   "hard-coded-color src/styles/admin-shared.css": 14,
-  "hard-coded-color src/styles/admin-table.css": 19,
   "hard-coded-color src/styles/approval-gate.css": 10,
   "hard-coded-color src/styles/bottom-nav.css": 40,
   "hard-coded-color src/styles/components.css": 9,

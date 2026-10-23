@@ -118,7 +118,8 @@ for (const name of ['canManageTables', 'canManageReservations', 'canViewHistory'
 }
 assert.match(rules, /match \/products\/\{productId\}[\s\S]*allow create: if canManageMenu\(request\.resource\.data\.storeId\);/)
 assert.match(rules, /match \/tables\/\{tableId\}[\s\S]*allow create: if canManageTables\(request\.resource\.data\.storeId\);/)
-assert.match(rules, /match \/tableGroups\/\{groupId\}[\s\S]*allow create: if canManageTables\(request\.resource\.data\.storeId\);/)
+assert.doesNotMatch(rules, /match \/tableGroups\//, '席グループは無くした（2026-10-23 席設計）')
+assert.match(rules, /allow delete: if canManageTables\(resource\.data\.storeId\)\s*&& resource\.data\.get\('status', 'vacant'\) == 'vacant'/, '空き席だけ消せる')
 assert.match(rules, /match \/cashClosings\/\{closingId\}[\s\S]*allow create: if canCloseRegister\(request\.resource\.data\.storeId\);/)
 assert.match(rules, /match \/reservations\/\{reservationId\}[\s\S]*allow create: if canManageReservations\(request\.resource\.data\.storeId\);/)
 assert.match(rules, /match \/storeConfig\/\{configId\}[\s\S]*allow write: if canManageSettings\(configId\);/)

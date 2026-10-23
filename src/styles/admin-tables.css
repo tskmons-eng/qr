@@ -1,0 +1,320 @@
+/* 席の管理（2026-10-23 席設計で作り直し。すっきり明るい・余白少なめ）。色は tokens.css の共通の値だけ。
+   入力欄の文字は 16px（iPhone で入力欄を押したときに画面が拡大しないように）。 */
+.table-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 8px 80px;
+  color: var(--ui-text-main);
+}
+
+.table-admin__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-admin__hint {
+  flex: 1;
+  min-width: 0;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.table-admin__count {
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-subtle);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.table-admin__empty {
+  margin: 0;
+  padding: 12px 4px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.table-admin__list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.table-admin__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 2px 8px 2px 4px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+}
+
+.table-admin__item.is-dragging {
+  box-shadow: 0 0 0 2px var(--ui-brand);
+}
+
+.table-admin__item.is-drop-target {
+  box-shadow: inset 0 3px 0 var(--ui-brand), var(--ui-shadow-flat);
+}
+
+.table-admin__grip {
+  padding: 10px 4px;
+  color: var(--ui-border-control);
+  cursor: grab;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  touch-action: none;
+  user-select: none;
+}
+
+.table-admin__item-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.table-admin__item-main b {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-admin__use {
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.table-admin__use.is-vacant {
+  background: var(--ui-ok-soft);
+  color: var(--ui-ok);
+}
+
+.table-admin__chev {
+  color: var(--ui-text-muted);
+  font-weight: 900;
+}
+
+/* 席のシート・追加のシート（BottomSheet の中） */
+.table-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.table-sheet__row,
+.table-sheet__inline,
+.table-sheet__buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.table-sheet__buttons .ui-button {
+  flex: 1;
+}
+
+.table-sheet__field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.table-sheet__input {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.table-sheet__seg {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+}
+
+.table-sheet__seg button {
+  flex: 1;
+  padding: 7px 0;
+  border: 0;
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.table-sheet__seg button.is-on {
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
+}
+
+.table-sheet__preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.table-sheet__preview span {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-main);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.table-sheet__note {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.table-sheet__note--strong {
+  color: var(--ui-text-main);
+  font-size: 12px;
+}
+
+.table-sheet__notice {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-ok-soft);
+  color: var(--ui-ok);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.table-sheet__warn {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.table-sheet__error {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.table-sheet__qr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.table-sheet__qr span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.table-sheet__qr b {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.table-sheet__qr small {
+  color: var(--ui-text-muted);
+  font-size: 10px;
+}
+
+.table-sheet__qr em {
+  color: var(--ui-brand);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.table-sheet__qr-large {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-sheet__url {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  word-break: break-all;
+}
+
+.table-sheet__line {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 2px;
+  border: 0;
+  border-top: 1px solid var(--ui-border-subtle);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.table-sheet__line--danger {
+  color: var(--ui-danger);
+}
+
+.table-sheet__danger {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+}

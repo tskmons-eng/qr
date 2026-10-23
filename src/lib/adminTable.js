@@ -4,6 +4,14 @@ export const TABLE_STATUS_LABELS = {
   checkout_pending: '会計待ち',
 }
 
+// 席の管理の一覧に出す、いまの使われ方（空き／○名・食事中／会計待ち）。
+export function describeTableUse(table) {
+  if (table.status === 'vacant' && !table.currentOrderId) return { label: '空き', vacant: true }
+  if (table.status === 'checkout_pending') return { label: '会計待ち', vacant: false }
+  const guests = Number(table.guestCount) > 0 ? `${table.guestCount}名・` : ''
+  return { label: `${guests}食事中`, vacant: false }
+}
+
 export const DEFAULT_PUBLIC_ORDER_BASE_URL = 'https://qrproduct-3340b.web.app'
 
 export function normalizeTableName(name) {
