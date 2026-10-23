@@ -4,12 +4,11 @@ import CustomerMenuHeader from '../../components/order/CustomerMenuHeader'
 import CustomerMenuProductList from '../../components/order/CustomerMenuProductList'
 import CustomerBottomNav from '../../components/CustomerBottomNav'
 import OptionModal from '../../components/OptionModal'
-import SuggestionSheet from '../../components/SuggestionSheet'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
 import useCustomerCall from '../../hooks/useCustomerCall'
 import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
-import { productMatchesCategory } from '../../lib/productTags'
+import { productMatchesCategory } from '../../lib/menuCategory'
 import { loadCustomerMenuData } from '../../services/customerMenuService'
 
 export default function MenuPage() {
@@ -22,7 +21,6 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [optionTarget, setOptionTarget] = useState(null)
-  const [suggestions, setSuggestions] = useState([])
 
   useEffect(() => {
     if (!storeId) return
@@ -50,13 +48,6 @@ export default function MenuPage() {
     return () => { cancelled = true }
   }, [storeId])
 
-  function showSuggestionsFor(product) {
-    const ids = product.linkedProductIds ?? []
-    if (ids.length === 0) return
-    const linked = products.filter(candidate => ids.includes(candidate.id))
-    if (linked.length > 0) setSuggestions(linked)
-  }
-
   function handleAddProduct(product) {
     if (product.isSoldOut) return
     if ((product.options ?? []).length > 0) {
@@ -65,7 +56,6 @@ export default function MenuPage() {
     }
 
     addItem(product, [])
-    showSuggestionsFor(product)
   }
 
   function handleOptionConfirm(optionSelections, quantity = 1) {
@@ -76,12 +66,6 @@ export default function MenuPage() {
       addItem(product, optionSelections, quantity)
     }
     setOptionTarget(null)
-    showSuggestionsFor(product)
-  }
-
-  function handleSuggestionAdd(product) {
-    handleAddProduct(product)
-    setSuggestions([])
   }
 
   function setSimpleProductQuantity(product, value) {
@@ -106,13 +90,6 @@ export default function MenuPage() {
           product={optionTarget}
           onConfirm={handleOptionConfirm}
           onClose={() => setOptionTarget(null)}
-        />
-      )}
-      {suggestions.length > 0 && !optionTarget && (
-        <SuggestionSheet
-          suggestions={suggestions}
-          onAdd={handleSuggestionAdd}
-          onClose={() => setSuggestions([])}
         />
       )}
 

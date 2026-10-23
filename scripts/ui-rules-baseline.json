@@ -1,20 +1,10 @@
 {
   "hard-coded-color src/components/staff/StaffGoogleLoginButton.jsx": 4,
   "browser-dialog src/components/staff/StaffReservationWaitController.jsx": 3,
-  "browser-dialog src/hooks/useProductCategoryAdmin.js": 1,
-  "browser-dialog src/hooks/useProductTemplateAdmin.js": 8,
   "browser-dialog src/pages/admin/TablePage.jsx": 3,
   "inline-style src/pages/staff/StaffLayout.jsx": 1,
   "hard-coded-color src/styles/admin-core.css": 1,
   "hard-coded-color src/styles/admin-history.css": 46,
-  "hard-coded-color src/styles/admin-product-category.css": 24,
-  "hard-coded-color src/styles/admin-product-discount.css": 9,
-  "hard-coded-color src/styles/admin-product-form-base.css": 13,
-  "hard-coded-color src/styles/admin-product-form-media.css": 5,
-  "hard-coded-color src/styles/admin-product-form-sections.css": 11,
-  "hard-coded-color src/styles/admin-product-list.css": 17,
-  "hard-coded-color src/styles/admin-product-options.css": 29,
-  "hard-coded-color src/styles/admin-product-related.css": 7,
   "hard-coded-color src/styles/admin-reservation-calendar.css": 25,
   "hard-coded-color src/styles/admin-reservation-detail.css": 27,
   "hard-coded-color src/styles/admin-sales-history-view.css": 15,
@@ -46,6 +36,5 @@
   "hard-coded-color src/styles/staff-shell.css": 23,
   "hard-coded-color src/styles/staff-table-modal.css": 14,
   "hard-coded-color src/styles/staff-table-orders.css": 13,
-  "hard-coded-color src/styles/staff-table-shell.css": 21,
-  "hard-coded-color src/styles/suggestion-sheet.css": 13
+  "hard-coded-color src/styles/staff-table-shell.css": 21
 }

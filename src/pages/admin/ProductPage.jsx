@@ -1,223 +1,134 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import MenuCategorySheet from '../../components/admin/MenuCategorySheet'
+import MenuProductList from '../../components/admin/MenuProductList'
+import MenuProductSheet from '../../components/admin/MenuProductSheet'
 import { useStore } from '../../contexts/StoreContext'
-import AdminTabs from '../../components/admin/AdminTabs'
-import ProductCategoriesTab from '../../components/admin/ProductCategoriesTab'
-import ProductProductsTab from '../../components/admin/ProductProductsTab'
-import { isDiscountActive } from '../../lib/discounts'
-import { normalizeTags, productMatchesCategory } from '../../lib/productTags'
-import useProductActions from '../../hooks/useProductActions'
-import useProductCategoryAdmin from '../../hooks/useProductCategoryAdmin'
-import useProductFormState from '../../hooks/useProductFormState'
-import useProductOptionForm from '../../hooks/useProductOptionForm'
-import useProductTemplateAdmin from '../../hooks/useProductTemplateAdmin'
+import useMenuAdmin from '../../hooks/useMenuAdmin'
+import useStoreConfig from '../../hooks/useStoreConfig'
 import useTouchReorder from '../../hooks/useTouchReorder'
-import { discountLabel } from '../../lib/productForm'
-import { loadProductAdminData } from '../../services/productAdminService'
+
+// メニュー管理（2026-10-23 商品設計で作り直し）。分類の見出しの下に1品1行。
+// 商品と分類の追加・修正・削除は下から出るシートで。タブは分けない。
+const FILTERS = [
+  { key: 'all', label: 'すべて' },
+  { key: 'soldOut', label: '売り切れ' },
+  { key: 'hidden', label: 'お客様に出していない' },
+]
+
+function matchesFilter(product, filter) {
+  if (filter === 'soldOut') return product.isSoldOut === true
+  if (filter === 'hidden') return product.isVisible === false
+  return true
+}
 
 export default function ProductPage() {
   const { storeId } = useStore()
-  const [tab, setTab] = useState('products')
-  const [products, setProducts] = useState([])
-  const [categories, setCategories] = useState([])
-  const [optionTemplates, setOptionTemplates] = useState([])
-  const [tagTemplates, setTagTemplates] = useState([])
+  const storeConfig = useStoreConfig(storeId)
+  const menu = useMenuAdmin(storeId)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [productSheet, setProductSheet] = useState(null)
+  const [categorySheet, setCategorySheet] = useState(null)
+  const [listError, setListError] = useState('')
+  const reorder = useTouchReorder(async (type, dragId, targetId) => handleReorder(dragId, targetId))
 
-  // product list filters
-  const [productSearch, setProductSearch] = useState('')
-  const [productCatFilter, setProductCatFilter] = useState('')
-
-  const [dragProductId, setDragProductId] = useState(null)
-  const [dragCategoryId, setDragCategoryId] = useState(null)
-  const productForm = useProductFormState()
-  const optionForm = useProductOptionForm({ setForm: productForm.setForm })
-  const { touchDrag, startTouchReorder, moveTouchReorder, finishTouchReorder, cancelTouchReorder } = useTouchReorder(handleTouchReorder)
-
-  const loadData = useCallback(async () => {
-    if (!storeId) return
-    const data = await loadProductAdminData(storeId)
-    setProducts(data.products)
-    setCategories(data.categories)
-    setOptionTemplates(data.optionTemplates)
-    setTagTemplates(data.tagTemplates)
-  }, [storeId])
-
-  useEffect(() => { loadData() }, [loadData])
-
-  const categoryAdmin = useProductCategoryAdmin({
-    storeId,
-    categories,
-    setCategories,
-    products,
-    setForm: productForm.setForm,
-    loadData,
-  })
-  const templateAdmin = useProductTemplateAdmin({
-    storeId,
-    form: productForm.form,
-    setForm: productForm.setForm,
-    optionTemplates,
-    tagTemplates,
-    loadData,
-  })
-  const productActions = useProductActions({
-    storeId,
-    products,
-    setProducts,
-    form: productForm.form,
-    editingId: productForm.editingId,
-    imageFile: productForm.imageFile,
-    existingImageUrl: productForm.existingImageUrl,
-    setShowForm: productForm.setShowForm,
-    resetImageState: productForm.resetImageState,
-    loadData,
-  })
-
-  const activeCategories = categories.filter(c => c.isActive)
-
-  // カテゴリグループ絞り込み済みリスト（フォーム内で使用）
-  const catsForSelect = categoryAdmin.catGroupFilter
-    ? activeCategories.filter(c => c.group === categoryAdmin.catGroupFilter)
-    : activeCategories
-
-  // 既存オプショングループ名サジェスト
-  const allGroupNames = [...new Set(
-    [
-      ...products.flatMap(p => (p.options ?? []).map(g => g.groupName)),
-      ...optionTemplates.flatMap(t => (t.options ?? []).map(g => g.groupName)),
-    ].filter(Boolean)
-  )]
-
-  // ─── 画像 ───
-  // ─── フォーム開閉 ───
-  function openAdd() {
-    productForm.openAddBase()
-    optionForm.setNewChoiceInputs([])
-    categoryAdmin.resetQuickCategory()
+  // 並べ替えは同じ分類の中だけ。
+  async function handleReorder(dragId, targetId) {
+    const dragged = menu.products.find(product => product.id === dragId)
+    const target = menu.products.find(product => product.id === targetId)
+    if (!dragged || !target || dragged.categoryId !== target.categoryId) return
+    setListError((await menu.reorderProducts(dragId, targetId)) ?? '')
   }
 
-  function openEdit(p) {
-    const opts = productForm.openEditBase(p)
-    optionForm.setNewChoiceInputs(opts.map(() => ({ label: '', extraPrice: '' })))
-    categoryAdmin.resetQuickCategory()
+  async function toggle(product, key) {
+    setListError((await menu.toggleProductFlag(product, key)) ?? '')
   }
 
-  async function handleTouchReorder(type, dragId, targetId) {
-    if (type === 'product') await productActions.reorderProducts(dragId, targetId)
-    if (type === 'category') await categoryAdmin.reorderCategories(dragId, targetId)
+  const keyword = search.trim()
+  const visibleProducts = menu.products.filter(product => (
+    matchesFilter(product, filter) && (!keyword || String(product.name ?? '').includes(keyword))
+  ))
+  const categoryIds = new Set(menu.categories.map(category => category.id))
+  const sections = [
+    ...menu.categories.map(category => ({
+      id: category.id,
+      name: category.name,
+      category,
+      products: visibleProducts.filter(product => product.categoryId === category.id),
+    })),
+    {
+      id: 'uncategorized',
+      name: '分類なし',
+      category: null,
+      products: visibleProducts.filter(product => !categoryIds.has(product.categoryId)),
+    },
+  ].filter(section => section.products.length > 0 || (filter === 'all' && !keyword && section.category))
+  const counts = {
+    all: menu.products.length,
+    soldOut: menu.products.filter(product => product.isSoldOut === true).length,
+    hidden: menu.products.filter(product => product.isVisible === false).length,
   }
-
-  // ─── セクション単独保存 ───
-  const catName = id => categories.find(c => c.id === id)?.name ?? ''
-
-  const otherProducts = products.filter(p => p.id !== productForm.editingId)
-  const allProductTags = [...new Set(products.flatMap(p => normalizeTags(p.tags)))]
-  const allTagSuggestions = [...new Set([
-    ...allProductTags,
-    ...tagTemplates.flatMap(t => normalizeTags(t.tags)),
-  ])]
-  const filteredRelated = otherProducts.filter(p => {
-    const matchCat = !productForm.relatedCatFilter || p.categoryId === productForm.relatedCatFilter
-    const matchSearch = !productForm.relatedSearch || p.name.includes(productForm.relatedSearch)
-    return matchCat && matchSearch
-  })
-  const displayedProducts = products.filter(p => {
-    const filterCat = categories.find(c => c.id === productCatFilter)
-    const matchCat = !productCatFilter || productMatchesCategory(p, filterCat)
-    const productTags = normalizeTags(p.tags)
-    const matchSearch = !productSearch || p.name.includes(productSearch) || productTags.some(tag => tag.includes(productSearch))
-    return matchCat && matchSearch
-  })
+  const categoryIndex = categorySheet?.id ? menu.categories.findIndex(category => category.id === categorySheet.id) : -1
 
   return (
-    <div>
-      <AdminTabs
-        current={tab}
-        tabs={[
-          { key: 'products', label: '商品' },
-          { key: 'categories', label: 'カテゴリー' },
-        ]}
-        onSelect={nextTab => {
-          setTab(nextTab)
-          productForm.setShowForm(false)
-        }}
-      />
-
-      {tab === 'products' && (
-        <ProductProductsTab
-          productState={{ showForm: productForm.showForm, productSearch, productCatFilter }}
-          productData={{
-            products,
-            displayedProducts,
-            categories,
-            activeCategories,
-            catsForSelect,
-            allTagSuggestions,
-            allGroupNames,
+    <div className="menu-admin">
+      <div className="menu-admin__bar">
+        <input value={search} onChange={event => setSearch(event.target.value)} placeholder="商品名で探す" className="menu-admin__search" />
+        <button type="button" onClick={() => setProductSheet({ product: null, categoryId: menu.categories[0]?.id ?? '' })} className="ui-button ui-button--primary">＋ 商品</button>
+      </div>
+      <div className="menu-admin__chips">
+        {FILTERS.map(item => (
+          <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={`menu-admin__chip${filter === item.key ? ' is-on' : ''}`}>
+            {item.label} {counts[item.key]}
+          </button>
+        ))}
+        <button type="button" onClick={() => setCategorySheet({})} className="menu-admin__chip">＋ 分類</button>
+      </div>
+      {(menu.loadError || listError) && <p className="menu-sheet__error" role="alert">{menu.loadError || listError}</p>}
+      {menu.loading ? (
+        <p className="menu-admin__empty">読み込み中...</p>
+      ) : menu.categories.length === 0 ? (
+        <p className="menu-admin__empty">まず「＋ 分類」から分類（例：ビール・焼き鳥）を作ってください。</p>
+      ) : (
+        <MenuProductList
+          sections={sections}
+          touchDrag={reorder.touchDrag}
+          reorderHandlers={{
+            onDrop: handleReorder,
+            onTouchStart: reorder.startTouchReorder,
+            onTouchMove: reorder.moveTouchReorder,
+            onTouchEnd: reorder.finishTouchReorder,
+            onTouchCancel: reorder.cancelTouchReorder,
           }}
-          formState={{
-            ...productForm,
-            catGroupFilter: categoryAdmin.catGroupFilter,
-            showQuickCat: categoryAdmin.showQuickCat,
-            quickCatName: categoryAdmin.quickCatName,
-            imageUrl: productForm.imagePreview ?? productForm.existingImageUrl,
-            saving: productActions.saving,
-          }}
-          templateState={{
-            ...templateAdmin,
-            tagTemplates,
-            optionTemplates,
-          }}
-          optionState={{ ...optionForm, savingOptions: productActions.savingOptions }}
-          relatedState={{
-            relatedSearch: productForm.relatedSearch,
-            relatedCatFilter: productForm.relatedCatFilter,
-            filteredRelated,
-            savingRelated: productActions.savingRelated,
-          }}
-          dragState={{ dragProductId, touchDrag }}
-          actions={{
-            openAdd,
-            openEdit,
-            ...productForm,
-            ...categoryAdmin,
-            ...templateAdmin,
-            ...optionForm,
-            ...productActions,
-            closeForm: () => productForm.setShowForm(false),
-            setProductSearch,
-            setProductCatFilter,
-            showQuickCategory: () => categoryAdmin.setShowQuickCat(true),
-            hideQuickCategory: () => categoryAdmin.setShowQuickCat(false),
-            getCategoryName: catName,
-            setDragProductId,
-            startTouchReorder,
-            moveTouchReorder,
-            finishTouchReorder,
-            cancelTouchReorder,
-          }}
+          onOpenProduct={product => setProductSheet({ product, categoryId: product.categoryId })}
+          onToggleSoldOut={product => toggle(product, 'isSoldOut')}
+          onToggleVisible={product => toggle(product, 'isVisible')}
+          onOpenCategory={category => setCategorySheet(category)}
         />
       )}
-
-      {tab === 'categories' && (
-        <ProductCategoriesTab
-          categoryState={{
-            ...categoryAdmin,
-            categories,
-          }}
-          templateState={{ ...templateAdmin, tagTemplates }}
-          dragState={{ dragCategoryId, touchDrag }}
-          actions={{
-            ...categoryAdmin,
-            ...templateAdmin,
-            toggleNewCatAutoTagMode: () => categoryAdmin.setNewCatAutoTagMode(value => !value),
-            toggleEditingCatAutoTagMode: () => categoryAdmin.setEditingCatAutoTagMode(value => !value),
-            cancelEditCategory: () => categoryAdmin.setEditingCatId(null),
-            setDragCategoryId,
-            startTouchReorder,
-            moveTouchReorder,
-            finishTouchReorder,
-            cancelTouchReorder,
-          }}
+      {productSheet && (
+        <MenuProductSheet
+          product={productSheet.product}
+          initialCategoryId={productSheet.categoryId}
+          categories={menu.categories}
+          onSave={menu.saveProduct}
+          onDelete={product => (storeConfig
+            ? menu.deleteProduct(product, { guestAutoAddProductId: storeConfig.guestAutoAdd?.productId })
+            // 設定を読み込む前は、人数分の自動追加に使う商品かどうか分からないので消さない。
+            : Promise.resolve('店の設定を読み込んでいます。少し待ってから、もう一度お試しください'))}
+          onQuickCategory={menu.createCategory}
+          onClose={() => setProductSheet(null)}
+        />
+      )}
+      {categorySheet && (
+        <MenuCategorySheet
+          category={categorySheet.id ? (menu.categories.find(category => category.id === categorySheet.id) ?? categorySheet) : null}
+          isFirst={categoryIndex === 0}
+          isLast={categoryIndex === menu.categories.length - 1}
+          onSave={menu.saveCategory}
+          onMove={menu.moveCategory}
+          onDelete={menu.deleteCategory}
+          onClose={() => setCategorySheet(null)}
         />
       )}
     </div>

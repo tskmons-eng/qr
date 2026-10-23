@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import OptionModal from '../../components/OptionModal'
 import StaffBottomNav from '../../components/StaffBottomNav'
-import SuggestionSheet from '../../components/SuggestionSheet'
 import StaffMenuCategoryTabs from '../../components/staff/StaffMenuCategoryTabs'
 import StaffMenuHeader from '../../components/staff/StaffMenuHeader'
 import StaffMenuProductList from '../../components/staff/StaffMenuProductList'
@@ -13,7 +12,7 @@ import { getDiscountedProductPrice } from '../../lib/discounts'
 import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
-import { productMatchesCategory } from '../../lib/productTags'
+import { productMatchesCategory } from '../../lib/menuCategory'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { loadCustomerMenuData } from '../../services/customerMenuService'
 import { submitStaffMenuOrder } from '../../services/staffMenuService'
@@ -33,7 +32,6 @@ export default function StaffMenuPage() {
   const [submitError, setSubmitError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [optionTarget, setOptionTarget] = useState(null)
-  const [suggestions, setSuggestions] = useState([])
   const submittingRef = useRef(false)
   const submitRequestIdRef = useRef(null)
 
@@ -70,13 +68,6 @@ export default function StaffMenuPage() {
     })
   }
 
-  function showSuggestionsFor(product) {
-    const ids = product.linkedProductIds ?? []
-    if (ids.length === 0) return
-    const linked = products.filter(candidate => ids.includes(candidate.id))
-    if (linked.length > 0) setSuggestions(linked)
-  }
-
   function handleAddProduct(product) {
     if (product.isSoldOut) return
     if ((product.options ?? []).length > 0) {
@@ -85,7 +76,6 @@ export default function StaffMenuPage() {
     }
 
     addToCart(product, [])
-    showSuggestionsFor(product)
   }
 
   function handleOptionConfirm(optionSelections, quantity = 1) {
@@ -96,12 +86,6 @@ export default function StaffMenuPage() {
       addToCart(product, optionSelections, quantity)
     }
     setOptionTarget(null)
-    showSuggestionsFor(product)
-  }
-
-  function handleSuggestionAdd(product) {
-    handleAddProduct(product)
-    setSuggestions([])
   }
 
   function updateQty(cartItemId, qty) {
@@ -170,13 +154,6 @@ export default function StaffMenuPage() {
           product={optionTarget}
           onConfirm={handleOptionConfirm}
           onClose={() => setOptionTarget(null)}
-        />
-      )}
-      {suggestions.length > 0 && !optionTarget && (
-        <SuggestionSheet
-          suggestions={suggestions}
-          onAdd={handleSuggestionAdd}
-          onClose={() => setSuggestions([])}
         />
       )}
 

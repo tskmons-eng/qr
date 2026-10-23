@@ -1,4 +1,6 @@
-import { normalizeTags } from './productTags.js'
+// 商品と分類の入力（2026-10-23 商品設計で作り直し）。
+// タグ・タグセット・オプションのテンプレート・追加表示の分類・関連商品・分類の自動タグは、本番で使われていないので無くした
+// （ユーザー様の選択）。古いデータに項目が残っていても、書き換えも読み込みもしない。
 
 export const defaultDiscountConfig = {
   enabled: false,
@@ -15,14 +17,16 @@ export const emptyProductForm = {
   categoryId: '',
   isVisible: true,
   isSoldOut: false,
-  optionsEnabled: false,
   options: [],
-  linkedEnabled: false,
-  linkedProductIds: [],
-  displayCategoryIds: [],
-  tagsInput: '',
   discountConfig: defaultDiscountConfig,
 }
+
+// 厨房の表示と集計に使う分け方。値は今までの 'food' / 'drink' / ''（その他）のまま。
+export const CATEGORY_GROUPS = [
+  { key: 'food', label: 'フード' },
+  { key: 'drink', label: 'ドリンク' },
+  { key: '', label: 'その他' },
+]
 
 export function normalizeChoices(choices) {
   return (choices ?? []).map(choice => (
@@ -70,15 +74,59 @@ export function cleanDiscountConfig(discountConfig) {
   }
 }
 
+const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
+
+function formatMonthDay(isoDate) {
+  const [, month, day] = String(isoDate).split('-')
+  return month && day ? `${Number(month)}月${Number(day)}日` : ''
+}
+
 export function discountLabel(discountConfig) {
   if (!discountConfig?.enabled) return ''
   const value = Number(discountConfig.value) || 0
   if (value <= 0) return ''
-  return discountConfig.type === 'percent' ? `${value}%OFF` : `¥${value.toLocaleString()}OFF`
+  return discountConfig.type === 'percent' ? `${value}%引き` : `${value.toLocaleString()}円引き`
 }
 
-export function mergeTagsInput(currentValue, tagsToAdd) {
-  return [...new Set([...normalizeTags(currentValue), ...normalizeTags(tagsToAdd)])].join(', ')
+// 「100円引き・9月19日〜9月23日・毎日」の形。
+export function describeDiscount(discountConfig) {
+  const label = discountLabel(discountConfig)
+  if (!label) return ''
+  const start = formatMonthDay(discountConfig.startDate)
+  const end = formatMonthDay(discountConfig.endDate)
+  const period = start || end ? `${start}〜${end}` : 'ずっと'
+  const weekdays = (discountConfig.weekdays ?? []).length
+    ? discountConfig.weekdays.map(day => WEEKDAY_LABELS[day]).join('・')
+    : '毎日'
+  return `${label}・${period}・${weekdays}`
+}
+
+export function productFormFromProduct(product) {
+  return {
+    name: product.name ?? '',
+    price: String(product.price ?? ''),
+    categoryId: product.categoryId ?? '',
+    isVisible: product.isVisible !== false,
+    isSoldOut: product.isSoldOut === true,
+    options: (product.options ?? []).map(group => ({ ...group, choices: normalizeChoices(group.choices) })),
+    discountConfig: normalizeDiscountConfig(product.discountConfig),
+  }
+}
+
+export function validateProductForm(form) {
+  if (!form.name.trim()) return '商品名を入れてください'
+  if (!/^\d+$/.test(String(form.price).trim())) return '値段は数字で入れてください'
+  if (!form.categoryId) return '分類を選んでください'
+  // 選ぶものは、名前と選択肢がそろっていないと保存しない（黙って捨てると「必ず選ぶ」が効かなくなる）。
+  // 名前も選択肢も空のものだけは、入れかけて消し忘れたものとして捨てる。
+  for (const group of normalizeOptionGroups(form.options ?? [])) {
+    const name = (group.groupName ?? '').trim()
+    const choiceCount = (group.choices ?? []).filter(choice => String(choice.label ?? '').trim()).length
+    if (!name && choiceCount === 0) continue
+    if (!name) return '選ぶものの名前（例：味）を入れてください'
+    if (choiceCount === 0) return `「${name}」の選択肢を入れて「足す」を押してください`
+  }
+  return ''
 }
 
 export function buildNewProductPayload({ storeId, form, sortOrder, timestamp }) {
@@ -100,65 +148,37 @@ export function buildProductUpdatePayload({ form, imageUrl, timestamp }) {
     name: form.name.trim(),
     price: Number(form.price),
     categoryId: form.categoryId,
-    displayCategoryIds: (form.displayCategoryIds ?? []).filter(id => id !== form.categoryId),
-    tags: normalizeTags(form.tagsInput),
     isVisible: form.isVisible,
     isSoldOut: form.isSoldOut,
-    options: form.optionsEnabled ? cleanOptionGroups(form.options) : [],
+    options: cleanOptionGroups(form.options),
     discountConfig: cleanDiscountConfig(form.discountConfig),
-    linkedProductIds: form.linkedEnabled ? (form.linkedProductIds ?? []) : [],
     imageUrl: imageUrl ?? null,
     updatedAt: timestamp,
   }
 }
 
-export function buildOptionsUpdatePayload({ form, timestamp }) {
-  return {
-    options: form.optionsEnabled ? cleanOptionGroups(form.options) : [],
-    updatedAt: timestamp,
-  }
-}
-
-export function buildRelatedProductsUpdatePayload({ form, timestamp }) {
-  return {
-    linkedProductIds: form.linkedEnabled ? (form.linkedProductIds ?? []) : [],
-    updatedAt: timestamp,
-  }
-}
-
-export function buildQuickCategoryPayload({ storeId, name, sortOrder, timestamp }) {
+export function buildCategoryPayload({ storeId, name, group, sortOrder, timestamp }) {
   return {
     storeId,
     name: name.trim(),
+    group,
     sortOrder,
-    autoTagMode: false,
-    autoTags: [],
     isActive: true,
     createdAt: timestamp,
     updatedAt: timestamp,
   }
 }
 
-export function buildCategoryPayload({ storeId, name, group, autoTagMode, tagsInput, sortOrder, timestamp }) {
+export function buildCategoryUpdatePayload({ name, group, isActive, timestamp }) {
   return {
-    storeId,
     name: name.trim(),
     group,
-    sortOrder,
-    autoTagMode,
-    autoTags: normalizeTags(tagsInput),
-    isActive: true,
-    createdAt: timestamp,
+    isActive,
     updatedAt: timestamp,
   }
 }
 
-export function buildCategoryUpdatePayload({ name, group, autoTagMode, tagsInput, timestamp }) {
-  return {
-    name: name.trim(),
-    group,
-    autoTagMode,
-    autoTags: normalizeTags(tagsInput),
-    updatedAt: timestamp,
-  }
+// 次に追加する商品・分類の並び順（削除で番号が空いても重ならないように、最大値の次）。
+export function nextSortOrder(items) {
+  return items.reduce((max, item) => Math.max(max, Number(item.sortOrder) || 0), -1) + 1
 }

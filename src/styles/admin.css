@@ -3,11 +3,8 @@
 @import './admin-shared.css';
 @import './admin-settings.css';
 @import './admin-staff.css';
+@import './admin-menu.css';
 @import './admin-sales.css';
 @import './admin-sales-history-view.css';
 @import './admin-sales-modal.css';
 @import './admin-history.css';
-@import './admin-product-list.css';
-@import './admin-product-category.css';
-@import './admin-product-form.css';
-@import './admin-product-options.css';
