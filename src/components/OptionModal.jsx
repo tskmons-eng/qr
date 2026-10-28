@@ -70,7 +70,7 @@ export default function OptionModal({ product, onConfirm, onClose }) {
   const modalTotal = multiQuantityMode
     ? calculateMultiQuantityTotal(options[0], choiceQuantities, discountedPrice)
     : unitPrice * quantity
-  const confirmLabel = multiQuantityMode ? `${choiceQuantityTotal}個追加` : `${quantity}個追加`
+  const confirmLabel = `${multiQuantityMode ? choiceQuantityTotal : quantity}個をカートへ　¥${modalTotal.toLocaleString()}`
 
   return (
     <div className="option-modal-backdrop" onClick={onClose}>

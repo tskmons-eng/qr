@@ -1,8 +1,15 @@
 import { getDiscountedProductPrice } from '../../lib/discounts'
+import { normalizeOptionChoice } from '../../lib/optionModal'
 
 function formatOptions(optionSelections) {
   const choices = (optionSelections ?? []).map(option => option.choice).filter(Boolean)
   return choices.length > 0 ? choices.join(' ・ ') : '選択済み'
+}
+
+// 選ぶもののある品の行に、最初の選ぶものの選択肢を短く出す（例：塩・タレ）。
+function describeOptionChoices(product) {
+  const labels = (product.options?.[0]?.choices ?? []).map(choice => normalizeOptionChoice(choice).label).filter(Boolean)
+  return labels.length > 0 ? labels.slice(0, 3).join('・') : '選ぶものあり'
 }
 
 function QuantityControl({ compact = false, disabled, label, quantity, onChange }) {
@@ -27,12 +34,13 @@ function QuantityControl({ compact = false, disabled, label, quantity, onChange 
         onClick={() => onChange(quantity + 1)}
         aria-label={`${label}を1個増やす`}
       >
-        +
+        ＋
       </button>
     </div>
   )
 }
 
+// お客様のメニューの品（2026-10-28 注文の流れ 第2章）。写真は左に小さく、押すと大きく見せる（onZoomPhoto）。
 export default function CustomerMenuProductList({
   products,
   cartItems,
@@ -41,13 +49,14 @@ export default function CustomerMenuProductList({
   onAddProduct,
   onSetSimpleProductQuantity,
   onUpdateQuantity,
+  onZoomPhoto,
 }) {
   if (products.length === 0) {
     return <p className="customer-menu__empty">この分類に商品がありません</p>
   }
 
   return (
-    <div>
+    <div className="customer-products">
       {products.map(product => {
         const hasOptions = (product.options ?? []).length > 0
         const { originalPrice, discountAmount, discountedPrice } = getDiscountedProductPrice(product)
@@ -75,6 +84,24 @@ export default function CustomerMenuProductList({
             className={`customer-product${product.isSoldOut ? ' is-sold-out' : ''}`}
           >
             <div className="customer-product__top">
+              {product.imageUrl && (
+                <button
+                  type="button"
+                  className="customer-product__photo"
+                  onClick={() => onZoomPhoto?.(product)}
+                  aria-label={`${product.name}の写真を大きく見る`}
+                >
+                  <img
+                    className="customer-product__image"
+                    src={product.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width="48"
+                    height="48"
+                  />
+                </button>
+              )}
               <ProductMain
                 className="customer-product__main"
                 {...(rowTapEnabled ? {
@@ -86,44 +113,32 @@ export default function CustomerMenuProductList({
                 <div className="customer-product__body">
                   <div className={`customer-product__name${product.isSoldOut ? ' is-sold-out' : ''}`}>{product.name}</div>
                   <div className={`customer-product__price${discountAmount > 0 ? ' has-discount' : ''}`}>
-                    ¥{discountedPrice.toLocaleString()}
                     {discountAmount > 0 && (
                       <span className="customer-product__original-price">¥{originalPrice.toLocaleString()}</span>
                     )}
+                    ¥{discountedPrice.toLocaleString()}
+                    {discountAmount > 0 && <span className="customer-product__discount">期間割引</span>}
+                    {hasOptions && !product.isSoldOut && (
+                      <span className="customer-product__options">{describeOptionChoices(product)}</span>
+                    )}
                   </div>
-                  {hasOptions && !product.isSoldOut && (
-                    <div className="customer-product__options">
-                      {optionQuantity > 0 ? `${optionQuantity}個選択中` : 'オプションあり'}
-                    </div>
-                  )}
-                  {product.isSoldOut && <div className="customer-product__sold-out">本日売り切れ</div>}
                 </div>
-
-                {product.imageUrl && (
-                  <img
-                    className="customer-product__image"
-                    src={product.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    width="68"
-                    height="68"
-                  />
-                )}
               </ProductMain>
 
-              {hasOptions ? (
+              {product.isSoldOut ? (
+                <span className="customer-product__sold-out">売り切れ</span>
+              ) : hasOptions ? (
                 <button
                   type="button"
                   className="customer-product__select"
-                  disabled={product.isSoldOut || interactionDisabled}
+                  disabled={interactionDisabled}
                   onClick={() => onAddProduct(product)}
                 >
-                  {optionQuantity > 0 ? '追加' : '選ぶ'}
+                  {optionQuantity > 0 ? `選ぶ・${optionQuantity}` : '選ぶ'}
                 </button>
               ) : simpleItem ? (
                 <QuantityControl
-                  disabled={product.isSoldOut || interactionDisabled}
+                  disabled={interactionDisabled}
                   label={product.name}
                   quantity={simpleItem.quantity}
                   onChange={quantity => onSetSimpleProductQuantity(product, quantity)}
@@ -132,11 +147,11 @@ export default function CustomerMenuProductList({
                 <button
                   type="button"
                   className="customer-product__add"
-                  disabled={product.isSoldOut || interactionDisabled}
+                  disabled={interactionDisabled}
                   onClick={() => onSetSimpleProductQuantity(product, 1)}
                   aria-label={`${product.name}を1個追加`}
                 >
-                  +
+                  ＋
                 </button>
               )}
             </div>

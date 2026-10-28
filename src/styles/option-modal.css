@@ -1,97 +1,104 @@
+/* 選ぶもの（2026-10-28 注文の流れ 第2章で下から出るシートに。お客様とスタッフで共通）。色は tokens.css の共通の値だけ。
+   入力欄の文字は 16px（iPhone で入力欄を押したときに画面が拡大しないように）。 */
 .option-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 200;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--ui-backdrop);
 }
 
 .option-modal {
   width: 100%;
-  max-width: 390px;
-  max-height: 85vh;
+  max-width: 600px;
+  max-height: 88vh;
   overflow-y: auto;
-  padding: 24px;
-  background: #fff;
-  border-radius: 14px;
+  padding: 10px 12px max(14px, calc(env(safe-area-inset-bottom) + 10px));
+  border-radius: var(--ui-radius-sheet) var(--ui-radius-sheet) 0 0;
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-pop);
 }
 
 .option-modal__header {
-  margin-bottom: 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .option-modal__title {
-  margin-bottom: 2px;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .option-modal__price {
-  font-size: 13px;
-  color: #888;
+  flex: none;
+  font-family: var(--font-number);
+  font-size: 14px;
+  font-weight: 900;
 }
 
 .option-modal__regular-price {
   margin-left: 6px;
-  color: #dc2626;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  text-decoration: line-through;
 }
 
 .option-modal__section {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .option-modal__section-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .option-modal__badge {
-  padding: 1px 6px;
-  border: 1px solid #e5e5e5;
+  padding: 0 6px;
   border-radius: 4px;
-  background: #f5f5f5;
-  color: #888;
-  font-size: 11px;
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .option-modal__badge--required {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
 }
 
 .option-modal__badge--info {
-  border-color: #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
 }
 
 .option-modal__choice-quantity-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .option-modal__choice-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background: #fff;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
 }
 
 .option-modal__choice-row.is-selected {
-  border: 2px solid #222;
-  background: #f8fafc;
+  border: 2px solid var(--ui-brand);
+  background: var(--ui-brand-soft);
 }
 
 .option-modal__choice-main {
@@ -100,151 +107,163 @@
 }
 
 .option-modal__choice-label {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .option-modal__choice-price {
-  margin-top: 2px;
-  color: #888;
+  margin-top: 1px;
+  color: var(--ui-text-muted);
+  font-family: var(--font-number);
   font-size: 12px;
+  font-weight: 700;
 }
 
 .option-modal__extra-price {
-  color: #1d4ed8;
+  color: var(--ui-text-muted);
   font-size: 11px;
+  font-weight: 700;
 }
 
 .option-modal__choice-price .option-modal__extra-price {
   margin-left: 4px;
-  font-size: 12px;
 }
 
 .option-modal__round-button {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ui-border-subtle);
   border-radius: 50%;
-  background: #fff;
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
   font-size: 18px;
+  font-weight: 900;
 }
 
 .option-modal__round-button--large {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
 }
 
 .option-modal__round-button--primary {
-  border-color: #222;
-  background: #222;
-  color: #fff;
+  border-color: var(--ui-brand);
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
 }
 
 .option-modal__choice-input {
-  width: 52px;
-  padding: 7px 6px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  width: 48px;
+  padding: 6px 4px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   text-align: center;
 }
 
 .option-modal__choice-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 5px;
 }
 
 .option-modal__choice-button {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 9px 14px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
+  gap: 4px;
+  min-height: 40px;
+  padding: 7px 12px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
+  font: inherit;
   font-size: 14px;
-  font-weight: var(--font-weight-label);
+  font-weight: 800;
 }
 
 .option-modal__choice-button.is-selected {
-  border: 2px solid #222;
-  background: #f0f0f0;
-  font-weight: 700;
+  border: 2px solid var(--ui-brand);
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
 }
 
 .option-modal__quantity-section {
-  margin: 4px 0 16px;
-  padding-top: 16px;
-  border-top: 1px solid #eee;
+  margin: 2px 0 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-border-subtle);
 }
 
 .option-modal__quantity-title {
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .option-modal__quantity-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .option-modal__quantity-input {
-  width: 72px;
-  padding: 8px 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: 700;
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
+  font-size: 16px;
+  font-weight: 800;
   text-align: center;
 }
 
 .option-modal__quantity-total {
   margin-left: auto;
-  font-size: 14px;
-  font-weight: 700;
+  font-family: var(--font-number);
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .option-modal__summary {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #eee;
+  margin-bottom: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-border-subtle);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .option-modal__actions {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .option-modal__button {
   flex: 1;
+  min-height: 48px;
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-main);
   cursor: pointer;
+  font: inherit;
   font-size: 14px;
+  font-weight: 800;
 }
 
 .option-modal__button--primary {
-  border: none;
-  background: #222;
-  color: #fff;
-  font-weight: 600;
+  flex: 2;
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .option-modal__button--primary:disabled {
-  background: #ccc;
   cursor: default;
+  opacity: 0.45;
 }

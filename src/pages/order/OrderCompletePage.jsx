@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import CustomerBottomNav from '../../components/CustomerBottomNav'
-import OrderSubmitCompleteScreen from '../../components/order/OrderSubmitCompleteScreen'
 import OrderStatusHeader from '../../components/order/OrderStatusHeader'
 import OrderStatusList from '../../components/order/OrderStatusList'
 import OrderStatusSummary from '../../components/order/OrderStatusSummary'
@@ -29,9 +28,9 @@ import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusS
 export default function OrderCompletePage() {
   const { orderId, table, tableId, storeId, storeConfig, storeConfigLoading } = useOrder()
   const { callDisabled, requestStaff } = useCustomerCall()
-  const { removeProducts } = useCart()
+  const { restoreCartItems } = useCart()
   const [items, setItems] = useState([])
-  const [showSubmitComplete, setShowSubmitComplete] = useState(false)
+  const [justOrdered, setJustOrdered] = useState(false)
   const [latestClientRequestId, setLatestClientRequestId] = useState('')
   const [latestSubmittedItemCount, setLatestSubmittedItemCount] = useState(0)
   const [pendingSubmit, setPendingSubmit] = useState(null)
@@ -52,8 +51,9 @@ export default function OrderCompletePage() {
   } = getCustomerOrderSettings(storeConfig)
   const guestCount = table?.guestCount || 1
   const summary = summarizeOrderItems(items, guestCount)
-  const isCheckoutPreview = checkoutStep === 'confirming' || checkoutStep === 'sent'
-  const showTotal = isCheckoutPreview
+  // 2026-10-28 注文の流れ 第2章：お会計は1回押すだけ。合計は「金額を出す」設定の店はいつも、そうでない店は依頼のあとに出す。
+  const checkoutSent = checkoutStep === 'sent'
+  const showTotal = showItemPrice || checkoutSent
   const latestOrderReflected = isCustomerOrderRequestReflected(items, latestClientRequestId)
 
   useEffect(() => {
@@ -73,15 +73,10 @@ export default function OrderCompletePage() {
       : savedSubmit?.submittedItemCount ?? 0
 
     setPendingSubmit(savedSubmit)
-    setShowSubmitComplete(Boolean(location.state?.justOrdered))
+    setJustOrdered(Boolean(location.state?.justOrdered))
     setLatestClientRequestId(nextClientRequestId)
     setLatestSubmittedItemCount(nextSubmittedItemCount)
   }, [location.state, orderId, storeId, tableId])
-
-  useEffect(() => {
-    if (!location.state?.checkoutPreview) return
-    setCheckoutStep(prev => prev === 'sent' ? prev : 'confirming')
-  }, [location.state])
 
   useEffect(() => {
     if (!latestClientRequestId || !latestOrderReflected) return
@@ -163,8 +158,9 @@ export default function OrderCompletePage() {
       const unavailable = describeUnavailableItems(error)
       if (unavailable) {
         clearCustomerSubmitRecovery(retryScope)
-        removeProducts(unavailable.productIds)
-        navigate('../cart', { replace: true, state: { submitNotice: unavailable.message } })
+        const blocked = new Set(unavailable.productIds)
+        restoreCartItems(pendingSubmit.items.filter(item => !blocked.has(item.product.id)))
+        navigate('../menu', { replace: true, state: { openCart: true, submitNotice: unavailable.message } })
         return
       }
       setRecoveryError(formatted.retryable
@@ -187,27 +183,8 @@ export default function OrderCompletePage() {
     }
   }
 
-  if (showSubmitComplete && (!latestClientRequestId || latestOrderReflected)) {
-    return (
-      <OrderSubmitCompleteScreen
-        submittedItemCount={latestSubmittedItemCount}
-        onBackToMenu={() => navigate('../menu', { replace: true })}
-        onShowStatus={() => {
-          setShowSubmitComplete(false)
-          navigate('.', {
-            replace: true,
-            state: {
-              clientRequestId: latestClientRequestId,
-              submittedItemCount: latestSubmittedItemCount,
-            },
-          })
-        }}
-      />
-    )
-  }
-
   return (
-    <div className="order-status">
+    <div className={`order-status${checkoutSent ? '' : ' has-checkout-button'}`}>
       <OrderStatusHeader
         tableName={table.tableName}
         checkoutStep={checkoutStep}
@@ -222,19 +199,10 @@ export default function OrderCompletePage() {
         guestCount={summary.guestCount}
         label="お会計合計"
       />
-      <OrderCheckoutNotice
-        checkoutStep={checkoutStep}
-        itemCount={summary.itemCount}
-        onCheckout={handleCheckout}
-        onCancel={() => {
-          setCheckoutStep(null)
-          setCheckoutError('')
-        }}
-        submitting={checkoutSubmitting}
-        error={checkoutError}
-      />
+      <OrderCheckoutNotice checkoutStep={checkoutStep} />
       <OrderReflectionNotice
         clientRequestId={latestClientRequestId}
+        justOrdered={justOrdered}
         reflected={latestOrderReflected}
         submittedItemCount={latestSubmittedItemCount}
         showActions={showRecoveryActions}
@@ -252,22 +220,21 @@ export default function OrderCompletePage() {
         cancelledCount={summary.cancelledCount}
         showServedStatus={showServedStatus}
       />
-      {!isCheckoutPreview && (
-        <section className="order-status__checkout-entry">
-          <div>
-            <strong>お会計はこちら</strong>
-            <span>注文履歴と合計を確認してから依頼できます</span>
-          </div>
-          <button type="button" onClick={() => setCheckoutStep('confirming')}>お会計を確認</button>
-        </section>
-      )}
       <OrderStatusList
         items={items}
         latestClientRequestId={latestClientRequestId}
         isReflectingLatestOrder={Boolean(latestClientRequestId) && !latestOrderReflected}
         showServedStatus={showServedStatus}
-        showItemPrice={showItemPrice || isCheckoutPreview}
+        showItemPrice={showItemPrice || checkoutSent}
       />
+      {!checkoutSent && (
+        <div className="order-status__checkout-bar">
+          {checkoutError && <p className="order-status__checkout-error" role="alert">{checkoutError}</p>}
+          <button type="button" className="order-status__checkout-submit" onClick={handleCheckout} disabled={checkoutSubmitting}>
+            {checkoutSubmitting ? '送信中...' : 'お会計をお願いする'}
+          </button>
+        </div>
+      )}
       <CustomerBottomNav
         current="history"
         menuDisabled={storeConfigLoading || !allowAdditionalOrders}
@@ -276,36 +243,20 @@ export default function OrderCompletePage() {
   )
 }
 
-function OrderCheckoutNotice({ checkoutStep, itemCount, onCheckout, onCancel, submitting, error }) {
-  if (checkoutStep !== 'confirming' && checkoutStep !== 'sent') return null
-
-  const sent = checkoutStep === 'sent'
-  const title = sent ? '会計依頼を送信しました' : '会計確認'
-  const description = sent
-    ? 'スタッフが席へ向かいます。注文履歴と合計はこの画面で確認できます。'
-    : itemCount > 0
-      ? '注文済みの内容と合計を確認してから、会計を依頼してください。'
-      : '注文済みの商品がまだありません。必要な場合だけスタッフへ会計を依頼してください。'
+function OrderCheckoutNotice({ checkoutStep }) {
+  if (checkoutStep !== 'sent') return null
 
   return (
-    <section className={`order-status__checkout-notice${sent ? ' is-sent' : ''}`}>
-      <div className="order-status__checkout-title">{title}</div>
-      <div className="order-status__checkout-text">{description}</div>
-      {error && <p className="order-status__checkout-error" role="alert">{error}</p>}
-      {!sent && (
-        <div className="order-status__checkout-actions">
-          <button type="button" className="order-status__checkout-cancel" onClick={onCancel} disabled={submitting}>履歴へ戻る</button>
-          <button type="button" className="order-status__checkout-submit" onClick={onCheckout} disabled={submitting}>
-            {submitting ? '送信中...' : '会計を依頼する'}
-          </button>
-        </div>
-      )}
+    <section className="order-status__checkout-notice is-sent">
+      <div className="order-status__checkout-title">お会計を依頼しました</div>
+      <div className="order-status__checkout-text">スタッフが席へ向かいます。注文履歴と合計はこの画面で確かめられます。</div>
     </section>
   )
 }
 
 function OrderReflectionNotice({
   clientRequestId,
+  justOrdered,
   reflected,
   submittedItemCount,
   showActions,
@@ -320,12 +271,12 @@ function OrderReflectionNotice({
 
   const countText = submittedItemCount > 0 ? `${submittedItemCount}品の` : ''
   const title = reflected
-    ? '今回の注文は一覧に反映されました'
+    ? `✓ ${countText}ご注文を受け付けました`
     : showActions
       ? '注文の反映を確認中です'
       : `${countText}注文を反映しています`
   const description = reflected
-    ? '一覧の「今回追加」ラベルで送信済みの商品を確認できます。'
+    ? (justOrdered ? '下の一覧で、届いたかどうかを確かめられます。' : '一覧の「今回追加」ラベルで送信済みの商品を確認できます。')
     : showActions
       ? '通信状況により確認に時間がかかっています。未反映の場合だけ、同じ受付番号で再送できます。'
       : '保存済みの可能性があるため、すぐに失敗扱いにはしません。反映されるまで画面をこのままお待ちください。'

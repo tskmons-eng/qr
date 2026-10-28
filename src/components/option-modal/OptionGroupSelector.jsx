@@ -6,8 +6,8 @@ export default function OptionGroupSelector({ group, selectedChoiceLabel, onSele
       <div className="option-modal__section-title">
         {group.groupName}
         {group.required
-          ? <span className="option-modal__badge option-modal__badge--required">必須</span>
-          : <span className="option-modal__badge">任意</span>
+          ? <span className="option-modal__badge option-modal__badge--required">必ず選ぶ</span>
+          : <span className="option-modal__badge">選ばなくてよい</span>
         }
       </div>
       <div className="option-modal__choice-buttons">

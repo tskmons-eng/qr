@@ -1,3 +1,5 @@
+/* 下から出るシート（BottomSheet）など、全画面で共通の部品の見た目（2026-10-28 注文の流れ 第2章でお客様の画面でも使う） */
+@import './ui-base.css';
 @import './bottom-nav.css';
 @import './option-modal.css';
 @import './customer-entry.css';

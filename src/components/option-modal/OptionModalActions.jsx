@@ -2,7 +2,7 @@ export default function OptionModalActions({ canConfirm, confirmLabel, onCancel,
   return (
     <div className="option-modal__actions">
       <button type="button" onClick={onCancel} className="option-modal__button">
-        キャンセル
+        閉じる
       </button>
       <button
         type="button"

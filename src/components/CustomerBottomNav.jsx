@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { useCart } from '../contexts/CartContext'
 
+// お客様の下のタブ（2026-10-28 注文の流れ 第2章）。カートはメニューの下の青い帯から開くので、タブは2つ。
 export default function CustomerBottomNav({
   current,
   menuDisabled = false,
 }) {
   const navigate = useNavigate()
-  const { count } = useCart()
 
   function itemClassName({ active = false, disabled = false }) {
     return [
@@ -29,18 +28,10 @@ export default function CustomerBottomNav({
         </button>
         <button
           type="button"
-          onClick={() => navigate('../cart')}
-          className={itemClassName({ active: current === 'cart' })}
-        >
-          <span>カート</span>
-          {count > 0 && <span className="customer-bottom-nav__badge">{count}</span>}
-        </button>
-        <button
-          type="button"
           onClick={() => navigate('../complete')}
           className={itemClassName({ active: current === 'history' })}
         >
-          履歴・会計
+          注文履歴・お会計
         </button>
       </div>
     </nav>

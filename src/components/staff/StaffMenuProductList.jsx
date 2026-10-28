@@ -1,3 +1,6 @@
+import { getDiscountedProductPrice } from '../../lib/discounts'
+import { normalizeOptionChoice } from '../../lib/optionModal'
+
 function formatOptions(optionSelections) {
   if (!optionSelections || optionSelections.length === 0) return null
   return optionSelections.map(option => option.choice).join(' · ')
@@ -31,11 +34,13 @@ export default function StaffMenuProductList({
           <div key={product.id} className="staff-menu-product">
             <div className="staff-menu-product__body">
               <div className={`staff-menu-product__name${product.isSoldOut ? ' is-sold-out' : ''}`}>{product.name}</div>
-              <div className="staff-menu-product__price">¥{product.price.toLocaleString()}</div>
-              {hasOptions && !product.isSoldOut && (
-                <div className="staff-menu-product__hint">選択あり</div>
-              )}
-              {product.isSoldOut && <div className="staff-menu-product__sold-out">売り切れ</div>}
+              <div className="staff-menu-product__meta">
+                <span className="staff-menu-product__price">¥{getDiscountedProductPrice(product).discountedPrice.toLocaleString()}</span>
+                {hasOptions && !product.isSoldOut && (
+                  <span className="staff-menu-product__hint">{(product.options[0]?.choices ?? []).map(choice => normalizeOptionChoice(choice).label).slice(0, 3).join('・')}</span>
+                )}
+                {product.isSoldOut && <span className="staff-menu-product__sold-out">売り切れ</span>}
+              </div>
               {optionCartItems.length > 0 && (
                 <div className="staff-menu-product__option-list">
                   {optionCartItems.map(cartItem => {

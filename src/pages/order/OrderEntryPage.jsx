@@ -4,6 +4,7 @@ import AppRouteLoading from '../../components/AppRouteLoading'
 import OrderEntryStatus from '../../components/order/OrderEntryStatus'
 import { CartProvider } from '../../contexts/CartContext'
 import { OrderProvider } from '../../contexts/OrderContext'
+import { cartStorageKey } from '../../lib/customerCart'
 import { getCustomerEntryStartPath } from '../../lib/customerEntry'
 import { STORE_CONFIG_DEFAULTS } from '../../lib/settingsConfig'
 import { loadCustomerStoreConfig, subscribeCustomerTableByQrToken } from '../../services/customerEntryService'
@@ -98,7 +99,7 @@ export default function OrderEntryPage() {
       storeConfig,
       storeConfigLoading: configLoading,
     }}>
-      <CartProvider>
+      <CartProvider key={orderId ?? 'no-order'} storageKey={cartStorageKey(orderId)}>
         <Suspense fallback={<AppRouteLoading compact />}>
           <Routes>
             <Route index element={

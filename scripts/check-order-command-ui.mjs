@@ -21,7 +21,7 @@ const sourceAssertions = [
     forbidden: ['alert(\'エラーが発生しました。もう一度試してください。\')'],
   },
   {
-    file: 'src/pages/order/CartPage.jsx',
+    file: 'src/components/order/CartSheet.jsx',
     required: ['formatOrderCommandError(error, { context: \'customerSubmit\' })', 'errorMessage={submitError}', 'operation: \'customer_submit_order\''],
     forbidden: ['alert(\'送信に失敗しました。もう一度試してください。\')'],
   },

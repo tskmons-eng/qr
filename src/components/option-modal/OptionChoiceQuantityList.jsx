@@ -10,7 +10,7 @@ export default function OptionChoiceQuantityList({
     <section className="option-modal__section">
       <div className="option-modal__section-title">
         {group.groupName}
-        <span className="option-modal__badge option-modal__badge--info">選択肢ごとに数量</span>
+        <span className="option-modal__badge option-modal__badge--info">それぞれの数を選ぶ</span>
       </div>
       <div className="option-modal__choice-quantity-list">
         {(group.choices ?? []).map(choice => {
