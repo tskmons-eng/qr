@@ -3,12 +3,14 @@ const { randomUUID } = require('node:crypto')
 const ORDER_COMMAND_VERSION = 1
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 
-function commandError(code, message, context = {}) {
+// publicDetails は画面へそのまま返す中身（例：注文できなかった品の一覧）。個人の情報は入れない。
+function commandError(code, message, context = {}, publicDetails = null) {
   const error = new Error(message)
   error.code = code
   if (context && Object.keys(context).length > 0) {
     error.orderCommandContext = context
   }
+  if (publicDetails) error.publicDetails = publicDetails
   return error
 }
 

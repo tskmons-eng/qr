@@ -45,6 +45,12 @@ export function CartProvider({ children }) {
     setItems([])
   }
 
+  // サーバーが注文を止めた品（売り切れになったなど）をカートから外す。
+  function removeProducts(productIds) {
+    const ids = new Set(productIds)
+    setItems(prev => prev.filter(i => !ids.has(i.product.id)))
+  }
+
   const total = items.reduce((sum, i) => {
     const extra = (i.optionSelections ?? []).reduce((s, o) => s + (o.extraPrice ?? 0), 0)
     const { discountedPrice } = getDiscountedProductPrice(i.product)
@@ -53,7 +59,7 @@ export function CartProvider({ children }) {
   const count = items.reduce((sum, i) => sum + i.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ items, addItem, updateQuantity, clearCart, total, count }}>
+    <CartContext.Provider value={{ items, addItem, updateQuantity, clearCart, removeProducts, total, count }}>
       {children}
     </CartContext.Provider>
   )

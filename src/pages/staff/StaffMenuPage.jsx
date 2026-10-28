@@ -10,7 +10,7 @@ import StaffOrderCompleteScreen from '../../components/staff/StaffOrderCompleteS
 import { createCartItemId } from '../../lib/cartItemId'
 import { getDiscountedProductPrice } from '../../lib/discounts'
 import { sortSoldOutProductsLast } from '../../lib/menuProductOrder'
-import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
+import { describeUnavailableItems, formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import { productMatchesCategory } from '../../lib/menuCategory'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
@@ -118,7 +118,16 @@ export default function StaffMenuPage() {
       setSubmitted(true)
     } catch (error) {
       const formatted = formatOrderCommandError(error, { context: 'staffSubmit' })
-      setSubmitError(formatted.message)
+      const unavailable = describeUnavailableItems(error)
+      if (unavailable) {
+        // 何も書かれていないので、残りの品は新しい送信として送り直せるようにする。
+        const ids = new Set(unavailable.productIds)
+        setCart(prev => prev.filter(item => !ids.has(item.product.id)))
+        submitRequestIdRef.current = null
+        // メニューを読み直して、売り切れを画面にも出す。
+        loadCustomerMenuData(storeId).then(data => setProducts(data.products)).catch(() => {})
+      }
+      setSubmitError(unavailable?.message ?? formatted.message)
       logOrderCommandError({
         operation: 'staff_submit_order',
         error,

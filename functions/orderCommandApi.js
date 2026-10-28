@@ -9,7 +9,9 @@ const { EXPECTED_STAFF_CODE_ERROR_CODES } = require('./staffPasscode')
 const { EXPECTED_INVITE_ERROR_CODES } = require('./storeOnboarding')
 
 // 打ち間違い・ロック・古い招待などは利用者の操作の結果で、システムの失敗ではない。失敗ログには残さない。
+// items-unavailable：売り切れになった品などで注文を止めたもの。お店の操作の結果で、システムの失敗ではない。
 const EXPECTED_OPERATOR_ERROR_CODES = new Set([
+  'items-unavailable',
   ...EXPECTED_PASSCODE_ERROR_CODES,
   ...EXPECTED_STAFF_CODE_ERROR_CODES,
   ...EXPECTED_INVITE_ERROR_CODES,
@@ -67,6 +69,7 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['item-scope-mismatch', 'failed-precondition'],
   ['product-scope-mismatch', 'failed-precondition'],
   ['category-scope-mismatch', 'failed-precondition'],
+  ['items-unavailable', 'failed-precondition'],
 ])
 
 function isFirestoreTransactionContentionError(error) {
@@ -104,7 +107,7 @@ function toHttpsError(error, commandContext = {}) {
   return new HttpsError(
     httpsCode,
     normalizedError?.message || 'Order command failed.',
-    { code: commandCode }
+    { ...(normalizedError?.publicDetails ?? {}), code: commandCode }
   )
 }
 

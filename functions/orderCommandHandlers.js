@@ -27,6 +27,7 @@ const {
   resolveStaffActor,
 } = require('./orderCommandAuth')
 const { assertCancelAllowed } = require('./cancelPasscode')
+const { findProductUnavailableReason, verifyOrderItems } = require('./orderItemValidation')
 
 function itemRefFor(db, { orderId, clientRequestId, index }) {
   return db.collection('orderItems').doc(buildOrderItemCommandDocId({ orderId, clientRequestId, index }))
@@ -64,6 +65,21 @@ function buildSeatReservationStaffActionPayload({
   }
 }
 
+// 確かめ（売り切れ・席の照合など）で止める前に、同じ送信（clientRequestId）がもう書かれていないかを見る。
+// 1回目は書けたのに返事が届かず送り直した間に売り切れにされても、二重注文にせず「受け付け済み」と返すため。
+// 止めるときだけ読むので、普段の注文の速さは変わらない。
+async function runOrderPrechecks({ db, orderId, clientRequestId, precheck }) {
+  try {
+    return await precheck()
+  } catch (error) {
+    if (clientRequestId) {
+      const firstItemSnap = await itemRefFor(db, { orderId, clientRequestId, index: 0 }).get().catch(() => null)
+      if (firstItemSnap?.exists) return { alreadySubmitted: { ok: true, deduped: true, clientRequestId } }
+    }
+    throw error
+  }
+}
+
 function addTableDelta(tableDeltas, tableId, delta) {
   if (!tableId || delta === 0) return
   tableDeltas.set(tableId, (tableDeltas.get(tableId) ?? 0) + delta)
@@ -98,11 +114,10 @@ async function loadProductsWithCategoryGroups(db, productRequests, storeId) {
     productsById.set(productSnap.id, product)
   })
 
+  // 分類はいつも読む（止めた分類の確かめと、フード／ドリンクの分け方を画面の値ではなく分類から決めるため）。
   const categoryIds = new Set()
-  productRequests.forEach(({ productId, fallbackProduct = {} }) => {
-    const product = productsById.get(productId)
-    const categoryGroup = product.categoryGroup ?? fallbackProduct.categoryGroup ?? ''
-    if (!categoryGroup && product.categoryId) categoryIds.add(product.categoryId)
+  productsById.forEach(product => {
+    if (product.categoryId) categoryIds.add(product.categoryId)
   })
 
   const categoryRefs = [...categoryIds].map(categoryId => db.collection('categories').doc(categoryId))
@@ -117,16 +132,14 @@ async function loadProductsWithCategoryGroups(db, productRequests, storeId) {
     categoriesById.set(categorySnap.id, category)
   })
 
+  // 画面から送られた商品の中身は使わない（名前が無い古い商品だけ、名前の控えを使う）。
   return productRequests.map(({ productId, fallbackProduct = {} }) => {
     const product = productsById.get(productId)
-    let categoryGroup = product.categoryGroup ?? fallbackProduct.categoryGroup ?? ''
-    if (!categoryGroup && product.categoryId) {
-      categoryGroup = categoriesById.get(product.categoryId)?.group ?? ''
-    }
+    const category = product.categoryId ? categoriesById.get(product.categoryId) ?? null : null
     return {
-      ...fallbackProduct,
       ...product,
-      categoryGroup,
+      category,
+      categoryGroup: category?.group ?? product.categoryGroup ?? '',
       name: product.name ?? fallbackProduct.name ?? '',
     }
   })
@@ -137,13 +150,13 @@ async function loadProductWithCategoryGroup(db, productId, storeId, fallbackProd
   return product
 }
 
+// 注文の品を商品・分類で読み直し、注文できるかを確かめる（売り切れ・出していない・選ぶものの食い違いは注文全体を止める）。
 async function normalizeCartItemsWithProducts(db, items, storeId) {
   const productRequests = items.map(item => ({
     productId: item?.product?.id ?? item?.productId,
-    fallbackProduct: item?.product ?? {},
   }))
   const products = await loadProductsWithCategoryGroups(db, productRequests, storeId)
-  return items.map((item, index) => ({ ...item, product: products[index] }))
+  return verifyOrderItems(items.map((item, index) => ({ ...item, product: products[index] })))
 }
 
 // 人数分の自動追加は、お客様の端末から送られた値ではなく、店舗設定（storeConfig）をサーバーが読む（2026-10-22 整理 第4章 K8）。
@@ -153,11 +166,13 @@ async function loadStoreGuestAutoAdd(db, storeId) {
   return guestAutoAdd && typeof guestAutoAdd === 'object' ? guestAutoAdd : null
 }
 
+// 自動追加の商品が売り切れ・出していない・分類を止めているときは入れない（着席は止めない）。
 async function loadAutoAddProduct(db, guestAutoAdd, storeId) {
   if (!guestAutoAdd?.enabled || !guestAutoAdd.productId) return null
-  return loadProductWithCategoryGroup(db, guestAutoAdd.productId, storeId, {
+  const product = await loadProductWithCategoryGroup(db, guestAutoAdd.productId, storeId, {
     name: guestAutoAdd.productNameSnapshot ?? '',
   })
+  return findProductUnavailableReason(product, product.category) ? null : product
 }
 
 function isStartSessionContentionError(error) {
@@ -424,7 +439,24 @@ async function submitCustomerOrderItems({ items, orderId, storeId, tableId, clie
   const normalizedItems = normalizeOrderCommandItems(items)
   if (normalizedItems.length === 0) throw commandError('empty-order', 'No order items were provided.')
   const productVerificationStartedAt = Date.now()
-  const itemsWithProducts = await normalizeCartItemsWithProducts(db, normalizedItems, storeId)
+  const prechecked = await runOrderPrechecks({ db, orderId, clientRequestId, precheck: async () => {
+    const [verifiedItems, tableSnap] = await Promise.all([
+      normalizeCartItemsWithProducts(db, normalizedItems, storeId),
+      db.collection('tables').doc(tableId).get(),
+    ])
+    // 席の今の注文と同じときだけ受け付ける。満席時に tables/{id} の競合を増やさないよう、トランザクションの外で読む
+    // （注文が受付中かは、このあとトランザクションの中で orders を見て確かめる）。
+    const table = tableSnap.exists ? tableSnap.data() : null
+    if (!table || table.storeId !== storeId || table.currentOrderId !== orderId) {
+      // 会計済み・席移動のあとなら、今までと同じ分かりやすい理由（受付中ではない等）で返す。
+      const orderSnap = await db.collection('orders').doc(orderId).get()
+      assertOpenOrder(orderSnap.exists ? orderSnap.data() : null, { storeId, tableId })
+      throw commandError('table-order-mismatch', 'Table is not linked to this order.')
+    }
+    return { items: verifiedItems }
+  } })
+  if (prechecked.alreadySubmitted) return prechecked.alreadySubmitted
+  const itemsWithProducts = prechecked.items
   logOrderCommandStage('customer_submit_items', 'product_verification', productVerificationStartedAt, normalizedItems.length)
   const requestId = clientRequestId || createOrderCommandRequestId('customer-order')
   const orderRef = db.collection('orders').doc(orderId)
@@ -464,7 +496,11 @@ async function submitStaffOrderItems({ cart, orderId, storeId, tableId, clientRe
   const normalizedItems = normalizeOrderCommandItems(cart)
   if (normalizedItems.length === 0) throw commandError('empty-order', 'No order items were provided.')
   const productVerificationStartedAt = Date.now()
-  const itemsWithProducts = await normalizeCartItemsWithProducts(db, normalizedItems, storeId)
+  const prechecked = await runOrderPrechecks({ db, orderId, clientRequestId, precheck: async () => ({
+    items: await normalizeCartItemsWithProducts(db, normalizedItems, storeId),
+  }) })
+  if (prechecked.alreadySubmitted) return prechecked.alreadySubmitted
+  const itemsWithProducts = prechecked.items
   logOrderCommandStage('staff_submit_items', 'product_verification', productVerificationStartedAt, normalizedItems.length)
   const requestId = clientRequestId || createOrderCommandRequestId('staff-order')
   const orderRef = db.collection('orders').doc(orderId)

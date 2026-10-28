@@ -36,6 +36,7 @@ const COMMAND_ERROR_MESSAGES = {
   'invite-email-required': 'Google でログインしてから、もう一度お試しください',
   'email-already-assigned': 'このアカウントは、すでに別の店の店長です。別の Google アカウントでログインしてください',
   'store-code-unavailable': '店舗コードを決められませんでした。もう一度お試しください',
+  'items-unavailable': '売り切れなどで注文できない品がありました。カートを確かめてください。',
   aborted: '同時操作がありました。もう一度お試しください。',
   unavailable: '通信が不安定です。少し待ってからもう一度お試しください。',
   'deadline-exceeded': '通信に時間がかかっています。もう一度お試しください。',
@@ -95,14 +96,16 @@ const NON_RETRYABLE_CODES = new Set([
   'invite-expired',
   'invite-email-required',
   'email-already-assigned',
+  'items-unavailable',
 ])
 
 export function getOrderCommandErrorCode(error) {
   return error?.code || error?.cause?.code || 'unknown'
 }
 
-// パスコードの打ち間違いやロックは操作の結果で、システムの失敗ではない（失敗ログに残さない）。
+// パスコードの打ち間違いやロック、売り切れになった品は操作の結果で、システムの失敗ではない（失敗ログに残さない）。
 const EXPECTED_OPERATOR_ERROR_CODES = new Set([
+  'items-unavailable',
   'invalid-cancel-passcode',
   'invalid-cancel-passcode-format',
   'cancel-passcode-locked',
@@ -124,6 +127,26 @@ export function formatOrderCommandError(error, { context = 'general' } = {}) {
     message: COMMAND_ERROR_MESSAGES[code] || CONTEXT_FALLBACK_MESSAGES[context] || CONTEXT_FALLBACK_MESSAGES.general,
     retryable: !NON_RETRYABLE_CODES.has(code),
   }
+}
+
+const UNAVAILABLE_REASON_LABELS = {
+  'sold-out': '売り切れ',
+  hidden: '今は注文できません',
+  'category-hidden': '今は注文できません',
+  'option-changed': '選ぶものが変わりました',
+  'option-required': '選ぶものが選ばれていません',
+}
+
+// 注文を止めた品（サーバーが items-unavailable で返した一覧）。カートから外す商品と、知らせる文言を作る（2026-10-23 注文の流れ 第1章）。
+export function describeUnavailableItems(error) {
+  if (getOrderCommandErrorCode(error) !== 'items-unavailable') return null
+  const entries = Array.isArray(error?.details?.unavailableItems) ? error.details.unavailableItems : []
+  const productIds = [...new Set(entries.map(entry => entry?.productId).filter(Boolean))]
+  const lines = entries.map(entry => `${entry?.name || '商品'}（${UNAVAILABLE_REASON_LABELS[entry?.reason] ?? '今は注文できません'}）`)
+  const message = lines.length > 0
+    ? `注文できない品がありました：${[...new Set(lines)].join('、')}。カートから外しました。ほかの品は、もう一度送れます。`
+    : COMMAND_ERROR_MESSAGES['items-unavailable']
+  return { productIds, message }
 }
 
 export function logOrderCommandError({ operation, error, metadata = {} }) {

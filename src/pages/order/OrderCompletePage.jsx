@@ -6,6 +6,7 @@ import OrderStatusHeader from '../../components/order/OrderStatusHeader'
 import OrderStatusList from '../../components/order/OrderStatusList'
 import OrderStatusSummary from '../../components/order/OrderStatusSummary'
 import OrderTotalPanel from '../../components/order/OrderTotalPanel'
+import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
 import useCustomerCall from '../../hooks/useCustomerCall'
 import {
@@ -13,7 +14,7 @@ import {
   isCustomerOrderRequestReflected,
   summarizeOrderItems,
 } from '../../lib/customerOrderStatus'
-import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
+import { describeUnavailableItems, formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import {
   CUSTOMER_SUBMIT_RECOVERY_ACTION_DELAY_MS,
   clearCustomerSubmitRecovery,
@@ -28,6 +29,7 @@ import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusS
 export default function OrderCompletePage() {
   const { orderId, table, tableId, storeId, storeConfig, storeConfigLoading } = useOrder()
   const { callDisabled, requestStaff } = useCustomerCall()
+  const { removeProducts } = useCart()
   const [items, setItems] = useState([])
   const [showSubmitComplete, setShowSubmitComplete] = useState(false)
   const [latestClientRequestId, setLatestClientRequestId] = useState('')
@@ -158,6 +160,13 @@ export default function OrderCompletePage() {
       if (acceptedSnapshot) setPendingSubmit(acceptedSnapshot)
     } catch (error) {
       const formatted = formatOrderCommandError(error, { context: 'customerSubmit' })
+      const unavailable = describeUnavailableItems(error)
+      if (unavailable) {
+        clearCustomerSubmitRecovery(retryScope)
+        removeProducts(unavailable.productIds)
+        navigate('../cart', { replace: true, state: { submitNotice: unavailable.message } })
+        return
+      }
       setRecoveryError(formatted.retryable
         ? '再送結果を確認しています。保存済みの場合はこのまま一覧に反映されます。'
         : formatted.message)

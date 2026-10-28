@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import CustomerBottomNav from '../../components/CustomerBottomNav'
 import CartItemList from '../../components/order/CartItemList'
 import CartSubmitBar from '../../components/order/CartSubmitBar'
 import CustomerTopBar from '../../components/order/CustomerTopBar'
+import OrderCommandErrorNotice from '../../components/OrderCommandErrorNotice'
 import { useCart } from '../../contexts/CartContext'
 import { useOrder } from '../../contexts/OrderContext'
 import useCustomerCall from '../../hooks/useCustomerCall'
-import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
+import { describeUnavailableItems, formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { createOrderCommandRequestId } from '../../lib/orderCommands'
 import {
   clearCustomerSubmitRecovery,
@@ -20,10 +21,12 @@ import { submitCustomerCartOrder } from '../../services/customerCartService'
 
 export default function CartPage() {
   const { tableId, storeId, orderId, table } = useOrder()
-  const { items, updateQuantity, clearCart, count } = useCart()
+  const { items, updateQuantity, clearCart, removeProducts, count } = useCart()
   const { callDisabled, requestStaff } = useCustomerCall()
   const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
+  const location = useLocation()
+  // 完了画面からの送り直しで止まった品があったときの知らせ（品はもうカートから外してある）。
+  const [submitError, setSubmitError] = useState(location.state?.submitNotice ?? '')
   const submittingRef = useRef(false)
   const submitRequestIdRef = useRef(null)
   const navigate = useNavigate()
@@ -92,7 +95,9 @@ export default function CartPage() {
       } else {
         clearCustomerSubmitRecovery({ orderId, storeId, tableId, clientRequestId: completedRequestId })
         submitRequestIdRef.current = null
-        setSubmitError(formatted.message)
+        const unavailable = describeUnavailableItems(error)
+        if (unavailable) removeProducts(unavailable.productIds)
+        setSubmitError(unavailable?.message ?? formatted.message)
       }
       logOrderCommandError({
         operation: 'customer_submit_order',
@@ -123,6 +128,8 @@ export default function CartPage() {
       <main className="customer-cart__content">
         {items.length === 0 ? (
           <section className="customer-cart__empty">
+            {/* 売り切れで品を外してカートが空になっても、何が起きたかの知らせは残す。 */}
+            <OrderCommandErrorNotice message={submitError} />
             <div className="customer-cart__empty-mark" aria-hidden="true">＋</div>
             <h2>カートは空です</h2>
             <p>メニューから商品を選ぶと、ここでまとめて注文できます。</p>

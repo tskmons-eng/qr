@@ -1384,6 +1384,107 @@ async function runReservationNotificationTriggerCheck(db) {
   )
 }
 
+// 2026-10-23 注文の流れ 第1章：注文を受けるときにサーバーで確かめる（画面の値を信じない）。
+async function runOrderItemValidationChecks(db, publicFunctions, staffFunctions) {
+  const now = FieldValue.serverTimestamp()
+  const categoryId = `${runId}_cat_validation`
+  const hiddenCategoryId = `${runId}_cat_validation_hidden`
+  const ids = {
+    option: `${runId}_product_option`,
+    soldOut: `${runId}_product_sold_out`,
+    hidden: `${runId}_product_hidden`,
+    inHiddenCategory: `${runId}_product_in_hidden_category`,
+  }
+  await Promise.all([
+    db.collection('categories').doc(categoryId).set({ storeId, name: 'Yakitori', group: 'food', isActive: true, sortOrder: 9, createdAt: now, updatedAt: now }),
+    db.collection('categories').doc(hiddenCategoryId).set({ storeId, name: 'Stopped', group: 'drink', isActive: false, sortOrder: 10, createdAt: now, updatedAt: now }),
+  ])
+  const base = { storeId, categoryId, isVisible: true, isSoldOut: false, sortOrder: 1, createdAt: now, updatedAt: now }
+  await Promise.all([
+    db.collection('products').doc(ids.option).set({
+      ...base,
+      name: 'Option Skewer',
+      price: 200,
+      options: [
+        { groupName: '味', required: true, choices: [{ label: '塩', extraPrice: 0 }, { label: 'タレ', extraPrice: 50 }] },
+        { groupName: '量', required: false, choices: ['普通', '大盛'] },
+      ],
+    }),
+    db.collection('products').doc(ids.soldOut).set({ ...base, name: 'Sold Out Item', price: 300, isSoldOut: true }),
+    db.collection('products').doc(ids.hidden).set({ ...base, name: 'Hidden Item', price: 300, isVisible: false }),
+    db.collection('products').doc(ids.inHiddenCategory).set({ ...base, name: 'Stopped Category Item', price: 300, categoryId: hiddenCategoryId }),
+  ])
+
+  const tableId = `${runId}_validation_table`
+  await seedTable(db, tableId)
+  const orderId = await call(publicFunctions, 'startCustomerOrderSessionCommand', { guestCount: 2, storeId, tableId })
+  const submit = (items, label) => call(publicFunctions, 'submitCustomerOrderItemsCommand', {
+    items, orderId, storeId, tableId, clientRequestId: `${runId}_validation_${label}`,
+  })
+  const withOptions = (productId, optionSelections, quantity = 1) => ({ product: { id: productId, categoryGroup: 'drink' }, quantity, optionSelections })
+
+  // 売り切れ・出していない・止めた分類は注文全体を止め、どの品かを返す（ほかの品も書かない）。
+  for (const [label, productId, reason] of [
+    ['sold_out', ids.soldOut, 'sold-out'],
+    ['hidden', ids.hidden, 'hidden'],
+    ['stopped_category', ids.inHiddenCategory, 'category-hidden'],
+  ]) {
+    try {
+      await submit([cartItem(productId), withOptions(ids.option, [{ groupName: '味', choice: '塩', extraPrice: 0 }])], label)
+      assert.fail(`${label} should be rejected`)
+    } catch (error) {
+      assert.equal(callableErrorCode(error), 'items-unavailable', `${label} should reject with items-unavailable`)
+      assert.deepEqual(error.details.unavailableItems.map(item => [item.productId, item.reason]), [[productId, reason]], `${label} should name the item`)
+    }
+  }
+  assert.equal((await queryBy(db, 'orderItems', 'orderId', orderId)).length, 0, 'rejected orders should not write any item')
+
+  // 追加料金は商品の値を使う（画面のマイナス値・水増しは無視）。フード／ドリンクは分類から決める。
+  await submit([withOptions(ids.option, [{ groupName: '味', choice: 'タレ', extraPrice: -500 }, { groupName: '量', choice: '大盛', extraPrice: 999 }], 2)], 'price_tamper')
+  const [tampered] = await queryBy(db, 'orderItems', 'clientRequestId', `${runId}_validation_price_tamper`)
+  assert.equal(tampered.lineTotal, (200 + 50) * 2, 'server should use registered extra prices')
+  assert.deepEqual(tampered.optionSelections, [{ groupName: '味', choice: 'タレ', extraPrice: 50 }, { groupName: '量', choice: '大盛', extraPrice: 0 }])
+  assert.equal(tampered.categoryGroup, 'food', 'kitchen group should come from the category, not the client')
+
+  // 1回目が書けたあと（返事が届かなかった想定）に売り切れにされても、同じ ID の送り直しは受け付け済みを返す（二重注文にしない）。
+  const resendPayload = [withOptions(ids.option, [{ groupName: '味', choice: '塩' }])]
+  await submit(resendPayload, 'resend_after_sold_out')
+  await db.collection('products').doc(ids.option).update({ isSoldOut: true })
+  const resendResult = await submit(resendPayload, 'resend_after_sold_out')
+  assert.equal(resendResult.deduped, true, 'resend after sold-out should report the earlier accepted submit')
+  assert.equal((await queryBy(db, 'orderItems', 'clientRequestId', `${runId}_validation_resend_after_sold_out`)).length, 1, 'resend should not duplicate items')
+  await db.collection('products').doc(ids.option).update({ isSoldOut: false })
+
+  // 必ず選ぶが抜けている・無い選択肢・同じグループを2回は止める。
+  await expectCallableError('items-unavailable', () => submit([withOptions(ids.option, [])], 'required_missing'), 'required option missing')
+  await expectCallableError('items-unavailable', () => submit([withOptions(ids.option, [{ groupName: '味', choice: '激辛', extraPrice: 0 }])], 'unknown_choice'), 'unknown option choice')
+  await expectCallableError('items-unavailable', () => submit([withOptions(ids.option, [{ groupName: '味', choice: '塩' }, { groupName: '味', choice: 'タレ' }])], 'dup_group'), 'duplicate option group')
+
+  // スタッフの注文も同じ確かめ方。
+  const staffTableId = `${runId}_validation_staff_table`
+  await seedTable(db, staffTableId)
+  const staffOrderId = await call(staffFunctions, 'seatStaffOrderSessionCommand', { tableId: staffTableId, seatCount: 2 })
+  await expectCallableError('items-unavailable', () => call(staffFunctions, 'submitStaffOrderItemsCommand', {
+    cart: [cartItem(ids.soldOut)], orderId: staffOrderId, storeId, tableId: staffTableId, clientRequestId: `${runId}_validation_staff_sold_out`,
+  }), 'staff sold-out item')
+
+  // 自動追加の商品が売り切れなら入れない（着席は止めない）。
+  await db.collection('storeConfig').doc(storeId).set({ guestAutoAdd: { enabled: true, productId: ids.soldOut } }, { merge: true })
+  const autoTableId = `${runId}_validation_auto_table`
+  await seedTable(db, autoTableId)
+  const autoOrderId = await call(publicFunctions, 'startCustomerOrderSessionCommand', { guestCount: 3, storeId, tableId: autoTableId })
+  await db.collection('storeConfig').doc(storeId).set({ guestAutoAdd: { enabled: false } }, { merge: true })
+  assert.equal((await queryBy(db, 'orderItems', 'orderId', autoOrderId)).length, 0, 'sold-out auto-add product should be skipped')
+  assert.equal((await tableData(db, autoTableId)).currentOrderId, autoOrderId, 'seating should still succeed')
+
+  // 席の今の注文ではない注文IDへのお客様の注文は止める。
+  const otherTableId = `${runId}_validation_other_table`
+  await seedTable(db, otherTableId)
+  await expectCallableError('order-scope-mismatch', () => call(publicFunctions, 'submitCustomerOrderItemsCommand', {
+    items: [withOptions(ids.option, [{ groupName: '味', choice: '塩' }])], orderId, storeId, tableId: otherTableId, clientRequestId: `${runId}_validation_wrong_table`,
+  }), 'customer submit to another table')
+}
+
 const db = adminDb()
 const publicClient = createFunctionsFor(`public-${runId}`)
 const staffClient = createStaffClient(`staff-${runId}`)
@@ -1415,6 +1516,7 @@ await runTableMoveConsistency(db, staffClient.functions, products.productId)
 await runTableMoveCustomerSubmitRace(db, publicClient.functions, staffClient.functions, products.productId)
 await runReservationGuideCommand(db, staffClient.functions)
 await runStoreScopeRejects(db, publicClient.functions, products.productId, products.otherProductId, products.categoryMismatchProductId)
+await runOrderItemValidationChecks(db, publicClient.functions, staffClient.functions)
 await runPendingAggregateTriggerChecks(db)
 await runReservationNotificationTriggerCheck(db)
 await runStoreOnboardingChecks(db)
