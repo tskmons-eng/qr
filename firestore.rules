@@ -660,9 +660,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // テーブル（お客さんも読める）
+    // テーブル。お客様は入口の記録（tableEntries）で知った席を1件ずつ読む（get）。
+    // 一覧（list）は店の人だけ（2026-10-28 QR 第1章。店の外から全部の席のQRを集められないように）。
     match /tables/{tableId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if canAccess(resource.data.storeId);
       allow create: if canManageTables(request.resource.data.storeId);
       allow update: if canManageTables(resource.data.storeId)
                     || (canAccess(resource.data.storeId) && keepsTableManagementFields());
@@ -671,6 +673,19 @@ service cloud.firestore {
                     && resource.data.get('status', 'vacant') == 'vacant'
                     && resource.data.get('currentOrderId', null) == null;
     }
+    // QRの入口（2026-10-28 QR 第1章）。名前がQRの文字。QRを持っている人がその1件だけ読める（一覧は不可）。
+    // 作れるのは席を管理できる人だけ。席を1件ずつ確かめる読み込み（getAfter）は、まとめて追加で上限（20回）に当たるので使わない。
+    // 入口が別の席を指していても、お客様の画面は席のQRの文字と店が一致しないと入れない（customerEntryService）。
+    match /tableEntries/{qrToken} {
+      allow get: if true;
+      allow list, update: if false;
+      allow create: if canManageTables(request.resource.data.storeId)
+                    && request.resource.data.tableId is string
+                    && request.resource.data.keys().hasOnly(['storeId', 'tableId', 'createdAt']);
+      // 入口がまだ無い古い席でも、席を消す・QRを作り直す書き込みが止まらないよう、無いものを消すのは通す（何も起きない）。
+      allow delete: if resource == null || canManageTables(resource.data.storeId);
+    }
+
     // 席グループ（tableGroups）は 2026-10-23 席設計で無くした。決まりが無いので読み書きできない。
 
     // カテゴリー（お客さんも読める）

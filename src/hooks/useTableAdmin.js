@@ -71,7 +71,7 @@ export default function useTableAdmin(storeId) {
 
   async function reissueQr(table) {
     try {
-      await reissueAdminTableQr(table.id)
+      await reissueAdminTableQr(table)
       return null
     } catch {
       return SAVE_FAILED
@@ -89,7 +89,7 @@ export default function useTableAdmin(storeId) {
       if (reservations.length > 0) {
         return `この席には今日以降の予約が${reservations.length}件入っています。先に予約の席を変えてから消してください`
       }
-      await deleteAdminTable(table.id)
+      await deleteAdminTable(table)
       return null
     } catch {
       return '削除できませんでした。空き席か、通信を確かめて、もう一度お試しください'

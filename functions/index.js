@@ -132,10 +132,15 @@ async function applyPendingAggregateDeltas(entries) {
   if (deltaMap.size === 0) return
 
   const db = getFirestore()
+  const changed = [...deltaMap].filter(([, delta]) => delta.total !== 0 || delta.drink !== 0 || delta.food !== 0)
+  if (changed.length === 0) return
+  // 消した席には書かない（書くと、店の無い空の席の記録ができる。2026-10-28 QR 第1章）。
+  const tableSnaps = await db.getAll(...changed.map(([tableId]) => db.collection('tables').doc(tableId)))
+  const existingTableIds = new Set(tableSnaps.filter(snap => snap.exists).map(snap => snap.id))
   const batch = db.batch()
   let hasWrites = false
-  for (const [tableId, delta] of deltaMap) {
-    if (delta.total === 0 && delta.drink === 0 && delta.food === 0) continue
+  for (const [tableId, delta] of changed) {
+    if (!existingTableIds.has(tableId)) continue
     batch.set(db.collection('tables').doc(tableId), {
       pendingAggregateVersion: TABLE_PENDING_AGGREGATE_VERSION,
       pendingAggregateCount: FieldValue.increment(delta.total),

@@ -67,6 +67,12 @@ export async function seedLocalEmulator() {
       createdAt: now,
       updatedAt: now,
     })),
+    // QRの入口の記録（2026-10-28 QR 第1章）。お客様はこれを1件だけ読んで席を知る。
+    ...[1, 2, 3].map(number => db.collection('tableEntries').doc(`local-table-${number}-qr`).set({
+      storeId,
+      tableId: `local-table-${number}`,
+      createdAt: now,
+    })),
   ]
   await Promise.all(writes)
   return LOCAL_TEST_ACCOUNTS

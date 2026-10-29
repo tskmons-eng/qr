@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import {
   buildTableOrderUrl,
@@ -58,5 +59,23 @@ assert.equal(buildBulkTableNames({ prefix: 'T', from: '', to: '8' }).error, '番
 assert.deepEqual(describeTableUse({ status: 'vacant', currentOrderId: null }), { label: '空き', vacant: true })
 assert.deepEqual(describeTableUse({ status: 'occupied', guestCount: 2, currentOrderId: 'o' }), { label: '2名・食事中', vacant: false })
 assert.deepEqual(describeTableUse({ status: 'checkout_pending', currentOrderId: 'o' }), { label: '会計待ち', vacant: false })
+
+// 2026-10-28 QR 第1章：席の一覧は店の人だけ。お客様はQRの入口（tableEntries）から1件ずつ読む。
+const rulesSource = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8')
+const tablesRule = rulesSource.slice(rulesSource.indexOf('match /tables/{tableId}'), rulesSource.indexOf('match /tableEntries/{qrToken}'))
+assert.match(tablesRule, /allow get: if true;/)
+assert.match(tablesRule, /allow list: if canAccess\(resource\.data\.storeId\);/)
+assert.doesNotMatch(tablesRule, /allow read: if true;/, '席の一覧を誰でも読めるようにしない')
+const entryRule = rulesSource.slice(rulesSource.indexOf('match /tableEntries/{qrToken}'), rulesSource.indexOf('// 席グループ'))
+assert.match(entryRule, /allow get: if true;/)
+assert.match(entryRule, /allow list, update: if false;/)
+assert.doesNotMatch(entryRule, /allow create:[^;]*getAfter/, 'まとめて追加で読み込みの上限に当たらないように')
+const entryService = readFileSync(new URL('../src/services/customerEntryService.js', import.meta.url), 'utf8')
+assert.match(entryService, /doc\(db, 'tableEntries', qrToken\)/)
+assert.match(entryService, /table\.qrToken === qrToken && table\.storeId === entry\.storeId/, '作り直した古いQR・別の店を指す入口では入れない')
+assert.match(entryService, /error\?\.code === 'unavailable'\) retryTimer = setTimeout\(readEntry, 3000\)\s*else followLegacyQuery\(\)/, '電波が悪いときは読み直し、入口が読めないときは前の探し方で入れる')
+const adminTableService = readFileSync(new URL('../src/services/adminTableService.js', import.meta.url), 'utf8')
+assert.match(adminTableService, /setTableEntry\(batch, \{ qrToken, storeId, tableId: tableRef\.id \}\)/, '席を作るときに入口も作る')
+assert.match(adminTableService, /batch\.delete\(doc\(db, 'tableEntries', table\.qrToken\)\)/, 'QRを作り直す・席を消すときに古い入口を消す')
 
 console.log('admin table checks passed')

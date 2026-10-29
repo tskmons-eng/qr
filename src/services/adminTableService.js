@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { generateTableQrToken, normalizeTableName } from '../lib/adminTable'
 import { db } from '../lib/firebase'
 import { buildEmptyTablePendingAggregateFields } from '../lib/tablePending'
@@ -11,6 +11,11 @@ export function subscribeAdminTables(storeId, onChange, onError) {
   }, onError)
 }
 
+// QRの入口の記録（2026-10-28 QR 第1章）。QRの文字を名前にして、店と席を指す。お客様はこれを1件だけ読める（一覧は読めない）。
+function setTableEntry(batch, { qrToken, storeId, tableId }) {
+  batch.set(doc(db, 'tableEntries', qrToken), { storeId, tableId, createdAt: serverTimestamp() })
+}
+
 // 席を1つ以上まとめて作る（「番号でまとめて追加」も1回の書き込み）。
 // 並び順は planTableSortOrders で決めたもの。今ある席に並び順を付ける分も同じ書き込みに入れる。
 export async function createAdminTables({ storeId, tableNames, newSortOrders, existingUpdates = [] }) {
@@ -19,10 +24,13 @@ export async function createAdminTables({ storeId, tableNames, newSortOrders, ex
     batch.update(doc(db, 'tables', id), { sortOrder, updatedAt: serverTimestamp() })
   })
   tableNames.forEach((tableName, index) => {
-    batch.set(doc(collection(db, 'tables')), {
+    const tableRef = doc(collection(db, 'tables'))
+    const qrToken = generateTableQrToken()
+    setTableEntry(batch, { qrToken, storeId, tableId: tableRef.id })
+    batch.set(tableRef, {
       storeId,
       tableName: normalizeTableName(tableName),
-      qrToken: generateTableQrToken(),
+      qrToken,
       status: 'vacant',
       guestCount: 0,
       currentOrderId: null,
@@ -37,11 +45,14 @@ export async function createAdminTables({ storeId, tableNames, newSortOrders, ex
   await batch.commit()
 }
 
-export function reissueAdminTableQr(tableId) {
-  return updateDoc(doc(db, 'tables', tableId), {
-    qrToken: generateTableQrToken(),
-    updatedAt: serverTimestamp(),
-  })
+// QRを作り直す：古いQRの入口を消し、新しいQRの入口を作る（古いQRは使えなくなる）。
+export async function reissueAdminTableQr(table) {
+  const qrToken = generateTableQrToken()
+  const batch = writeBatch(db)
+  if (table.qrToken) batch.delete(doc(db, 'tableEntries', table.qrToken))
+  setTableEntry(batch, { qrToken, storeId: table.storeId, tableId: table.id })
+  batch.update(doc(db, 'tables', table.id), { qrToken, updatedAt: serverTimestamp() })
+  await batch.commit()
 }
 
 export function renameAdminTable(tableId, tableName) {
@@ -71,6 +82,9 @@ export async function loadUpcomingReservationsForTable({ storeId, tableId, today
 }
 
 // 空いている席だけ消せる（firestore.rules でも止める）。履歴・売上の画面は席の名前を使っていないので、記録は壊れない。
-export function deleteAdminTable(tableId) {
-  return deleteDoc(doc(db, 'tables', tableId))
+export async function deleteAdminTable(table) {
+  const batch = writeBatch(db)
+  if (table.qrToken) batch.delete(doc(db, 'tableEntries', table.qrToken))
+  batch.delete(doc(db, 'tables', table.id))
+  await batch.commit()
 }

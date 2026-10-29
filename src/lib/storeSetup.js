@@ -10,7 +10,7 @@ export function buildStoreSetupSteps({ storeName, staffCount, productCount, tabl
     { key: 'menu', label: '商品を登録', hint: '分類（フード・ドリンク）と商品', done: productCount > 0, path: '/staff/menu-admin', action: '登録する' },
     { key: 'tables', label: '席を作る', hint: '席の名前と並び順', done: tableCount > 0, path: '/staff/tables', action: '作る' },
     // QR は印刷したかを記録できないので、席ができたら押せるようにし、最後に「準備を終える」で閉じる。
-    { key: 'qr', label: 'QR を印刷', hint: '席ごとの注文用 QR', done: false, path: '/staff/tables', action: '印刷する', optional: true },
+    { key: 'qr', label: 'QR を印刷', hint: '席ごとの注文用 QR', done: false, path: '/staff/tables?print=1', action: '印刷する', optional: true },
   ]
   const firstOpen = steps.find(step => !step.done)
   return steps.map(step => ({ ...step, current: step === firstOpen }))

@@ -318,3 +318,56 @@
   background: var(--ui-danger-soft);
   color: var(--ui-danger);
 }
+
+/* 全部の席のQRをまとめて印刷（2026-10-28 QR 第1章） */
+.table-admin__print {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ui-brand);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.table-admin__print-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.table-admin__print-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.table-admin__print-text b {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.table-admin__print-text small {
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.table-admin__print-go {
+  color: var(--ui-brand);
+  font-size: 12px;
+  font-weight: 900;
+}
