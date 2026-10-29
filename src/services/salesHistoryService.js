@@ -348,8 +348,9 @@ export async function loadCheckDetailItems(check) {
     }
   }
 
-  if (check.orderId) {
-    const snapshot = await getDocs(query(collection(db, 'orderItems'), where('orderId', '==', check.orderId)))
+  if (check.orderId && check.storeId) {
+    // 店で絞って読む（注文の品は店の人とその注文のお客様だけが読める決まり。2026-10-29 QR 第2章）。
+    const snapshot = await getDocs(query(collection(db, 'orderItems'), where('storeId', '==', check.storeId), where('orderId', '==', check.orderId)))
     const items = sortOrderItems(mapDocs(snapshot).filter(item => (
       item.itemStatus !== 'cancelled'
       && (!check.storeId || item.storeId === check.storeId)

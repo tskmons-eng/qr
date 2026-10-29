@@ -7,6 +7,7 @@ import { OrderProvider } from '../../contexts/OrderContext'
 import { cartStorageKey } from '../../lib/customerCart'
 import { getCustomerEntryStartPath } from '../../lib/customerEntry'
 import { STORE_CONFIG_DEFAULTS } from '../../lib/settingsConfig'
+import { ensureCustomerOrderAccess, forgetCustomerJoined, isCustomerJoined, trySignInCustomer } from '../../services/customerAccessService'
 import { loadCustomerStoreConfig, subscribeCustomerTableByQrToken } from '../../services/customerEntryService'
 import '../../styles/customer.css'
 
@@ -23,6 +24,11 @@ export default function OrderEntryPage() {
   const [loading, setLoading] = useState(true)
   const [configLoading, setConfigLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [accessOrderId, setAccessOrderId] = useState(null)
+  const [accessError, setAccessError] = useState(false)
+  const [accessRetry, setAccessRetry] = useState(0)
+  const [sessionEnded, setSessionEnded] = useState(false)
+  const seenOrderIdRef = useRef(null)
   const loadedConfigStoreIdRef = useRef(null)
   const configRequestIdRef = useRef(0)
 
@@ -78,6 +84,42 @@ export default function OrderEntryPage() {
     })
   }, [qrToken])
 
+  // 見えないログインは画面を開いたときに先に始めておく（着席・注文のときに待たせない）。
+  useEffect(() => { trySignInCustomer() }, [qrToken])
+
+  // この端末を席の今の注文に加える（注文履歴を読めるように）。2台目のスマホ・読み込み直しでも。
+  // 開いている途中で別の注文に変わった（会計のあと次のお客様が座った）ときは、自動では加わらない。
+  // この端末が着席した注文なら加わり済みの印があるので、少し待って印を確かめる。
+  useEffect(() => {
+    if (!orderId || !table) return undefined
+    let cancelled = false
+    setAccessError(false)
+    const previousOrderId = seenOrderIdRef.current
+    seenOrderIdRef.current = orderId
+    const join = () => ensureCustomerOrderAccess({ storeId: table.storeId, tableId: table.id, orderId, qrToken })
+      .then(() => { if (!cancelled) setAccessOrderId(orderId) })
+      .catch(() => { if (!cancelled) setAccessError(true) })
+    if (previousOrderId && previousOrderId !== orderId) {
+      const timer = setTimeout(() => {
+        if (cancelled) return
+        if (isCustomerJoined(orderId)) join()
+        else setSessionEnded(true)
+      }, 2000)
+      return () => { cancelled = true; clearTimeout(timer) }
+    }
+    join()
+    return () => { cancelled = true }
+  }, [orderId, table?.id, table?.storeId, qrToken, accessRetry])
+
+  function retryCustomerAccess() {
+    forgetCustomerJoined(orderId)
+    setAccessRetry(value => value + 1)
+  }
+
+  if (sessionEnded) {
+    return <OrderEntryStatus loading={false} error="お会計が終わりました。新しく注文するときは、席のQRをもう一度読み取ってください。" />
+  }
+
   if (loading || error || !table) {
     return <OrderEntryStatus loading={loading} error={error} />
   }
@@ -98,6 +140,9 @@ export default function OrderEntryPage() {
       setTable,
       storeConfig,
       storeConfigLoading: configLoading,
+      customerAccessReady: Boolean(orderId) && accessOrderId === orderId,
+      customerAccessError: accessError,
+      retryCustomerAccess,
     }}>
       <CartProvider key={orderId ?? 'no-order'} storageKey={cartStorageKey(orderId)}>
         <Suspense fallback={<AppRouteLoading compact />}>

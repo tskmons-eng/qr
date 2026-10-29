@@ -20,8 +20,9 @@ export function subscribeStaffTable(tableId, onNext) {
   })
 }
 
-export function subscribeStaffTableOrderItems(orderId, onNext) {
-  const orderItemsQuery = query(collection(db, 'orderItems'), where('orderId', '==', orderId))
+// 店で絞って読む（注文の品は店の人とその注文のお客様だけが読める決まり。2026-10-29 QR 第2章）。
+export function subscribeStaffTableOrderItems(orderId, storeId, onNext) {
+  const orderItemsQuery = query(collection(db, 'orderItems'), where('storeId', '==', storeId), where('orderId', '==', orderId))
   return onSnapshot(orderItemsQuery, snap => {
     onNext(sortOrderItemsByOrderedAt(filterVisibleOrderItems(mapDocs(snap))))
   })

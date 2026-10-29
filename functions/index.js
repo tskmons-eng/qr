@@ -4,6 +4,7 @@ const { initializeApp } = require('firebase-admin/app')
 const { getMessaging } = require('firebase-admin/messaging')
 const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore')
 const { createOrderCommandCallable } = require('./orderCommandApi')
+const { joinCustomerOrder, recordCustomerSession } = require('./customerSession')
 const orderCommandHandlers = require('./orderCommandHandlers')
 const cancelPasscode = require('./cancelPasscode')
 const staffPasscode = require('./staffPasscode')
@@ -18,15 +19,32 @@ const EVENT_TRIGGER_MAX_INSTANCES = 20
 const TABLE_PENDING_AGGREGATE_VERSION = 1
 const RESERVATION_ARRIVAL_BATCH_SIZE = 100
 
-exports.startCustomerOrderSessionCommand = createOrderCommandCallable(orderCommandHandlers.startCustomerOrderSession, {
+// お客様の着席・注文のあとに「この端末はこの注文」を記録する（2026-10-29 QR 第2章。注文の品を読めるのは店の人とその注文のお客様だけ）。
+async function startCustomerOrderSessionWithRecord(data, request) {
+  const orderId = await orderCommandHandlers.startCustomerOrderSession(data, request)
+  await recordCustomerSession(getFirestore(), request, { storeId: data?.storeId, tableId: data?.tableId, orderId })
+  return orderId
+}
+
+async function submitCustomerOrderItemsWithRecord(data, request) {
+  const result = await orderCommandHandlers.submitCustomerOrderItems(data, request)
+  await recordCustomerSession(getFirestore(), request, { storeId: data?.storeId, tableId: data?.tableId, orderId: data?.orderId })
+  return result
+}
+
+exports.joinCustomerOrderCommand = createOrderCommandCallable(joinCustomerOrder, {
+  commandType: 'join_customer_order',
+  actorType: 'customer',
+}, { region: ASIA_NORTHEAST_FUNCTION_REGION })
+exports.startCustomerOrderSessionCommand = createOrderCommandCallable(startCustomerOrderSessionWithRecord, {
   commandType: 'start_customer_order_session',
   actorType: 'customer',
 }, { minInstances: CUSTOMER_ORDER_MIN_INSTANCES })
-exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
+exports.submitCustomerOrderItemsCommand = createOrderCommandCallable(submitCustomerOrderItemsWithRecord, {
   commandType: 'customer_submit_items',
   actorType: 'customer',
 })
-exports.submitCustomerOrderItemsCommandAsia = createOrderCommandCallable(orderCommandHandlers.submitCustomerOrderItems, {
+exports.submitCustomerOrderItemsCommandAsia = createOrderCommandCallable(submitCustomerOrderItemsWithRecord, {
   commandType: 'customer_submit_items',
   actorType: 'customer',
 }, {

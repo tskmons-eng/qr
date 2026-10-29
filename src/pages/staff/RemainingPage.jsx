@@ -31,12 +31,12 @@ export default function RemainingPage() {
   }, [tableId])
 
   useEffect(() => {
-    if (!activeOrderId) {
+    if (!activeOrderId || !activeStoreId) {
       setItems([])
       return undefined
     }
-    return subscribeStaffTableOrderItems(activeOrderId, setItems)
-  }, [activeOrderId])
+    return subscribeStaffTableOrderItems(activeOrderId, activeStoreId, setItems)
+  }, [activeOrderId, activeStoreId])
 
 
   async function markServed(item) {

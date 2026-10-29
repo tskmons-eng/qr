@@ -45,12 +45,12 @@ assert.equal(
 
 assert.match(
   rules,
-  /match \/orders\/\{orderId\} \{\s*allow read: if true;\s*allow create, update, delete: if false;\s*\}/,
+  /match \/orders\/\{orderId\} \{\s*allow read: if canAccess\(resource\.data\.storeId\);\s*allow create, update, delete: if false;\s*\}/,
   'orders read/staff update permissions should remain intact'
 )
 assert.match(
   rules,
-  /match \/orderItems\/\{itemId\} \{\s*allow read: if true;\s*allow create, update, delete: if false;\s*\}/,
+  /match \/orderItems\/\{itemId\} \{\s*allow read: if canAccess\(resource\.data\.storeId\) \|\| isCustomerOfOrder\(resource\.data\.orderId\);\s*allow create, update, delete: if false;\s*\}/,
   'orderItems read/staff update permissions should remain intact'
 )
 assert.match(

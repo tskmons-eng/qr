@@ -1,5 +1,7 @@
+import { trySignInCustomer } from './customerAccessService'
 import { submitCustomerOrderItems } from './orderCommandService'
 
-export function submitCustomerCartOrder({ items, orderId, storeId, tableId, clientRequestId }) {
+export async function submitCustomerCartOrder({ items, orderId, storeId, tableId, clientRequestId }) {
+  await trySignInCustomer()
   return submitCustomerOrderItems({ items, orderId, storeId, tableId, clientRequestId })
 }

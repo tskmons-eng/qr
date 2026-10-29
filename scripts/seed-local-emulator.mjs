@@ -58,13 +58,18 @@ export async function seedLocalEmulator() {
     ...[1, 2, 3].map(number => db.collection('tables').doc(`local-table-${number}`).set({
       storeId,
       tableName: `テーブル${number}`,
-      qrToken: `local-table-${number}-qr`,
       status: 'vacant',
       currentOrderId: null,
       guestCount: 0,
       pendingCount: 0,
       sortOrder: number,
       createdAt: now,
+      updatedAt: now,
+    })),
+    // 席のQRの文字は店の人だけが読める tableSecrets に置く（2026-10-29 QR 第2章）。
+    ...[1, 2, 3].map(number => db.collection('tableSecrets').doc(`local-table-${number}`).set({
+      storeId,
+      qrToken: `local-table-${number}-qr`,
       updatedAt: now,
     })),
     // QRの入口の記録（2026-10-28 QR 第1章）。お客様はこれを1件だけ読んで席を知る。

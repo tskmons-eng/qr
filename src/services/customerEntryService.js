@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
 import { normalizeStoreConfig } from '../lib/settingsConfig'
 import { db } from '../lib/firebase'
+import { markCustomerJoined, trySignInCustomer } from './customerAccessService'
 import { startCustomerOrderSession } from './orderCommandService'
 
 // お客様がQRから入るとき（2026-10-28 QR 第1章）。QRの文字を名前にした入口の記録（tableEntries）から席を知り、その席だけを読む。
@@ -14,8 +15,9 @@ export function subscribeCustomerTableByQrToken(qrToken, onNext, onError) {
   function followTable(entry) {
     unsubscribe = onSnapshot(doc(db, 'tables', entry.tableId), snap => {
       const table = snap.exists() ? { id: snap.id, ...snap.data() } : null
-      // 入口が指す席のQRの文字と店が一致しているときだけ入れる（作り直した古いQR・別の店を指す入口では入れない）。
-      onNext(table && table.qrToken === qrToken && table.storeId === entry.storeId ? table : null)
+      // 入口が指す席の店が一致しているときだけ入れる（別の店を指す入口では入れない）。
+      // QRを作り直すと古いQRの入口は消えるので、古いQRでは入れない。席の記録にQRの文字は置かない（店の人だけの tableSecrets）。
+      onNext(table && table.storeId === entry.storeId ? table : null)
     }, onError)
   }
 
@@ -60,6 +62,10 @@ export async function loadCustomerStoreConfig(storeId) {
   return normalizeStoreConfig(snap.exists() ? snap.data() : {})
 }
 
-export function createCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
-  return startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId })
+// 着席の前に見えないログインを済ませる（サーバーが「この端末はこの注文」を記録できるように）。
+export async function createCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId }) {
+  await trySignInCustomer()
+  const orderId = await startCustomerOrderSession({ guestAutoAdd, guestCount, storeId, tableId })
+  markCustomerJoined(orderId)
+  return orderId
 }

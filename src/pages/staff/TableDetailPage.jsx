@@ -76,9 +76,9 @@ export default function TableDetailPage() {
   }, [tableId])
 
   useEffect(() => {
-    if (!table?.currentOrderId) { setItems([]); return }
-    return subscribeStaffTableOrderItems(table.currentOrderId, setItems)
-  }, [table?.currentOrderId])
+    if (!table?.currentOrderId || !table?.storeId) { setItems([]); return }
+    return subscribeStaffTableOrderItems(table.currentOrderId, table.storeId, setItems)
+  }, [table?.currentOrderId, table?.storeId])
 
 
   async function markServed(item) {

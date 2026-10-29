@@ -26,7 +26,9 @@ import { createCustomerCall } from '../../services/customerMenuService'
 import { subscribeCustomerOrderItems } from '../../services/customerOrderStatusService'
 
 export default function OrderCompletePage() {
-  const { orderId, table, tableId, storeId, storeConfig, storeConfigLoading } = useOrder()
+  const { orderId, table, tableId, storeId, storeConfig, storeConfigLoading, customerAccessReady, customerAccessError, retryCustomerAccess } = useOrder()
+  const accessRetriedRef = useRef(false)
+  const [itemsError, setItemsError] = useState(false)
   const { callDisabled, requestStaff } = useCustomerCall()
   const { restoreCartItems } = useCart()
   const [items, setItems] = useState([])
@@ -56,10 +58,23 @@ export default function OrderCompletePage() {
   const showTotal = showItemPrice || checkoutSent
   const latestOrderReflected = isCustomerOrderRequestReflected(items, latestClientRequestId)
 
+  // この端末が注文に加わってから読む（それまでは読めない決まり）。
   useEffect(() => {
-    if (!orderId) return
-    return subscribeCustomerOrderItems(orderId, setItems)
-  }, [orderId])
+    if (!orderId || !customerAccessReady) return undefined
+    setItemsError(false)
+    return subscribeCustomerOrderItems(orderId, nextItems => {
+      setItems(nextItems)
+      setItemsError(false)
+    }, () => {
+      // 読めなかったら1回だけ加わり直す（同じ端末で別の席を開いて記録が上書きされた等）。
+      if (!accessRetriedRef.current && retryCustomerAccess) {
+        accessRetriedRef.current = true
+        retryCustomerAccess()
+        return
+      }
+      setItemsError(true)
+    })
+  }, [orderId, customerAccessReady])
 
   useEffect(() => {
     const savedSubmit = orderId
@@ -200,6 +215,12 @@ export default function OrderCompletePage() {
         label="お会計合計"
       />
       <OrderCheckoutNotice checkoutStep={checkoutStep} />
+      {(customerAccessError || itemsError) && (
+        <section className="order-status__reflection" role="alert">
+          <div className="order-status__reflection-title">注文の一覧を読み込めませんでした</div>
+          <div className="order-status__reflection-text">通信を確かめて、画面を読み込み直してください。注文は届いています。</div>
+        </section>
+      )}
       <OrderReflectionNotice
         clientRequestId={latestClientRequestId}
         justOrdered={justOrdered}

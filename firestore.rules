@@ -44,6 +44,13 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/staffSessions/$(request.auth.uid)).data.storeId == storeId;
     }
 
+    // お客様の端末（見えないログイン）が、この注文の席にいると Functions が記録したか（customerSessions）。
+    function isCustomerOfOrder(orderId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/customerSessions/$(request.auth.uid))
+        && get(/databases/$(database)/documents/customerSessions/$(request.auth.uid)).data.orderId == orderId;
+    }
+
     function canAccess(storeId) {
       return isSuper() || isOwnerOf(storeId) || isStoreAdminEmail(storeId) || isStaffOf(storeId);
     }
@@ -133,7 +140,7 @@ service cloud.firestore {
     function keepsTableManagementFields() {
       return request.resource.data.storeId == resource.data.storeId
         && request.resource.data.tableName == resource.data.tableName
-        && request.resource.data.qrToken == resource.data.qrToken
+        && request.resource.data.get('qrToken', null) == resource.data.get('qrToken', null)
         && request.resource.data.get('sortOrder', null) == resource.data.get('sortOrder', null);
     }
 
@@ -675,7 +682,7 @@ service cloud.firestore {
     }
     // QRの入口（2026-10-28 QR 第1章）。名前がQRの文字。QRを持っている人がその1件だけ読める（一覧は不可）。
     // 作れるのは席を管理できる人だけ。席を1件ずつ確かめる読み込み（getAfter）は、まとめて追加で上限（20回）に当たるので使わない。
-    // 入口が別の席を指していても、お客様の画面は席のQRの文字と店が一致しないと入れない（customerEntryService）。
+    // 入口が別の店の席を指していても、お客様の画面は店が一致しないと入れない（customerEntryService）。
     match /tableEntries/{qrToken} {
       allow get: if true;
       allow list, update: if false;
@@ -684,6 +691,19 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(['storeId', 'tableId', 'createdAt']);
       // 入口がまだ無い古い席でも、席を消す・QRを作り直す書き込みが止まらないよう、無いものを消すのは通す（何も起きない）。
       allow delete: if resource == null || canManageTables(resource.data.storeId);
+    }
+
+    // 席のQRの文字（2026-10-29 QR 第2章）。お客様も読める席の記録には置かず、店の人だけが読める。
+    match /tableSecrets/{tableId} {
+      allow read: if canAccess(resource.data.storeId);
+      allow create, update: if canManageTables(request.resource.data.storeId);
+      allow delete: if resource == null || canManageTables(resource.data.storeId);
+    }
+
+    // この端末はこの注文（2026-10-29 QR 第2章）。書くのは Functions だけ。本人だけが読める。
+    match /customerSessions/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
     }
 
     // 席グループ（tableGroups）は 2026-10-23 席設計で無くした。決まりが無いので読み書きできない。
@@ -718,14 +738,17 @@ service cloud.firestore {
 
     // 注文（作成は Cloud Functions のコマンドだけ）
     // 書き換え・削除も Cloud Functions だけ（2026-10-22 整理 第4章 K7。画面から直接書く予備は廃止済み）。
+    // 読めるのは店の人だけ（2026-10-29 QR 第2章。前は誰でも全部の店の注文を読めた）。お客様の画面は注文を読まない。
     match /orders/{orderId} {
-      allow read: if true;
+      allow read: if canAccess(resource.data.storeId);
       allow create, update, delete: if false;
     }
 
     // 注文アイテム（作成は Cloud Functions のコマンドだけ）
+    // 読めるのは店の人と、「この端末はこの注文」と記録されたお客様だけ（2026-10-29 QR 第2章）。
+    // お客様の画面は orderId で絞って読むので、記録の注文と一致する品だけが返る。
     match /orderItems/{itemId} {
-      allow read: if true;
+      allow read: if canAccess(resource.data.storeId) || isCustomerOfOrder(resource.data.orderId);
       allow create, update, delete: if false;
     }
 

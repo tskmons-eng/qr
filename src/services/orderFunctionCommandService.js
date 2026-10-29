@@ -67,6 +67,15 @@ export async function callOrderCommandFunction(functionName, payload = {}) {
   }
 }
 
+// 東京（asia-northeast1）にだけある関数を呼ぶ（お客様の端末を注文に加える joinCustomerOrderCommand など）。
+export async function callAsiaOrderCommandFunction(functionName, payload = {}) {
+  try {
+    return await invokeOrderCommandFunction(functionName, payload, ORDER_SUBMIT_PRIMARY_REGION)
+  } catch (error) {
+    throw restoreCommandError(error)
+  }
+}
+
 export async function callRegionalOrderSubmitFunction(
   regionalFunctionName,
   fallbackFunctionName,
