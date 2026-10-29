@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import StaffBottomNav from '../../components/StaffBottomNav'
 import CheckoutCompleteScreen from '../../components/staff/CheckoutCompleteScreen'
@@ -12,7 +12,7 @@ import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { calculateCheckoutTotals } from '../../lib/checkoutCalculations'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { stepGuestInputValue } from '../../lib/staffTableDetail'
-import { completeCashCheckout, loadCheckoutData } from '../../services/checkoutService'
+import { completeCashCheckout, subscribeCheckoutData } from '../../services/checkoutService'
 import { subscribeStaffTable, updateTableGuestCount } from '../../services/staffTableService'
 
 export default function CheckoutPage() {
@@ -37,23 +37,30 @@ export default function CheckoutPage() {
   const [editingGuests, setEditingGuests] = useState(false)
   const [guestInput, setGuestInput] = useState('')
   const [checkoutError, setCheckoutError] = useState('')
+  const [itemsChanged, setItemsChanged] = useState(false)
+  const itemsSignatureRef = useRef(null)
 
+  // 品を見続ける。会計の途中で品が変わったら知らせ、入れた値引きとお預かりは残したまま合計だけ直す（2026-10-29 レジ 第1章）。
   useEffect(() => {
-    if (!orderId) return
-    let cancelled = false
-
-    async function load() {
-      const data = await loadCheckoutData({ orderId, storeId })
-      if (cancelled) return
+    if (!orderId || !storeId) return undefined
+    itemsSignatureRef.current = null
+    return subscribeCheckoutData({ orderId, storeId }, data => {
+      // 比べるのはサーバーから届いた品どうしだけ（開いた直後の端末の控えからの切り替わりでは知らせない）。
+      if (data.itemsFromServer) {
+        const signature = data.items.map(item => `${item.id}:${item.lineTotal}`).sort().join('|')
+        if (itemsSignatureRef.current !== null && itemsSignatureRef.current !== signature) setItemsChanged(true)
+        itemsSignatureRef.current = signature
+      }
       setItems(data.items)
       setOrderItemsRevision(data.orderItemsRevision)
       setTaxRate(data.taxRate)
       setLoading(false)
-    }
-
-    load()
-    return () => { cancelled = true }
-  }, [orderId, storeId])
+    }, error => {
+      logOrderCommandError({ operation: 'subscribe_checkout_items', error, metadata: { storeId, tableId, orderId } })
+      setCheckoutError('注文の品を読み込めませんでした。通信を確かめて、画面を読み込み直してください。')
+      setLoading(false)
+    })
+  }, [orderId, storeId, tableId])
 
   useEffect(() => {
     return subscribeStaffTable(tableId, setTable)
@@ -105,6 +112,7 @@ export default function CheckoutPage() {
     if (totals.change === null || submitting) return
     setSubmitting(true)
     setCheckoutError('')
+    setItemsChanged(false)
     try {
       await completeCashCheckout({
         storeId,
@@ -117,38 +125,22 @@ export default function CheckoutPage() {
         checkoutItemIds: items.map(item => item.id),
         orderItemsRevision,
         subtotal: totals.subtotal,
+        checkoutDiscountType: discountType,
+        checkoutDiscountValue: discountValue,
         checkoutDiscountAmount: totals.discountAmount,
         totalDiscountAmount: totals.totalDiscountAmount,
         discountNote: discountNote.trim() || null,
         total: totals.total,
+        paymentMethod: 'cash',
         received: totals.received,
         change: totals.change,
         activeStaff,
       })
       setCompletedChange(totals.change)
     } catch (error) {
+      // 品が変わって断られたときも、品は見続けているので画面はもう新しい合計になっている。入れた値引き・お預かりは残す。
       const formatted = formatOrderCommandError(error, { context: 'checkout' })
       setCheckoutError(formatted.message)
-      if (formatted.code === 'checkout-items-stale') {
-        try {
-          const data = await loadCheckoutData({ orderId, storeId })
-          setItems(data.items)
-          setOrderItemsRevision(data.orderItemsRevision)
-          setTaxRate(data.taxRate)
-          setItemDiscounts({})
-          setSelectedItemId(null)
-          setDiscountType(null)
-          setDiscountValue('')
-          setDiscountNote('')
-          setReceivedCash('')
-        } catch (reloadError) {
-          logOrderCommandError({
-            operation: 'reload_checkout_after_stale_items',
-            error: reloadError,
-            metadata: { storeId, tableId, orderId },
-          })
-        }
-      }
       logOrderCommandError({
         operation: 'complete_checkout',
         error,
@@ -189,6 +181,11 @@ export default function CheckoutPage() {
           onSave={saveGuests}
           onStep={stepGuestInput}
         />
+        {itemsChanged && (
+          <div className="checkout-page__notice" role="status">
+            会計の途中で注文の品が変わりました。合計を直したので、金額を確かめてください。
+          </div>
+        )}
         <div className="checkout-page__items-scroll">
           <CheckoutItemDiscountList
             rows={totals.itemDiscountRows}

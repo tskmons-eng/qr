@@ -496,7 +496,8 @@ await Promise.all([
   ]),
   assertSourceContains('src/pages/staff/CheckoutPage.jsx', [
     'checkoutItemIds: items.map(item => item.id)',
-    "formatted.code === 'checkout-items-stale'",
+    // 2026-10-29 レジ 第1章：品が変わったら読み直すのではなく、品を見続けて合計を直す。
+    'subscribeCheckoutData({ orderId, storeId }',
     'setOrderItemsRevision(data.orderItemsRevision)',
   ]),
   assertSourceContains('src/pages/order/OrderEntryPage.jsx', [

@@ -1042,6 +1042,41 @@ async function runLateSubmitAfterCheckout(db, publicFunctions, staffFunctions, p
   ), 'late submit after checkout')
 }
 
+// 2026-10-29 レジ 第1章：合計はサーバーが品から計算し直す。画面の合計が違えば断り、記録にうち税を残す。
+async function runCheckoutTotalVerification(db, publicFunctions, staffFunctions, productId) {
+  const tableId = `${runId}_checkout_total_table`
+  await seedTable(db, tableId)
+  const orderId = await call(publicFunctions, 'startCustomerOrderSessionCommand', {
+    guestAutoAdd: { enabled: false }, guestCount: 2, storeId, tableId,
+  })
+  await call(publicFunctions, 'submitCustomerOrderItemsCommand', {
+    items: [cartItem(productId, 2)], orderId, storeId, tableId, clientRequestId: `${runId}_checkout_total_submit`,
+  })
+  const items = await queryBy(db, 'orderItems', 'orderId', orderId)
+  const order = await orderData(db, orderId)
+  const before = items.reduce((sum, item) => sum + item.lineTotal, 0)
+  const base = checkoutPayload({ checkoutItemIds: items.map(item => item.id), orderId, orderItemsRevision: order.orderItemsRevision ?? 0, tableId, total: before })
+  await expectCallableError('checkout-total-mismatch', () => (
+    call(staffFunctions, 'completeCheckoutCommand', { ...base, total: 1, subtotal: before, received: 1, change: 0 })
+  ), 'checkout with a total that does not match the items')
+  const total = before - 100
+  await call(staffFunctions, 'completeCheckoutCommand', {
+    ...base,
+    checkoutDiscountType: 'amount',
+    checkoutDiscountValue: '100',
+    checkoutDiscountAmount: 100,
+    totalDiscountAmount: 100,
+    total,
+    received: 5000,
+    change: 5000 - total,
+  })
+  const [check] = await queryBy(db, 'checks', 'orderId', orderId)
+  assert.equal(check.total, total, 'check total should be the server total')
+  assert.equal(check.taxAmount, Math.round(total * check.taxRate / (100 + check.taxRate)), 'check should keep the included tax')
+  assert.equal(check.changeAmount, 5000 - total)
+  assert.equal(check.paymentMethod, 'cash')
+}
+
 async function runDoubleCheckoutIdempotency(db, publicFunctions, staffFunctions) {
   const tableId = `${runId}_double_checkout_table`
   await seedTable(db, tableId)
@@ -1512,6 +1547,7 @@ await runCancelPasscodeChecks(db, staffClient.functions, floorClient.functions, 
 await runLateSubmitAfterCheckout(db, publicClient.functions, staffClient.functions, products.productId)
 await runDoubleCheckoutIdempotency(db, publicClient.functions, staffClient.functions)
 await runCheckoutSubmitRace(db, publicClient.functions, staffClient.functions, products.productId)
+await runCheckoutTotalVerification(db, publicClient.functions, staffClient.functions, products.productId)
 await runTableMoveConsistency(db, staffClient.functions, products.productId)
 await runTableMoveCustomerSubmitRace(db, publicClient.functions, staffClient.functions, products.productId)
 await runReservationGuideCommand(db, staffClient.functions)

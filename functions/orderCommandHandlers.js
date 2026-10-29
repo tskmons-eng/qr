@@ -28,6 +28,7 @@ const {
 } = require('./orderCommandAuth')
 const { assertCancelAllowed } = require('./cancelPasscode')
 const { findProductUnavailableReason, verifyOrderItems } = require('./orderItemValidation')
+const { normalizeTaxRate, recalculateCheckout } = require('./checkoutCalculations')
 
 function itemRefFor(db, { orderId, clientRequestId, index }) {
   return db.collection('orderItems').doc(buildOrderItemCommandDocId({ orderId, clientRequestId, index }))
@@ -600,11 +601,8 @@ async function completeCheckoutCommand(data, request) {
     storeId,
     tableId,
     orderId,
-    checkoutDiscountAmount,
-    itemDiscountAmount,
     checkoutItemIds,
     orderItemsRevision,
-    total,
   } = data
   if (!storeId || !tableId || !orderId) throw commandError('invalid-argument', 'Order, store, and table are required.')
   const db = getFirestore()
@@ -620,6 +618,7 @@ async function completeCheckoutCommand(data, request) {
     const orderSnap = await transaction.get(orderRef)
     const tableSnap = await transaction.get(tableRef)
     const orderItemsSnap = await transaction.get(db.collection('orderItems').where('orderId', '==', orderId))
+    const configSnap = await transaction.get(db.collection('storeConfig').doc(storeId))
 
     if (!orderSnap.exists) throw commandError('order-not-found', 'Order was not found.')
     const order = orderSnap.data()
@@ -645,17 +644,26 @@ async function completeCheckoutCommand(data, request) {
     if (table.storeId !== storeId || table.currentOrderId !== orderId) {
       throw commandError('table-order-mismatch', 'Table is not linked to this order.')
     }
+    const orderItems = orderItemsSnap.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() }))
     const checkoutSnapshot = assertCheckoutItemsFresh({
       checkoutItemIds,
-      items: orderItemsSnap.docs.map(itemDoc => ({ id: itemDoc.id, ...itemDoc.data() })),
+      items: orderItems,
       storeId,
       subtotalBeforeItemDiscount: data.subtotalBeforeItemDiscount,
       tableId,
+    })
+    // 合計は品の記録から計算し直し、画面の数字と違えば断る。記録はサーバーの数字で残す（2026-10-29 レジ 第1章）。
+    const totals = recalculateCheckout({
+      items: orderItems.filter(item => normalizeItemStatus(item) !== 'cancelled'),
+      data,
+      taxRate: normalizeTaxRate(configSnap.exists ? configSnap.data()?.taxRate : undefined),
     })
 
     transaction.set(checkRef, buildCheckoutCheckPayload({
       ...data,
       ...checkoutSnapshot,
+      ...totals,
+      activeStaff,
       timestamp: now,
     }))
     transaction.update(orderRef, {
@@ -677,9 +685,9 @@ async function completeCheckoutCommand(data, request) {
     transaction.set(staffActionRef, buildCheckoutStaffActionPayload({
       storeId,
       checkId: checkRef.id,
-      checkoutDiscountAmount,
-      itemDiscountAmount,
-      total,
+      checkoutDiscountAmount: totals.checkoutDiscountAmount,
+      itemDiscountAmount: totals.itemDiscountAmount,
+      total: totals.total,
       activeStaff,
       timestamp: now,
     }))

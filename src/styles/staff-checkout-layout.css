@@ -55,6 +55,17 @@
   padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 270px);
 }
 
+/* 会計の途中で品が変わった知らせ（2026-10-29 レジ 第1章） */
+.checkout-page__notice {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ui-warn-line);
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .checkout-page__items-scroll {
   flex: 0 0 auto;
   max-height: clamp(130px, 28dvh, 220px);
