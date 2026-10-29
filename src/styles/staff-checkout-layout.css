@@ -282,3 +282,31 @@
     box-shadow: var(--ui-shadow-flat);
   }
 }
+
+/* 売上の画面から開く会計の打ち直し（2026-10-30 締め 第2章）。画面全体に重ね、下のメニューは出さない。 */
+.checkout-page.is-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  height: 100dvh;
+}
+
+.checkout-page.is-overlay .checkout-page__body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.checkout-page__previous {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (min-width: 900px) {
+  .checkout-page.is-overlay .checkout-page__body {
+    padding-bottom: 10px;
+  }
+}

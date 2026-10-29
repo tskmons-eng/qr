@@ -144,3 +144,40 @@ export async function completeCheckoutCommand({
     return callOrderCommandFunction('completeCheckoutCommand', payload)
   })
 }
+
+// 締め（2026-10-30）：会計の取り消し・打ち直し・1日の締め。どれも Functions がレジ締めの権限と締めた日かを確かめる。
+export async function voidCheckCommand({ storeId, checkId, reason }) {
+  return withOrderCommandFailureLog({
+    commandType: 'void_check',
+    actorType: 'staff',
+    storeId,
+  }, () => callOrderCommandFunction('voidCheckCommand', { storeId, checkId, reason }))
+}
+
+export async function correctCheckCommand({ storeId, checkId, guestCount, clientRequestId, ...payload }) {
+  const requestId = clientRequestId || createOrderCommandRequestId('correct-check')
+  return withOrderCommandFailureLog({
+    commandType: 'correct_check',
+    actorType: 'staff',
+    storeId,
+    clientRequestId: requestId,
+  }, () => callOrderCommandFunction('correctCheckCommand', {
+    ...payload,
+    storeId,
+    checkId,
+    guestCount,
+    clientRequestId: requestId,
+    checkoutDiscountType: payload.checkoutDiscountType ?? null,
+    checkoutDiscountValue: payload.checkoutDiscountValue ?? null,
+    paymentMethod: payload.paymentMethod ?? 'cash',
+  }))
+}
+
+export async function closeRegisterCommand({ storeId, businessDate, openingCash, countedCash, memo, clientRequestId }) {
+  return withOrderCommandFailureLog({
+    commandType: 'close_register',
+    actorType: 'staff',
+    storeId,
+    clientRequestId,
+  }, () => callOrderCommandFunction('closeRegisterCommand', { storeId, businessDate, openingCash, countedCash, memo, clientRequestId }))
+}

@@ -60,7 +60,11 @@ assert.ok(checkoutPage.includes('className="checkout-page__body"'), 'checkout pa
 assert.ok(checkoutPage.includes('className="checkout-page__items-scroll"'), 'checkout item list should have an independent scroll region')
 assert.ok(checkoutPage.includes('className="checkout-page__payment"'), 'checkout summary controls should remain outside the item scroll region')
 // 2026-10-29 レジ 第2章：品だけをスクロールさせ、合計〜お預かり〜確定はスクロールの外（スマホは下に固定、タブレットは右）に置く。
-assert.ok(checkoutPage.includes('onReceivedCashChange={setReceivedCash}'), 'checkout cash input handler should be passed to the payment area')
+// 2026-10-30 締め 第2章：会計の入力は useCheckoutForm にまとめ、会計画面と打ち直しで同じものを使う。
+const checkoutForm = await readFile('src/hooks/useCheckoutForm.js', 'utf8')
+assert.ok(checkoutPage.includes('{...checkoutForm.paymentPanelProps}'), 'checkout payment area should get the shared checkout form')
+assert.ok(checkoutForm.includes('onReceivedCashChange: setReceivedCash'), 'checkout cash input handler should be passed to the payment area')
+assert.ok(!checkoutForm.includes("setReceivedCash('')"), '品が変わってもお預かりを消さない（共通の入力）')
 assert.ok(checkoutPage.indexOf('className="checkout-page__payment"') > checkoutPage.indexOf('<CheckoutItemList'), 'checkout payment area should be outside the item scroll region')
 assert.ok(checkoutPaymentPanel.includes('checkout-cash-input'), 'checkout payment area should own the received cash input')
 assert.ok(checkoutPaymentPanel.includes('checkout-pay__submit'), 'checkout confirm button should live in the payment area')

@@ -762,8 +762,8 @@ service cloud.firestore {
     // レジ締め
     match /cashClosings/{closingId} {
       allow read: if canCloseRegister(resource.data.storeId);
-      allow create: if canCloseRegister(request.resource.data.storeId);
-      allow update, delete: if canCloseRegister(resource.data.storeId);
+      // 締めの記録は closeRegisterCommand（Functions）がその日の会計を数え直して書くだけ（2026-10-30 締め 第2章）。
+      allow create, update, delete: if false;
     }
 
     // 売上担当マスタ（無効化で履歴を保持し、物理削除しない）

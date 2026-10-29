@@ -120,7 +120,8 @@ assert.match(rules, /match \/products\/\{productId\}[\s\S]*allow create: if canM
 assert.match(rules, /match \/tables\/\{tableId\}[\s\S]*allow create: if canManageTables\(request\.resource\.data\.storeId\);/)
 assert.doesNotMatch(rules, /match \/tableGroups\//, '席グループは無くした（2026-10-23 席設計）')
 assert.match(rules, /allow delete: if canManageTables\(resource\.data\.storeId\)\s*&& resource\.data\.get\('status', 'vacant'\) == 'vacant'/, '空き席だけ消せる')
-assert.match(rules, /match \/cashClosings\/\{closingId\}[\s\S]*allow create: if canCloseRegister\(request\.resource\.data\.storeId\);/)
+// 締めの記録は Functions（closeRegisterCommand）だけが書く。読みはレジ締めの権限（2026-10-30 締め 第2章）。
+assert.match(rules, /match \/cashClosings\/\{closingId\} \{\s*allow read: if canCloseRegister\(resource\.data\.storeId\);[\s\S]*?allow create, update, delete: if false;/)
 assert.match(rules, /match \/reservations\/\{reservationId\}[\s\S]*allow create: if canManageReservations\(request\.resource\.data\.storeId\);/)
 assert.match(rules, /match \/storeConfig\/\{configId\}[\s\S]*allow write: if canManageSettings\(configId\);/)
 // 追加はパスと一緒に Functions（createStaffMemberCommand）で。パス（code）は画面から書けない（2026-10-22 第4章 4-B）。

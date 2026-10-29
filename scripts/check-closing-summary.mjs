@@ -64,6 +64,8 @@ for (const name of ['voidCheckCommand', 'correctCheckCommand', 'closeRegisterCom
 }
 assert.ok(correction.includes("actorHasPermission(actor, 'closeRegister')"), 'check correction should require closeRegister permission')
 assert.ok(correction.includes('assertRegisterOpen(transaction, db, storeId, checkBusinessDate(check))'), 'closed business dates should be locked')
-assert.ok(correction.includes('closingRef.create(payload)'), 'one closing per business date')
+assert.ok(correction.includes('const closingSnap = await transaction.get(closingRef)'), 'one closing per business date, read in the same transaction as the checks')
+assert.ok(correction.includes("transaction.get(db.collection('checks').where('storeId', '==', storeId))"), 'closing should count checks inside the transaction')
+assert.ok(correction.includes('existing.clientRequestId === clientRequestId'), 'same closing request retried should return the saved closing')
 
 console.log('closing summary checks passed')

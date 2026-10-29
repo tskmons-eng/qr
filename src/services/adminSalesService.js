@@ -1,5 +1,5 @@
-import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
-import { auth, db } from '../lib/firebase'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 import { filterCompletedChecks, sortCashClosingsByBusinessDateDesc } from '../lib/adminSales'
 import { loadSalesHistoryMetadata } from './salesHistoryService'
 
@@ -13,28 +13,13 @@ export async function loadSalesAdminData(storeId) {
     getDocs(query(collection(db, 'cashClosings'), where('storeId', '==', storeId))),
     loadSalesHistoryMetadata(storeId),
   ])
+  const checks = mapDocs(checksSnap)
 
   return {
-    completedChecks: filterCompletedChecks(mapDocs(checksSnap)),
+    completedChecks: filterCompletedChecks(checks),
+    // 取り消した会計（打ち直し前を含む）。本日の一覧に薄く出し、締めで件数を数える（2026-10-30 締め 第2章）。
+    voidedChecks: checks.filter(check => check.status === 'voided'),
     cashClosings: sortCashClosingsByBusinessDateDesc(mapDocs(closingsSnap)),
     ...historyMetadata,
   }
-}
-
-export async function createCashClosingRecord({ storeId, businessDate, memo, summary }) {
-  const actor = auth.currentUser
-  const payload = {
-    storeId,
-    businessDate,
-    salesTotal: summary.salesTotal,
-    customerCount: summary.customerCount,
-    checkCount: summary.checkCount,
-    averageSpend: summary.averageSpend,
-    memo,
-    closedAt: serverTimestamp(),
-    closedByUid: actor?.uid ?? null,
-    closedByEmail: actor?.email ?? null,
-  }
-  const ref = await addDoc(collection(db, 'cashClosings'), payload)
-  return { id: ref.id, ...payload, closedAt: new Date() }
 }

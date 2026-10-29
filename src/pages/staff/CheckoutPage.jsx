@@ -9,7 +9,7 @@ import CheckoutItemDiscountModal from '../../components/staff/CheckoutItemDiscou
 import CheckoutItemList from '../../components/staff/CheckoutItemList'
 import CheckoutPaymentPanel from '../../components/staff/CheckoutPaymentPanel'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
-import { calculateCheckoutTotals } from '../../lib/checkoutCalculations'
+import useCheckoutForm from '../../hooks/useCheckoutForm'
 import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
 import { stepGuestInputValue } from '../../lib/staffTableDetail'
 import { completeCheckout, subscribeCheckoutData } from '../../services/checkoutService'
@@ -25,17 +25,9 @@ export default function CheckoutPage() {
   const [items, setItems] = useState([])
   const [orderItemsRevision, setOrderItemsRevision] = useState(0)
   const [taxRate, setTaxRate] = useState(0)
-  const [receivedCash, setReceivedCash] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [completed, setCompleted] = useState(null)
-  const [paymentMethod, setPaymentMethod] = useState('cash')
-  const [discountSheetOpen, setDiscountSheetOpen] = useState(false)
-  const [discountType, setDiscountType] = useState(null)
-  const [discountValue, setDiscountValue] = useState('')
-  const [discountNote, setDiscountNote] = useState('')
-  const [itemDiscounts, setItemDiscounts] = useState({})
-  const [selectedItemId, setSelectedItemId] = useState(null)
   const [editingGuests, setEditingGuests] = useState(false)
   const [guestInput, setGuestInput] = useState('')
   const [checkoutError, setCheckoutError] = useState('')
@@ -68,37 +60,8 @@ export default function CheckoutPage() {
     return subscribeStaffTable(tableId, setTable)
   }, [tableId])
 
-  function updateItemDiscount(itemId, patch) {
-    setItemDiscounts(prev => ({
-      ...prev,
-      [itemId]: { type: 'amount', value: '', note: '', ...(prev[itemId] ?? {}), ...patch },
-    }))
-  }
-
-  function changeDiscountType(nextType) {
-    if (nextType === discountType) return
-    setDiscountType(nextType)
-    setDiscountValue('')
-    // 「なし」にしたら理由も消す（値引きの無い会計に理由だけが残らないように）。
-    if (!nextType) setDiscountNote('')
-  }
-
-  function clearCheckoutDiscount() {
-    setDiscountType(null)
-    setDiscountValue('')
-    setDiscountNote('')
-  }
-
-  const totals = calculateCheckoutTotals({
-    items,
-    itemDiscounts,
-    discountType,
-    discountValue,
-    taxRate,
-    receivedCash,
-    paymentMethod,
-  })
-  const selectedItemRow = totals.itemDiscountRows.find(row => row.item.id === selectedItemId)
+  const checkoutForm = useCheckoutForm({ items, taxRate })
+  const { totals } = checkoutForm
   const currentGuestCount = table?.guestCount ?? guestCount ?? 0
 
   function startEditGuests() {
@@ -126,29 +89,18 @@ export default function CheckoutPage() {
     setCheckoutError('')
     setItemsChanged(false)
     try {
+      const payload = checkoutForm.buildPayload()
       await completeCheckout({
+        ...payload,
         storeId,
         tableId,
         orderId,
         guestCount: currentGuestCount,
-        subtotalBeforeItemDiscount: totals.subtotalBeforeItemDiscount,
-        itemDiscountAmount: totals.itemDiscountAmount,
-        activeItemDiscounts: totals.activeItemDiscounts,
         checkoutItemIds: items.map(item => item.id),
         orderItemsRevision,
-        subtotal: totals.subtotal,
-        checkoutDiscountType: discountType,
-        checkoutDiscountValue: discountValue,
-        checkoutDiscountAmount: totals.discountAmount,
-        totalDiscountAmount: totals.totalDiscountAmount,
-        discountNote: discountNote.trim() || null,
-        total: totals.total,
-        paymentMethod,
-        received: totals.received,
-        change: totals.change,
         activeStaff,
       })
-      setCompleted({ change: totals.change, paymentMethod, total: totals.total })
+      setCompleted({ change: payload.change, paymentMethod: payload.paymentMethod, total: payload.total })
     } catch (error) {
       // 品が変わって断られたときも、品は見続けているので画面はもう新しい合計になっている。入れた値引き・お預かりは残す。
       const formatted = formatOrderCommandError(error, { context: 'checkout' })
@@ -178,24 +130,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="checkout-page">
-      <CheckoutDiscountSheet
-        open={discountSheetOpen}
-        discountNote={discountNote}
-        discountType={discountType}
-        discountValue={discountValue}
-        rows={totals.itemDiscountRows}
-        totalDiscountAmount={totals.totalDiscountAmount}
-        onClose={() => setDiscountSheetOpen(false)}
-        onDiscountNoteChange={setDiscountNote}
-        onDiscountTypeChange={changeDiscountType}
-        onDiscountValueChange={setDiscountValue}
-        onSelectItem={setSelectedItemId}
-      />
-      <CheckoutItemDiscountModal
-        row={selectedItemRow}
-        onClose={() => setSelectedItemId(null)}
-        onUpdate={updateItemDiscount}
-      />
+      <CheckoutDiscountSheet {...checkoutForm.discountSheetProps} />
+      <CheckoutItemDiscountModal {...checkoutForm.itemDiscountModalProps} />
       <CheckoutHeader
         activeStaff={activeStaff}
         guestCount={currentGuestCount}
@@ -224,22 +160,11 @@ export default function CheckoutPage() {
         </div>
         <div className="checkout-page__payment">
           <CheckoutPaymentPanel
-            discountNote={discountNote}
-            discountType={discountType}
-            discountValue={discountValue}
+            {...checkoutForm.paymentPanelProps}
             errorMessage={checkoutError}
             guestCount={currentGuestCount}
-            paymentMethod={paymentMethod}
-            receivedCash={receivedCash}
             submitting={submitting}
-            taxRate={taxRate}
-            totals={totals}
-            onClearCheckoutDiscount={clearCheckoutDiscount}
-            onClearItemDiscounts={() => setItemDiscounts({})}
             onConfirm={handleConfirm}
-            onOpenDiscount={() => setDiscountSheetOpen(true)}
-            onPaymentMethodChange={setPaymentMethod}
-            onReceivedCashChange={setReceivedCash}
           />
         </div>
       </div>

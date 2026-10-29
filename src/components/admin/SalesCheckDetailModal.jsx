@@ -16,9 +16,12 @@ function getOptionLabel(item) {
 export default function SalesCheckDetailModal({
   assignees,
   check,
+  correctionLockedMessage = '',
   error,
   onClose,
+  onCorrect,
   onSaveAttribution,
+  onVoid,
   saving,
   successMessage,
 }) {
@@ -63,6 +66,8 @@ export default function SalesCheckDetailModal({
   const subtotal = Number(check.subtotalBeforeItemDiscount ?? check.subtotal ?? check.total ?? 0)
   const itemDiscount = Number(check.itemDiscountAmount ?? 0)
   const checkoutDiscount = Number(check.checkoutDiscountAmount ?? Math.max(0, Number(check.discountAmount ?? 0) - itemDiscount))
+  const voided = check.status === 'voided'
+  const detailItems = (detail?.items ?? []).filter(item => item.itemStatus !== 'cancelled')
 
   return (
     <AdminSalesModal
@@ -74,13 +79,22 @@ export default function SalesCheckDetailModal({
     >
       <div className="admin-sales-detail__hero">
         <div>
-          <div className="admin-sales-detail__date">{formatSalesTimestamp(check.completedAt) || '日時不明'}</div>
+          <strong className="admin-sales-detail__table">
+            {[check.tableNameSnapshot, `${check.guestCount ?? 0}名`].filter(Boolean).join('・')}
+          </strong>
           <div className="admin-sales-detail__meta">
-            {check.guestCount ?? 0}名 ・ 会計: {check.closedByStaffName ?? check.closedByEmail ?? '不明'}
+            {formatSalesTimestamp(check.completedAt) || '日時不明'} ・ 会計 {check.closedByStaffName ?? check.closedByEmail ?? '不明'}
           </div>
         </div>
-        <strong>¥{Number(check.total ?? 0).toLocaleString()}</strong>
+        <strong className={voided ? 'is-voided' : ''}>¥{Number(check.total ?? 0).toLocaleString()}</strong>
       </div>
+      {voided && (
+        <div className="admin-sales-inline-warning" role="status">
+          {check.correctedByCheckId ? 'この会計は打ち直しました（売上には新しい会計が入っています）。' : 'この会計は取り消しました（売上に入りません）。'}
+          {check.voidReason && !check.correctedByCheckId && <>理由：{check.voidReason}。</>}
+          {check.voidedByStaffName && <>{check.voidedByStaffName}が{formatSalesTimestamp(check.voidedAt, { includeDate: false })}に操作。</>}
+        </div>
+      )}
 
       <section className="admin-sales-detail__section">
         <h4>商品明細</h4>
@@ -111,7 +125,7 @@ export default function SalesCheckDetailModal({
         {!detailLoading && !detailError && detail?.items.length === 0 && (
           <div className="admin-sales-state-message">保存済みの商品明細はありません</div>
         )}
-        {detail?.items.map(item => {
+        {detailItems.map(item => {
           const optionLabel = getOptionLabel(item)
           return (
             <div key={item.id} className="admin-sales-detail-item">
@@ -134,16 +148,18 @@ export default function SalesCheckDetailModal({
           {checkoutDiscount > 0 && <div><dt>会計割引</dt><dd>-¥{checkoutDiscount.toLocaleString()}</dd></div>}
           {check.discountNote && <div><dt>割引理由</dt><dd>{check.discountNote}</dd></div>}
           <div className="is-total"><dt>合計</dt><dd>¥{Number(check.total ?? 0).toLocaleString()}</dd></div>
+          {Number(check.taxAmount ?? 0) > 0 && <div><dt>うち消費税 {check.taxRate}%</dt><dd>¥{Number(check.taxAmount).toLocaleString()}</dd></div>}
           <div><dt>支払方法</dt><dd>{paymentMethodLabel(check.paymentMethod)}</dd></div>
           {check.receivedCash !== undefined && check.receivedCash !== null && (
             <div><dt>お預かり</dt><dd>¥{Number(check.receivedCash).toLocaleString()}</dd></div>
           )}
-          {check.changeAmount !== undefined && check.changeAmount !== null && (
+          {check.receivedCash !== undefined && check.receivedCash !== null && check.changeAmount !== undefined && check.changeAmount !== null && (
             <div><dt>お釣り</dt><dd>¥{Number(check.changeAmount).toLocaleString()}</dd></div>
           )}
         </dl>
       </section>
 
+      {!voided && (
       <section className="admin-sales-detail__section admin-sales-detail__assignment">
         <h4>担当</h4>
         <label className="admin-sales-field__label" htmlFor="sales-check-assignee">この会計の担当者</label>
@@ -186,6 +202,22 @@ export default function SalesCheckDetailModal({
           </button>
         </div>
       </section>
+      )}
+
+      {!voided && (
+        correctionLockedMessage ? (
+          <div className="admin-sales-detail__locked">{correctionLockedMessage}</div>
+        ) : (
+          <div className="admin-sales-detail__actions">
+            <button type="button" className="admin-sales-button admin-sales-button--outline" disabled={saving || !detail || detail.hasIncompleteItems} onClick={() => onCorrect(detailItems)}>
+              打ち直す
+            </button>
+            <button type="button" className="admin-sales-button admin-sales-button--danger-outline" disabled={saving} onClick={onVoid}>
+              取り消す
+            </button>
+          </div>
+        )
+      )}
     </AdminSalesModal>
   )
 }

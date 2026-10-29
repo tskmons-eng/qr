@@ -13,6 +13,7 @@ function checkoutDiscountLabel(discountType, discountValue, discountNote) {
 
 // 会計の右側（スマホでは下に固定）：合計・割り勘・支払い方法・お預かり・確定（2026-10-29 レジ 第2章）。
 export default function CheckoutPaymentPanel({
+  confirmLabel = '会計を確定する',
   discountNote,
   discountType,
   discountValue,
@@ -152,7 +153,7 @@ export default function CheckoutPaymentPanel({
         disabled={change === null || submitting}
         className="checkout-pay__submit"
       >
-        {submitting ? '処理中...' : isCash ? '会計を確定する' : `${methodLabel}で会計を確定する`}
+        {submitting ? '処理中...' : isCash ? confirmLabel : `${methodLabel}で${confirmLabel}`}
       </button>
     </div>
   )

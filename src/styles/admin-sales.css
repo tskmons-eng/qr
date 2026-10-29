@@ -1,6 +1,12 @@
+/* 売上（2026-10-30 締め 第2章で作り直し）。色・角・影は tokens.css の共通の値だけを使う。
+   タブレット（横）：左に本日の会計、右に売上と締め。スマホ：上に売上、下に会計、「締める」は下に固定。 */
 .admin-sales {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
+  padding: 8px;
+  font-family: var(--font-main);
+  color: var(--ui-text-main);
 }
 
 .admin-sales button,
@@ -14,53 +20,81 @@
 .admin-sales input:focus-visible,
 .admin-sales select:focus-visible,
 .admin-sales textarea:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--ui-brand);
   outline-offset: 2px;
 }
 
-.admin-sales__loading,
 .admin-sales-state-card {
-  padding: 48px 20px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-panel);
-  background: #ffffff;
-  color: var(--color-text-muted);
+  padding: 40px 16px;
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+  color: var(--ui-text-muted);
   text-align: center;
 }
 
 .admin-sales-state-card.is-error {
   display: grid;
   justify-items: center;
-  gap: var(--space-2);
-  color: #991b1b;
+  gap: 8px;
+  color: var(--ui-danger);
 }
 
 .admin-sales-state-card.is-error strong {
-  color: var(--color-text-main);
+  color: var(--ui-text-main);
 }
 
 .admin-sales-state-card button {
   min-height: 44px;
-  margin-top: var(--space-2);
+  margin-top: 8px;
   padding: 0 18px;
-  border: none;
-  border-radius: var(--radius-control);
-  background: var(--color-action-main);
-  color: #ffffff;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
   cursor: pointer;
+  font-weight: 900;
 }
 
+/* 上の帯：「売上」・本日／履歴・その他を1行に */
 .admin-sales__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .admin-sales__title {
+  flex: 1;
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.admin-sales-view-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-bg-subtle);
+}
+
+.admin-sales-view-tabs button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--ui-radius-compact);
+  background: transparent;
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-sales-view-tabs button.is-active {
+  background: var(--ui-bg-surface);
+  color: var(--ui-brand);
+  box-shadow: var(--ui-shadow-card);
 }
 
 .admin-sales-menu {
@@ -68,15 +102,15 @@
 }
 
 .admin-sales-menu__trigger {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: #ffffff;
-  color: #333333;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-muted);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: var(--font-weight-label);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .admin-sales-menu__panel {
@@ -87,352 +121,550 @@
   display: grid;
   width: min(280px, calc(100vw - 24px));
   gap: 2px;
-  padding: 8px;
-  border: 1px solid #d4d4d8;
-  border-radius: var(--radius-panel);
-  background: #ffffff;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  padding: 6px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-pop);
 }
 
 .admin-sales-menu__panel button {
   min-height: 44px;
   padding: 8px 10px;
-  border: none;
-  border-radius: var(--radius-control);
-  background: #ffffff;
-  color: var(--color-text-main);
+  border: 0;
+  border-radius: var(--ui-radius-compact);
+  background: transparent;
+  color: var(--ui-text-main);
   cursor: pointer;
   font-size: 13px;
+  font-weight: 700;
   text-align: left;
 }
 
 .admin-sales-menu__panel button:hover {
-  background: #f5f5f5;
+  background: var(--ui-bg-subtle);
 }
 
 .admin-sales-menu__panel button:disabled {
-  color: #a3a3a3;
+  color: var(--ui-text-muted);
   cursor: default;
+  opacity: 0.6;
 }
 
 .admin-sales-menu__panel button:disabled:hover {
-  background: #ffffff;
+  background: transparent;
 }
 
 .admin-sales-menu__separator {
   height: 1px;
-  margin: 5px 4px;
-  background: var(--color-border-subtle);
+  margin: 4px;
+  background: var(--ui-border-subtle);
 }
 
-.admin-sales-view-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: var(--space-4);
-  padding: 4px;
-  border-radius: 10px;
-  background: #e9e9e9;
-}
-
-.admin-sales-view-tabs button {
-  min-height: 44px;
-  padding: 7px 12px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: #666666;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: var(--font-weight-label);
-}
-
-.admin-sales-view-tabs button.is-active {
-  background: #ffffff;
-  color: var(--color-text-main);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
+/* 枠 */
 .admin-sales-card {
   overflow: hidden;
-  margin-bottom: var(--space-3);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-panel);
-  background: #ffffff;
+  margin-bottom: 8px;
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
 }
 
 .admin-sales-card--padded {
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .admin-sales-card__label,
 .admin-sales-card__header {
-  color: #737373;
+  color: var(--ui-text-muted);
   font-size: 12px;
-  font-weight: var(--font-weight-label);
+  font-weight: 900;
 }
 
 .admin-sales-card__label {
-  margin-bottom: var(--space-3);
+  margin-bottom: 8px;
 }
 
 .admin-sales-card__header {
-  padding: 11px 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.admin-sales-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.admin-sales-summary__item {
-  min-width: 0;
-  padding: 12px 8px;
-  border-radius: var(--radius-panel);
-  background: #f8f8f8;
-  text-align: center;
-}
-
-.admin-sales-summary__label {
-  margin-bottom: 4px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.admin-sales-summary__value {
-  overflow: hidden;
-  font-size: 20px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 6px;
 }
 
 .admin-sales-empty,
 .admin-sales-state-message {
-  padding: 28px 16px;
-  color: var(--color-text-muted);
+  padding: 24px 12px;
+  border-top: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-muted);
   font-size: 13px;
   text-align: center;
 }
 
+/* 会計の一行（本日・履歴で共通） */
 .admin-sales-check,
 .admin-sales-history {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  min-height: 62px;
-  border: none;
-  border-bottom: 1px solid #f1f1f1;
-  background: #ffffff;
-  color: var(--color-text-main);
+  padding: 8px 10px;
+  border: 0;
+  border-top: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
   text-align: left;
 }
 
-.admin-sales-check:last-child,
-.admin-sales-history:last-child {
-  border-bottom: none;
-}
-
 .admin-sales-check:hover,
 .admin-sales-history:hover {
-  background: #fafafa;
-}
-
-.admin-sales-check {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: 11px 14px 11px 16px;
-}
-
-.admin-sales-check__content,
-.admin-sales-check__meta {
-  min-width: 0;
-}
-
-.admin-sales-check__meta,
-.admin-sales-check__submeta {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.admin-sales-check__submeta {
-  flex-wrap: wrap;
-  gap: 5px 8px;
-  margin-top: 5px;
+  background: var(--ui-bg-subtle);
 }
 
 .admin-sales-check__time {
-  color: #444444;
-  font-size: 13px;
-  font-weight: var(--font-weight-label);
-}
-
-.admin-sales-check__guest {
-  margin-left: 8px;
-  color: #8a8a8a;
-  font-size: 12px;
-}
-
-.admin-sales-check__email {
-  overflow: hidden;
-  max-width: 220px;
-  color: #999999;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-sales-assignee-badge {
-  display: inline-flex;
-  align-items: center;
-  max-width: 220px;
-  min-height: 22px;
-  overflow: hidden;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #ecfdf5;
-  color: #166534;
-  font-size: 11px;
-  font-weight: var(--font-weight-label);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-sales-assignee-badge.is-unassigned {
-  background: #fff7d6;
-  color: #92400e;
-}
-
-.admin-sales-check__amount {
-  display: flex;
   flex: 0 0 auto;
-  align-items: center;
-  gap: 9px;
+  min-width: 44px;
+  font-family: var(--font-number);
+  font-size: 14px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-sales-check__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-sales-check__table {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sales-check__content small {
+  display: block;
+  overflow: hidden;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sales-chip {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-sales-chip.is-card {
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+}
+
+.admin-sales-chip.is-qr {
+  background: var(--ui-ok-soft);
+  color: var(--ui-ok);
+}
+
+.admin-sales-chip.is-voided {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
 }
 
 .admin-sales-check__total {
-  font-weight: 700;
-  white-space: nowrap;
+  flex: 0 0 auto;
+  min-width: 76px;
+  font-family: var(--font-number);
+  font-size: 15px;
+  font-weight: var(--font-weight-number-strong);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.admin-sales-check.is-voided {
+  opacity: 0.55;
+}
+
+.admin-sales-check.is-voided .admin-sales-check__total {
+  text-decoration: line-through;
 }
 
 .admin-sales-check__chevron,
 .admin-sales-history__chevron {
-  color: #a3a3a3;
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 1;
+  flex: 0 0 auto;
+  color: var(--ui-text-muted);
+  font-size: 18px;
+  font-weight: 900;
 }
 
-.admin-sales-closing {
-  margin-bottom: var(--space-4);
-}
-
-.admin-sales-closing__done {
-  padding: 12px 16px;
-  border-radius: var(--radius-panel);
-  background: #f0fdf4;
-  color: #15803d;
-  font-size: 14px;
-  text-align: center;
-}
-
-.admin-sales-field__label {
-  display: block;
-  margin-bottom: 6px;
-  color: #555555;
-  font-size: 12px;
-  font-weight: var(--font-weight-label);
-}
-
-.admin-sales-closing__memo {
-  box-sizing: border-box;
-  width: 100%;
-  margin-bottom: var(--space-3);
-  padding: 10px 12px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  font-size: 14px;
-  resize: vertical;
-}
-
-.admin-sales-closing__button {
-  width: 100%;
-  min-height: 48px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: var(--radius-panel);
-  background: var(--color-action-main);
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: var(--font-weight-label);
-}
-
-.admin-sales-closing__button:disabled {
-  background: #a3a3a3;
-  cursor: default;
-}
-
-.admin-sales-history {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 12px 14px 12px 16px;
-}
-
+/* 締めの履歴（履歴のタブ） */
 .admin-sales-history__content {
-  min-width: 0;
   flex: 1;
+  min-width: 0;
 }
 
 .admin-sales-history__main {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: 4px;
+  gap: 8px;
 }
 
 .admin-sales-history__date {
   font-size: 14px;
-  font-weight: var(--font-weight-label);
+  font-weight: 800;
 }
 
 .admin-sales-history__total {
+  font-family: var(--font-number);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--font-weight-number-strong);
   white-space: nowrap;
 }
 
 .admin-sales-history__meta,
 .admin-sales-history__memo {
-  color: var(--color-text-muted);
+  color: var(--ui-text-muted);
   font-size: 12px;
   line-height: 1.5;
 }
 
-.admin-sales-history__memo {
+/* 本日：タブレットは2列、スマホは1列で「締める」を下に固定 */
+.sales-today {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.sales-today__list {
+  flex: 1;
+  min-width: 0;
+}
+
+.sales-today__side {
+  position: sticky;
+  top: 8px;
+  flex: 0 0 400px;
+  overflow: hidden;
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-flat);
+}
+
+.sales-today.is-narrow {
+  display: block;
+  padding-bottom: 72px;
+}
+
+.sales-today__fixed {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-pop);
+}
+
+/* 売上の数字 */
+.sales-summary__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 6px;
+}
+
+.sales-summary__total span {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.sales-summary__total strong {
+  font-family: var(--font-number);
+  font-size: 30px;
+  font-weight: var(--font-weight-number-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-summary__kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0 12px 8px;
+}
+
+.sales-summary__kpis div {
+  padding: 5px 8px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sales-summary__kpis strong {
+  display: block;
+  color: var(--ui-text-main);
+  font-family: var(--font-number);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.sales-summary__rows {
+  padding: 0 12px 6px;
+}
+
+.sales-summary__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--ui-border-subtle);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sales-summary__row span:first-child {
+  flex: 1;
+}
+
+.sales-summary__row span:nth-child(2) {
+  color: var(--ui-text-muted);
+}
+
+.sales-summary__row strong {
+  min-width: 86px;
+  font-family: var(--font-number);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sales-summary__row.is-muted {
+  color: var(--ui-text-muted);
+}
+
+.sales-summary__row.is-discount {
+  color: var(--ui-danger);
+}
+
+.sales-summary.is-compact .sales-summary__total {
+  padding: 0 0 4px;
+}
+
+.sales-summary.is-compact .sales-summary__total strong {
+  font-size: 24px;
+}
+
+.sales-summary.is-compact .sales-summary__kpis {
+  display: none;
+}
+
+.sales-summary.is-compact .sales-summary__rows {
+  padding: 0;
+}
+
+/* 現金を数えて締める */
+.cash-count {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.admin-sales-modal .cash-count {
+  padding: 8px 0 0;
+}
+
+.cash-count__label {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cash-count__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.cash-count__row span {
+  flex: 1;
+}
+
+.cash-count__row strong {
+  width: 150px;
+  font-family: var(--font-number);
+  font-size: 16px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.cash-count__row input,
+.cash-count__memo-input {
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  font-size: 16px;
+}
+
+.cash-count__row input {
+  width: 150px;
+  font-family: var(--font-number);
+  font-weight: 900;
+  text-align: right;
+}
+
+.cash-count__memo-input {
+  width: 100%;
+}
+
+.cash-count__diff {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-ok-soft);
+  color: var(--ui-ok);
+}
+
+.cash-count__diff.is-off {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+}
+
+.cash-count__diff span {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.cash-count__diff strong {
+  font-family: var(--font-number);
+  font-size: 22px;
+  font-weight: var(--font-weight-number-strong);
+}
+
+.cash-count__submit {
+  width: 100%;
+  min-height: 48px;
   margin-top: 4px;
-  color: #666666;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.cash-count__submit:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.cash-count__done {
+  padding: 10px 12px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-ok-soft);
+  color: var(--ui-ok);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.cash-count__memo {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 取り消す理由 */
+.void-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.void-reasons button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.void-reasons button.is-active {
+  border-color: var(--ui-danger);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+}
+
+.void-reasons__detail {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-compact);
+  font-size: 16px;
+}
+
+.void-reasons__note {
+  padding: 8px 10px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+/* 知らせ・ボタン・入力の名前（売上の窓で共通） */
+.admin-sales-field__label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .admin-sales-inline-error,
 .admin-sales-inline-warning,
 .admin-sales-inline-success {
-  margin: 8px 0;
-  padding: 10px 12px;
-  border: 1px solid;
-  border-radius: var(--radius-control);
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: var(--ui-radius-compact);
   font-size: 13px;
+  font-weight: 700;
   line-height: 1.5;
 }
 
 .admin-sales-inline-error {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
 }
 
 .admin-sales-inline-error > span {
@@ -444,70 +676,50 @@
 }
 
 .admin-sales-inline-warning {
-  border-color: #fde68a;
-  background: #fffbeb;
-  color: #92400e;
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
 }
 
 .admin-sales-inline-success {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  background: var(--ui-ok-soft);
+  color: var(--ui-ok);
 }
 
 .admin-sales-button {
   min-height: 44px;
   padding: 9px 14px;
-  border-radius: var(--radius-control);
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: var(--font-weight-label);
+  font-size: 14px;
+  font-weight: 900;
 }
 
 .admin-sales-button--primary {
-  border: 1px solid var(--color-action-main);
-  background: var(--color-action-main);
-  color: #ffffff;
+  border-color: var(--ui-brand);
+  background: var(--ui-brand);
+  color: var(--ui-on-brand);
 }
 
-.admin-sales-button--secondary {
-  border: 1px solid var(--color-border-control);
-  background: #ffffff;
-  color: #333333;
+.admin-sales-button--danger {
+  border-color: var(--ui-danger);
+  background: var(--ui-danger);
+  color: var(--ui-on-brand);
+}
+
+.admin-sales-button--outline {
+  border-color: var(--ui-brand);
+  color: var(--ui-brand);
+}
+
+.admin-sales-button--danger-outline {
+  border-color: var(--ui-danger);
+  color: var(--ui-danger);
 }
 
 .admin-sales-button:disabled {
-  opacity: 0.52;
   cursor: default;
-}
-
-@media (min-width: 620px) {
-  .admin-sales-summary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .admin-sales-check__email {
-    max-width: 150px;
-  }
-}
-
-@media (max-width: 390px) {
-  .admin-sales-card--padded {
-    padding: 12px;
-  }
-
-  .admin-sales-summary__value {
-    font-size: 18px;
-  }
-
-  .admin-sales-check {
-    padding-right: 10px;
-    padding-left: 12px;
-  }
-
-  .admin-sales-check__email {
-    display: none;
-  }
+  opacity: 0.5;
 }

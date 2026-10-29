@@ -4,7 +4,6 @@ const {
   buildCheckoutCommandDocId,
   commandError,
   getTokyoDateKey,
-  normalizeGuestCount,
   normalizeItemStatus,
 } = require('./orderCommandShared')
 const { assertStoreAccess } = require('./orderCommandAuth')
@@ -135,6 +134,12 @@ async function voidCheckCommand(data, request) {
   })
 }
 
+function normalizeCorrectionGuestCount(value) {
+  const count = Number(value)
+  if (!Number.isFinite(count) || count < 0) return 0
+  return Math.min(999, Math.round(count))
+}
+
 function sameSortedIds(left, right) {
   if (left.length !== right.length) return false
   const a = [...left].sort()
@@ -199,7 +204,8 @@ async function correctCheckCommand(data, request) {
       tableId: check.tableId,
       tableName: check.tableNameSnapshot ?? null,
       orderId,
-      guestCount: normalizeGuestCount(data?.guestCount ?? check.guestCount),
+      // 0名の会計も0名のまま（会計確定は人数をそのまま残すので、打ち直しで客数を変えない）。
+      guestCount: normalizeCorrectionGuestCount(data?.guestCount ?? check.guestCount),
       checkoutItemCount: items.length,
       checkoutItemIds: checkItemIds,
       checkoutSourceSubtotalBeforeItemDiscount: itemsSubtotal,
@@ -255,9 +261,13 @@ function normalizeCashInput(value, { allowEmpty }) {
 }
 
 // 1日の締め。その日の会計をサーバーが数え直し、決まった名前で1件だけ書く（同じ日に2回押しても2件にならない）。
+// 会計の読み取りと締めの書き込みを1つのトランザクションにする。取り消し・打ち直しも締めの記録を読むので、
+// 同時に起きてもどちらかがやり直しになり、締めの数字と会計がずれない（2026-10-30 レビュー）。
+// 同じ要求（clientRequestId）がもう一度届いたときは、残した締めをそのまま返す（返事が届かず押し直したとき）。
 async function closeRegisterCommand(data, request) {
   const { storeId } = data ?? {}
   if (!storeId) throw commandError('invalid-argument', 'Store is required.')
+  const clientRequestId = String(data?.clientRequestId ?? '').trim().slice(0, 120) || null
   const db = getFirestore()
   const actor = await assertCanCloseRegister(db, request, storeId)
   const businessDate = getTokyoDateKey(new Date())
@@ -268,54 +278,58 @@ async function closeRegisterCommand(data, request) {
   const openingCash = normalizeCashInput(data?.openingCash, { allowEmpty: false })
   const countedCash = normalizeCashInput(data?.countedCash, { allowEmpty: true })
   const memo = String(data?.memo ?? '').trim().slice(0, CLOSING_MEMO_MAX_LENGTH)
-
-  const legacySnap = await db.collection('cashClosings')
-    .where('storeId', '==', storeId)
-    .where('businessDate', '==', businessDate)
-    .limit(1)
-    .get()
-  if (!legacySnap.empty) throw commandError('closing-already-exists', 'This business date is already closed.')
-
-  const checksSnap = await db.collection('checks').where('storeId', '==', storeId).get()
-  const checks = checksSnap.docs
-    .map(checkDoc => ({ id: checkDoc.id, ...checkDoc.data() }))
-    .filter(check => checkBusinessDate(check) === businessDate)
-  const summary = summarizeChecksForClosing(checks)
-  const cash = calculateCashCount({ cashSales: summary.cashSales, openingCash, countedCash })
-
   const closingRef = db.collection('cashClosings').doc(buildClosingDocId(storeId, businessDate))
+  const actionRef = db.collection('staffActions').doc()
   const now = FieldValue.serverTimestamp()
-  const payload = {
-    storeId,
-    businessDate,
-    ...summary,
-    ...cash,
-    memo,
-    closedAt: now,
-    closedByUid: request.auth?.uid ?? null,
-    closedByEmail: request.auth?.token?.email ?? null,
-    closedByStaffId: actor?.id ?? null,
-    closedByStaffName: actor?.name ?? null,
-    closingVersion: 2,
-  }
-  try {
-    await closingRef.create(payload)
-  } catch (error) {
-    if (error?.code === 6 || /already exists/i.test(String(error?.message ?? ''))) {
+
+  return db.runTransaction(async transaction => {
+    const closingSnap = await transaction.get(closingRef)
+    if (closingSnap.exists) {
+      const existing = closingSnap.data()
+      if (clientRequestId && existing.clientRequestId === clientRequestId) {
+        const { closedAt, ...rest } = existing
+        return { closingId: closingRef.id, ...rest }
+      }
       throw commandError('closing-already-exists', 'This business date is already closed.')
     }
-    throw error
-  }
-  await db.collection('staffActions').add(buildCheckActionPayload({
-    storeId,
-    actionType: 'register_close',
-    checkId: closingRef.id,
-    actor,
-    note: `${businessDate} の売上を締め ¥${summary.salesTotal.toLocaleString()}`,
-    now,
-    extra: { targetType: 'cashClosing' },
-  }))
-  return { closingId: closingRef.id, businessDate, ...summary, ...cash }
+    const legacySnap = await transaction.get(db.collection('cashClosings')
+      .where('storeId', '==', storeId)
+      .where('businessDate', '==', businessDate)
+      .limit(1))
+    if (!legacySnap.empty) throw commandError('closing-already-exists', 'This business date is already closed.')
+
+    const checksSnap = await transaction.get(db.collection('checks').where('storeId', '==', storeId))
+    const checks = checksSnap.docs
+      .map(checkDoc => ({ id: checkDoc.id, ...checkDoc.data() }))
+      .filter(check => checkBusinessDate(check) === businessDate)
+    const summary = summarizeChecksForClosing(checks)
+    const cash = calculateCashCount({ cashSales: summary.cashSales, openingCash, countedCash })
+
+    transaction.set(closingRef, {
+      storeId,
+      businessDate,
+      ...summary,
+      ...cash,
+      memo,
+      clientRequestId,
+      closedAt: now,
+      closedByUid: request.auth?.uid ?? null,
+      closedByEmail: request.auth?.token?.email ?? null,
+      closedByStaffId: actor?.id ?? null,
+      closedByStaffName: actor?.name ?? null,
+      closingVersion: 2,
+    })
+    transaction.set(actionRef, buildCheckActionPayload({
+      storeId,
+      actionType: 'register_close',
+      checkId: closingRef.id,
+      actor,
+      note: `${businessDate} の売上を締め ¥${summary.salesTotal.toLocaleString()}`,
+      now,
+      extra: { targetType: 'cashClosing' },
+    }))
+    return { closingId: closingRef.id, businessDate, ...summary, ...cash }
+  })
 }
 
 module.exports = {

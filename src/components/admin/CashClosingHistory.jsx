@@ -18,7 +18,8 @@ export default function CashClosingHistory({ closings, onSelectDate }) {
             </div>
             <div className="admin-sales-history__meta">
               {closing.checkCount}件 ・ {closing.customerCount}名 ・ 客単価 ¥{Number(closing.averageSpend ?? 0).toLocaleString()}
-              {closing.closedByEmail && ` ・ ${closing.closedByEmail}`}
+              {Number.isFinite(Number(closing.cashDifference)) && closing.cashDifference !== null && ` ・ 現金の差額 ${Number(closing.cashDifference) > 0 ? '+' : Number(closing.cashDifference) < 0 ? '-' : ''}¥${Math.abs(Number(closing.cashDifference)).toLocaleString()}`}
+              {(closing.closedByStaffName || closing.closedByEmail) && ` ・ ${closing.closedByStaffName ?? closing.closedByEmail}`}
             </div>
             {closing.memo && <div className="admin-sales-history__memo">メモ: {closing.memo}</div>}
           </div>

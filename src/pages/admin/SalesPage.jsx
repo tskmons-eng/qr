@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import AdminSalesHeader from '../../components/admin/AdminSalesHeader'
 import CashClosingHistory from '../../components/admin/CashClosingHistory'
-import CashClosingPanel from '../../components/admin/CashClosingPanel'
+import CheckCorrectionScreen from '../../components/admin/CheckCorrectionScreen'
+import CheckVoidSheet from '../../components/admin/CheckVoidSheet'
 import SalesAssigneeManagerModal from '../../components/admin/SalesAssigneeManagerModal'
 import SalesCheckDetailModal from '../../components/admin/SalesCheckDetailModal'
 import SalesHistoryView from '../../components/admin/SalesHistoryView'
-import SalesSummaryCards from '../../components/admin/SalesSummaryCards'
-import TodayCheckList from '../../components/admin/TodayCheckList'
+import SalesTodayView from '../../components/admin/SalesTodayView'
 import { useAuth } from '../../contexts/AuthContext'
 import { useStaffMember } from '../../contexts/StaffMemberContext'
 import { useStore } from '../../contexts/StoreContext'
@@ -18,7 +18,6 @@ import {
   buildSalesExportFilename,
   buildSalesExportRows,
   calculateAttributionSummary,
-  calculateSalesSummary,
   filterChecksByAssignee,
   filterChecksByDateRange,
   filterTodayChecks,
@@ -27,11 +26,19 @@ import {
   getMonthDateRange,
   joinChecksWithAttributions,
   sortChecksByCompletedAtDesc,
+  toTimestampDate,
 } from '../../lib/adminSales'
+import { summarizeChecksForClosing } from '../../lib/closingSummary'
+import { createOrderCommandRequestId } from '../../lib/orderCommands'
+import { formatOrderCommandError, logOrderCommandError } from '../../lib/orderCommandErrors'
+import { normalizeStoreConfig } from '../../lib/settingsConfig'
 import { hasStaffPermission } from '../../lib/staffPermissions'
+import useNow from '../../hooks/useNow'
 import useSalesAssigneeManager from '../../hooks/useSalesAssigneeManager'
-import { createCashClosingRecord, loadSalesAdminData } from '../../services/adminSalesService'
+import { loadSalesAdminData } from '../../services/adminSalesService'
+import { closeRegisterCommand, voidCheckCommand } from '../../services/orderCommandService'
 import { saveSalesAttribution } from '../../services/salesHistoryService'
+import { loadStoreConfig } from '../../services/settingsService'
 
 const PAGE_SIZE = 50
 const ELEVATED_PERMISSION_DEFAULTS = {
@@ -58,6 +65,11 @@ function parseMonthKey(value) {
   return new Date(year, month - 1, 1, 12)
 }
 
+// その営業日の東京の正午（本日の会計を選ぶときの基準の日時）。
+function businessDayNoon(businessDate) {
+  return new Date(`${businessDate}T12:00:00+09:00`)
+}
+
 function filenameDate() {
   return getBusinessDate().replaceAll('-', '')
 }
@@ -78,11 +90,19 @@ export default function SalesPage() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [allChecks, setAllChecks] = useState([])
+  const [voidedChecks, setVoidedChecks] = useState([])
   const [closings, setClosings] = useState([])
   const [assignees, setAssignees] = useState([])
   const [attributions, setAttributions] = useState([])
-  const [todayClosed, setTodayClosed] = useState(false)
   const [memo, setMemo] = useState('')
+  const [openingCash, setOpeningCash] = useState('')
+  const [countedCash, setCountedCash] = useState('')
+  const [voidTarget, setVoidTarget] = useState(null)
+  const [voidError, setVoidError] = useState('')
+  const [voiding, setVoiding] = useState(false)
+  const [correction, setCorrection] = useState(null)
+  // 締めを押し直したとき（返事が届かなかったとき）に同じ要求として送り、二重の締めにも失敗にもしない。
+  const closeRequestIdRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [savingClosing, setSavingClosing] = useState(false)
@@ -95,7 +115,9 @@ export default function SalesPage() {
   const [managerOpen, setManagerOpen] = useState(false)
   const assigneeManager = useSalesAssigneeManager({ storeId, activeStaff, setAssignees })
 
-  const businessDate = getBusinessDate()
+  // 画面を開いたまま日付が変わったら、本日の一覧・集計・締めを新しい日に切り替える（2026-10-30 レビュー）。
+  const now = useNow(60000)
+  const businessDate = getBusinessDate(new Date(now))
   const activeView = searchParams.get('view') === 'history' ? 'history' : 'today'
   const periodMode = ['range', 'all'].includes(searchParams.get('period'))
     ? searchParams.get('period')
@@ -118,10 +140,13 @@ export default function SalesPage() {
 
   const applyLoadedData = useCallback(data => {
     setAllChecks(data.completedChecks)
+    setVoidedChecks(data.voidedChecks ?? [])
     setClosings(data.cashClosings)
     setAssignees(data.salesAssignees ?? [])
     setAttributions(data.salesAttributions ?? [])
-    setTodayClosed(data.cashClosings.some(closing => closing.businessDate === getBusinessDate()))
+    // 始めに入れたお釣りは、前の締めの額を初めの値にする（毎日同じ額のことが多い）。
+    const lastOpening = data.cashClosings.find(closing => Number.isFinite(Number(closing.openingCash)) && closing.openingCash !== null)
+    setOpeningCash(previous => previous || (lastOpening ? String(lastOpening.openingCash) : ''))
   }, [])
 
   const refreshData = useCallback(async ({ showLoading = false } = {}) => {
@@ -160,12 +185,30 @@ export default function SalesPage() {
     return () => { cancelled = true }
   }, [applyLoadedData, storeId])
 
+  // 日付が変わったら読み込み直し、前の日の現金の入力と締めの要求を消す。
+  const businessDateRef = useRef(businessDate)
+  useEffect(() => {
+    if (businessDateRef.current === businessDate) return
+    businessDateRef.current = businessDate
+    setCountedCash('')
+    setMemo('')
+    setClosingError('')
+    closeRequestIdRef.current = null
+    refreshData().catch(() => {})
+  }, [businessDate, refreshData])
+
   const joinedChecks = useMemo(
     () => joinChecksWithAttributions(allChecks, attributions, assignees),
     [allChecks, assignees, attributions]
   )
-  const todayChecks = useMemo(() => filterTodayChecks(joinedChecks), [joinedChecks])
-  const todaySummary = useMemo(() => calculateSalesSummary(todayChecks), [todayChecks])
+  const todayChecks = useMemo(() => filterTodayChecks(joinedChecks, businessDayNoon(businessDate)), [businessDate, joinedChecks])
+  const todayVoidedChecks = useMemo(() => filterTodayChecks(voidedChecks, businessDayNoon(businessDate)), [businessDate, voidedChecks])
+  const todaySummary = useMemo(
+    () => summarizeChecksForClosing([...todayChecks, ...todayVoidedChecks]),
+    [todayChecks, todayVoidedChecks]
+  )
+  const todayClosing = closings.find(closing => closing.businessDate === businessDate) ?? null
+  const closedDates = useMemo(() => new Set(closings.map(closing => closing.businessDate)), [closings])
   const periodChecks = useMemo(() => {
     if (periodMode === 'all') return joinedChecks
     const range = periodMode === 'month' ? monthRange : { startDate, endDate }
@@ -180,7 +223,14 @@ export default function SalesPage() {
     [assigneeFilter, periodChecks]
   )
   const visibleHistoryChecks = filteredHistoryChecks.slice(0, visibleCount)
-  const selectedCheck = joinedChecks.find(check => check.id === selectedCheckId) ?? null
+  const selectedCheck = joinedChecks.find(check => check.id === selectedCheckId)
+    ?? voidedChecks.find(check => check.id === selectedCheckId)
+    ?? null
+  // 締めた日の会計は直せない（締めの数字が後から変わらないように。サーバーでも断る）。
+  const selectedCheckDate = selectedCheck ? getBusinessDate(toTimestampDate(selectedCheck.completedAt) ?? new Date()) : null
+  const correctionLockedMessage = selectedCheckDate && closedDates.has(selectedCheckDate)
+    ? 'この日はもう締めてあるので、打ち直し・取り消しはできません。'
+    : ''
   const displayedChecks = activeView === 'history' ? filteredHistoryChecks : todayChecks
   const displayedSummary = useMemo(
     () => calculateAttributionSummary(activeView === 'history' ? periodChecks : todayChecks, assignees),
@@ -230,24 +280,68 @@ export default function SalesPage() {
     setDetailSuccess('')
   }
 
+  // 締めはサーバーがその日の会計を数え直して残す（2026-10-30 締め 第2章）。終わったら読み込み直して、残った記録を見せる。
   async function handleClose() {
-    if (todayClosed || savingClosing) return
+    if (todayClosing || savingClosing) return
     setSavingClosing(true)
     setClosingError('')
+    if (!closeRequestIdRef.current) closeRequestIdRef.current = createOrderCommandRequestId('close-register')
     try {
-      const newClosing = await createCashClosingRecord({
+      await closeRegisterCommand({
+        clientRequestId: closeRequestIdRef.current,
         storeId,
         businessDate,
+        openingCash: openingCash === '' ? 0 : Number(openingCash),
+        countedCash: countedCash === '' ? null : Number(countedCash),
         memo: memo.trim(),
-        summary: todaySummary,
       })
-      setClosings(previous => [newClosing, ...previous])
-      setTodayClosed(true)
+      await refreshData().catch(() => {})
     } catch (error) {
-      setClosingError(errorMessage(error, 'レジ締めを完了できませんでした。内容を確認して再試行してください。'))
+      setClosingError(formatOrderCommandError(error).message)
+      logOrderCommandError({ operation: 'close_register', error, metadata: { storeId, businessDate } })
+      if (error?.code === 'closing-already-exists' || error?.cause?.code === 'closing-already-exists') {
+        await refreshData().catch(() => {})
+      }
     } finally {
       setSavingClosing(false)
     }
+  }
+
+  async function handleVoid(reason) {
+    if (!voidTarget || voiding) return
+    setVoiding(true)
+    setVoidError('')
+    try {
+      await voidCheckCommand({ storeId, checkId: voidTarget.id, reason })
+      setVoidTarget(null)
+      await refreshData().catch(() => {})
+      setDetailSuccess('会計を取り消しました。')
+    } catch (error) {
+      setVoidError(formatOrderCommandError(error).message)
+      logOrderCommandError({ operation: 'void_check', error, metadata: { storeId, checkId: voidTarget.id } })
+    } finally {
+      setVoiding(false)
+    }
+  }
+
+  async function handleStartCorrection(items) {
+    if (!selectedCheck) return
+    // 税率が残っていない会計は、サーバーと同じく店の設定の税率を使う（Number(null) は 0 になるので先に見る）。
+    const recordedTaxRate = selectedCheck.taxRate === null || selectedCheck.taxRate === undefined ? NaN : Number(selectedCheck.taxRate)
+    let taxRate = recordedTaxRate
+    if (!Number.isFinite(taxRate)) {
+      const config = await loadStoreConfig(storeId).catch(() => normalizeStoreConfig({}))
+      taxRate = config.taxRate
+    }
+    setCorrection({ check: selectedCheck, items, taxRate })
+  }
+
+  async function handleCorrectionDone(result) {
+    setCorrection(null)
+    await refreshData().catch(() => {})
+    setSelectedCheckId(result?.checkId ?? null)
+    setDetailError('')
+    setDetailSuccess('打ち直しました。こちらが新しい会計です。')
   }
 
   async function handleSaveAttribution(assigneeId) {
@@ -344,21 +438,29 @@ export default function SalesPage() {
         </div>
       ) : activeView === 'today' ? (
         <>
-          <SalesSummaryCards businessDate={businessDate} summary={todaySummary} />
-          <TodayCheckList checks={todayChecks} onSelectCheck={handleSelectCheck} />
-          <CashClosingPanel
+          <SalesTodayView
             businessDate={businessDate}
-            error={closingError}
-            memo={memo}
-            saving={savingClosing}
+            checks={[...todayChecks, ...todayVoidedChecks]}
+            closing={todayClosing}
+            closingPanelProps={{
+              cashSales: todaySummary.cashSales,
+              countedCash,
+              error: closingError,
+              memo,
+              openingCash,
+              saving: savingClosing,
+              onClose: handleClose,
+              onCountedCashChange: setCountedCash,
+              onMemoChange: setMemo,
+              onOpeningCashChange: setOpeningCash,
+            }}
             summary={todaySummary}
-            todayClosed={todayClosed}
-            onClose={handleClose}
-            onMemoChange={setMemo}
+            onSelectCheck={handleSelectCheck}
           />
-          <CashClosingHistory closings={closings} onSelectDate={handleClosingDrilldown} />
         </>
       ) : (
+        <>
+        <CashClosingHistory closings={closings} onSelectDate={handleClosingDrilldown} />
         <SalesHistoryView
           assigneeFilter={assigneeFilter}
           assignees={assignees}
@@ -377,17 +479,42 @@ export default function SalesPage() {
           onPeriodModeChange={handlePeriodModeChange}
           onSelectCheck={handleSelectCheck}
         />
+        </>
       )}
 
       <SalesCheckDetailModal
         assignees={assignees}
-        check={selectedCheck}
+        check={voidTarget || correction ? null : selectedCheck}
+        correctionLockedMessage={correctionLockedMessage}
         error={detailError}
         saving={detailSaving}
         successMessage={detailSuccess}
         onClose={() => setSelectedCheckId(null)}
+        onCorrect={handleStartCorrection}
         onSaveAttribution={handleSaveAttribution}
+        onVoid={() => {
+          setVoidError('')
+          setVoidTarget(selectedCheck)
+        }}
       />
+      <CheckVoidSheet
+        check={voidTarget}
+        error={voidError}
+        saving={voiding}
+        onClose={() => setVoidTarget(null)}
+        onVoid={handleVoid}
+      />
+      {correction && (
+        <CheckCorrectionScreen
+          activeStaff={activeStaff}
+          check={correction.check}
+          items={correction.items}
+          storeId={storeId}
+          taxRate={correction.taxRate}
+          onCancel={() => setCorrection(null)}
+          onDone={handleCorrectionDone}
+        />
+      )}
       <SalesAssigneeManagerModal
         {...assigneeManager.modalProps}
         assignees={assignees}

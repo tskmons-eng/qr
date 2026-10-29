@@ -1,10 +1,10 @@
 // 会計の品の一覧（見るだけ）。品ごとの値引きは「値引き」ボタンの奥（CheckoutDiscountSheet）で入れる。
-export default function CheckoutItemList({ rows }) {
+export default function CheckoutItemList({ rows, title = '注文の品' }) {
   const quantity = rows.reduce((sum, { item }) => sum + (Number(item.quantity) || 0), 0)
 
   return (
     <div className="checkout-items">
-      <div className="checkout-items__title">注文の品（{rows.length}品・{quantity}点）</div>
+      <div className="checkout-items__title">{title}（{rows.length}品・{quantity}点）</div>
       {rows.map(({ item, amount, unitPrice, unitDiscount }) => (
         <div key={item.id} className="checkout-item-row">
           <div className="checkout-item-row__name">

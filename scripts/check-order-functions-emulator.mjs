@@ -1147,8 +1147,8 @@ async function runCheckCorrectionChecks(db, publicFunctions, staffFunctions, flo
   await expectCallableError('permission-denied', () => (
     call(floorFunctions, 'closeRegisterCommand', { storeId, openingCash: 30000 })
   ), 'floor staff without register permission closing')
-  const closeSettled = await Promise.allSettled(Array.from({ length: 4 }, () => (
-    call(staffFunctions, 'closeRegisterCommand', { storeId, openingCash: 30000, countedCash: 30000, memo: 'emulator' })
+  const closeSettled = await Promise.allSettled(Array.from({ length: 4 }, (_, index) => (
+    call(staffFunctions, 'closeRegisterCommand', { storeId, openingCash: 30000, countedCash: 30000, memo: 'emulator', clientRequestId: `${runId}_close_${index}` })
   )))
   const closed = closeSettled.filter(result => result.status === 'fulfilled')
   assert.equal(closed.length, 1, 'only one closing per business date')
@@ -1157,6 +1157,10 @@ async function runCheckCorrectionChecks(db, publicFunctions, staffFunctions, flo
   })
   const closingDocs = await queryBy(db, 'cashClosings', 'storeId', storeId)
   assert.equal(closingDocs.length, 1, 'closing should be written once')
+  // 返事が届かず同じ要求で押し直したときは、失敗にせず残した締めを返す。
+  const retried = await call(staffFunctions, 'closeRegisterCommand', { storeId, openingCash: 30000, clientRequestId: closingDocs[0].clientRequestId })
+  assert.equal(retried.closingId, closingDocs[0].id)
+  assert.equal(retried.salesTotal, closingDocs[0].salesTotal)
   const storeChecks = await queryBy(db, 'checks', 'storeId', storeId)
   const completed = storeChecks.filter(check => check.status === 'completed')
   assert.equal(closingDocs[0].salesTotal, completed.reduce((sum, check) => sum + (Number(check.total) || 0), 0))

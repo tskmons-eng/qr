@@ -39,8 +39,8 @@ assert.doesNotMatch(rules, /legacyPublic/, 'retired legacy public write switches
 // 2026-10-22 整理 第4章 K7：注文と会計は作成・書き換え・削除のすべてを Functions だけにする。
 assert.equal(
   countToken(rules, 'allow create, update, delete: if false;'),
-  3,
-  'orders, orderItems, and checks writes should all stay closed to clients'
+  4,
+  'orders, orderItems, checks, and cashClosings (2026-10-30 締め) writes should all stay closed to clients'
 )
 
 assert.match(
