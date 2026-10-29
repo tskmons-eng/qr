@@ -34,7 +34,7 @@ export function subscribeCheckoutData({ orderId, storeId }, onChange, onError) {
   return () => { stopped = true; stopItems(); stopOrder() }
 }
 
-export async function completeCashCheckout({
+export async function completeCheckout({
   storeId,
   tableId,
   orderId,

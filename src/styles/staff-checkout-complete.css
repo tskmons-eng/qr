@@ -1,45 +1,51 @@
 .checkout-complete {
   min-height: 100vh;
-  background: #f0fdf4;
+  background: var(--ui-ok-soft);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  font-family: var(--font-main);
 }
 
 .checkout-complete__icon {
-  color: #16a34a;
+  color: var(--ui-ok);
   font-size: 64px;
   line-height: 1;
   margin-bottom: 16px;
 }
 
 .checkout-complete__title {
-  color: #166534;
+  color: var(--ui-ok);
   font-size: 22px;
+  font-weight: 900;
   margin: 0 0 8px;
 }
 
 .checkout-complete__label {
-  color: #555;
+  color: var(--ui-text-muted);
   font-size: 15px;
+  font-weight: 800;
   margin: 0 0 8px;
 }
 
 .checkout-complete__change {
-  color: #166534;
+  color: var(--ui-ok);
+  font-family: var(--font-number);
   font-size: 52px;
-  font-weight: 800;
+  font-weight: var(--font-weight-number-strong);
   margin-bottom: 32px;
 }
 
 .checkout-complete__button {
-  background: #222;
+  background: var(--ui-brand);
   border: 0;
-  border-radius: 10px;
-  color: #fff;
+  border-radius: var(--ui-radius-control);
+  color: var(--ui-on-brand);
   cursor: pointer;
+  font-family: inherit;
   font-size: 16px;
+  font-weight: 900;
   padding: 14px 40px;
 }

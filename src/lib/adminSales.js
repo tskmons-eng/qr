@@ -1,3 +1,5 @@
+import { paymentMethodLabel } from './paymentMethods.js'
+
 const SALES_TIME_ZONE = 'Asia/Tokyo'
 
 function getTokyoDateParts(date = new Date()) {
@@ -215,7 +217,7 @@ export function buildSalesExportRows(checks, formatTimestamp) {
     check.total,
     check.receivedCash ?? '',
     check.changeAmount ?? '',
-    check.paymentMethod ?? '現金',
+    paymentMethodLabel(check.paymentMethod),
   ])
   return [header, ...rows]
 }
@@ -233,7 +235,7 @@ export function buildAttributedSalesExportRows(checks, formatTimestamp) {
     check.total,
     check.receivedCash ?? '',
     check.changeAmount ?? '',
-    check.paymentMethod ?? '現金',
+    paymentMethodLabel(check.paymentMethod),
   ])
   return [header, ...rows]
 }

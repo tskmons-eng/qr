@@ -1,12 +1,8 @@
+import { paymentMethodLabel } from '../../lib/paymentMethods'
 import { useEffect, useMemo, useState } from 'react'
 import { formatSalesTimestamp } from '../../lib/adminSales'
 import { loadCheckDetailItems } from '../../services/salesHistoryService'
 import AdminSalesModal from './AdminSalesModal'
-
-function paymentMethodLabel(method) {
-  if (!method || method === 'cash' || method === '現金') return '現金'
-  return method
-}
 
 function getOptionLabel(item) {
   const options = Array.isArray(item.optionSelections) ? item.optionSelections : []

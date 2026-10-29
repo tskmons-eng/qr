@@ -1,3 +1,5 @@
+import { isCashPayment } from './paymentMethods.js'
+
 export function calcDiscount(base, type, value) {
   const amount = Number(value)
   if (Number.isNaN(amount) || amount <= 0) return 0
@@ -50,6 +52,7 @@ export function calculateCheckoutTotals({
   discountValue,
   taxRate,
   receivedCash,
+  paymentMethod = 'cash',
 }) {
   const itemDiscountRows = items.map(item => {
     const config = itemDiscounts[item.id] ?? {}
@@ -64,7 +67,9 @@ export function calculateCheckoutTotals({
   const totalDiscountAmount = itemDiscountAmount + discountAmount
   const total = subtotal - discountAmount
   const taxAmount = taxRate > 0 ? Math.round(total * taxRate / (100 + taxRate)) : 0
-  const received = Number(receivedCash) || 0
+  // 現金以外（カード・QR決済）は店の端末で合計ちょうどを受け取るので、お預かりは合計・お釣りは0。
+  const isCash = isCashPayment(paymentMethod)
+  const received = isCash ? Number(receivedCash) || 0 : total
   const change = received >= total ? received - total : null
   const activeItemDiscounts = activeItemDiscountsFromRows(itemDiscountRows)
 
@@ -81,4 +86,24 @@ export function calculateCheckoutTotals({
     change,
     activeItemDiscounts,
   }
+}
+
+// 1人あたりの金額（割り勘）。1円未満は切り上げ。1名以下なら出さない。お客様の画面と同じ計算。
+export function calculatePerPerson(total, guestCount) {
+  return guestCount > 1 ? Math.ceil(total / guestCount) : null
+}
+
+// お預かりのボタン（2026-10-29 レジ 第2章）。「ちょうど」を先に、そのあと合計より多い切りのよい金額を3つまで。
+// 合計より少ない金額・同じ金額のボタンは出さない（.claude/rules/ui.md 1章）。
+export function buildCashPresets(total) {
+  if (!(total > 0)) return []
+  const tenThousands = Math.ceil(total / 10000) * 10000
+  const candidates = [
+    Math.ceil(total / 1000) * 1000,
+    Math.ceil(total / 5000) * 5000,
+    tenThousands,
+    tenThousands + 10000,
+  ]
+  const others = [...new Set(candidates.filter(amount => amount > total))].slice(0, 3)
+  return [{ amount: total, exact: true }, ...others.map(amount => ({ amount, exact: false }))]
 }

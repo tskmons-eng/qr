@@ -52,7 +52,6 @@ assert.deepEqual(totals.activeItemDiscounts, [
 ])
 
 const checkoutPage = await readFile('src/pages/staff/CheckoutPage.jsx', 'utf8')
-const checkoutConfirmBar = await readFile('src/components/staff/CheckoutConfirmBar.jsx', 'utf8')
 const checkoutPaymentPanel = await readFile('src/components/staff/CheckoutPaymentPanel.jsx', 'utf8')
 const checkoutLayoutStyles = await readFile('src/styles/staff-checkout-layout.css', 'utf8')
 const checkoutPaymentStyles = await readFile('src/styles/staff-checkout-payment.css', 'utf8')
@@ -60,19 +59,16 @@ const checkoutPaymentStyles = await readFile('src/styles/staff-checkout-payment.
 assert.ok(checkoutPage.includes('className="checkout-page__body"'), 'checkout page should separate scrollable content from fixed controls')
 assert.ok(checkoutPage.includes('className="checkout-page__items-scroll"'), 'checkout item list should have an independent scroll region')
 assert.ok(checkoutPage.includes('className="checkout-page__payment"'), 'checkout summary controls should remain outside the item scroll region')
-assert.ok(checkoutPage.includes('<CheckoutConfirmBar'), 'checkout cash input should be rendered in the fixed confirm area')
-assert.ok(checkoutPage.includes('onReceivedCashChange={setReceivedCash}'), 'checkout cash input handler should be passed to the fixed confirm area')
-assert.ok(checkoutConfirmBar.includes('checkout-confirm-bar__cash'), 'checkout cash input should live inside the fixed confirm bar')
-assert.ok(checkoutConfirmBar.includes('checkout-cash-input'), 'checkout confirm bar should own the received cash input')
-assert.ok(checkoutConfirmBar.includes('checkout-confirm-bar__submit'), 'checkout confirm submit button should be styled separately from cash preset buttons')
-assert.ok(!checkoutPaymentPanel.includes('checkout-cash-input'), 'checkout payment summary panel must not contain the received cash input')
+// 2026-10-29 レジ 第2章：品だけをスクロールさせ、合計〜お預かり〜確定はスクロールの外（スマホは下に固定、タブレットは右）に置く。
+assert.ok(checkoutPage.includes('onReceivedCashChange={setReceivedCash}'), 'checkout cash input handler should be passed to the payment area')
+assert.ok(checkoutPage.indexOf('className="checkout-page__payment"') > checkoutPage.indexOf('<CheckoutItemList'), 'checkout payment area should be outside the item scroll region')
+assert.ok(checkoutPaymentPanel.includes('checkout-cash-input'), 'checkout payment area should own the received cash input')
+assert.ok(checkoutPaymentPanel.includes('checkout-pay__submit'), 'checkout confirm button should live in the payment area')
 assert.ok(checkoutLayoutStyles.includes('.checkout-page__items-scroll'), 'checkout item scroll region should be styled')
-assert.ok(checkoutLayoutStyles.includes('max-height: clamp(130px, 28dvh, 220px)'), 'checkout item list should not push payment controls off screen')
 assert.ok(checkoutLayoutStyles.includes('overscroll-behavior: contain'), 'checkout item list should contain nested scroll momentum')
-assert.ok(checkoutLayoutStyles.includes('.checkout-page__payment'), 'checkout summary controls should have a separate scroll container')
-assert.ok(checkoutLayoutStyles.includes('padding-bottom: calc(var(--staff-bottom-nav-offset, 74px) + 270px)'), 'checkout body should leave room for the fixed cash and confirm controls')
-assert.ok(checkoutPaymentStyles.includes('bottom: var(--staff-bottom-nav-offset, 74px)'), 'checkout confirm bar should avoid the staff bottom nav')
-assert.ok(checkoutPaymentStyles.includes('.checkout-confirm-bar__cash'), 'checkout confirm bar should style the fixed cash input area')
+assert.ok(checkoutLayoutStyles.includes('padding-bottom: var(--staff-bottom-nav-offset, 74px)'), 'checkout controls should stay above the staff bottom nav')
+assert.ok(checkoutLayoutStyles.includes('@media (min-width: 900px)'), 'checkout should use the two-column layout on tablets')
+assert.ok(checkoutPaymentStyles.includes('.checkout-pay__presets'), 'checkout cash presets should be styled')
 
 
 // 2026-10-29 レジ 第1章：サーバーも同じ計算で合計を確かめる。画面とサーバーが同じ答えを出すこと。
@@ -138,5 +134,31 @@ const handlers = await readFile('functions/orderCommandHandlers.js', 'utf8')
 assert.ok(handlers.indexOf('assertCheckoutItemsFresh({\n      checkoutItemIds') < handlers.indexOf('recalculateCheckout({'), '品が変わったかを先に確かめてから合計を確かめる')
 assert.ok(checkoutPage.includes('subscribeCheckoutData('), '会計の品を見続ける')
 assert.ok(!checkoutPage.includes('setReceivedCash(\'\')'), '品が変わってもお預かりを消さない')
+
+// 2026-10-29 レジ 第2章：支払い方法・お預かりのボタン・割り勘。
+const { buildCashPresets, calculatePerPerson } = await import('../src/lib/checkoutCalculations.js')
+const { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } = await import('../src/lib/paymentMethods.js')
+assert.deepEqual(PAYMENT_METHOD_OPTIONS.map(option => option.value), server.PAYMENT_METHODS, '支払い方法の並びは画面とサーバーで同じ')
+assert.equal(paymentMethodLabel(undefined), '現金')
+assert.equal(paymentMethodLabel('現金'), '現金')
+assert.equal(paymentMethodLabel('card'), 'カード')
+assert.equal(paymentMethodLabel('qr'), 'QR決済')
+assert.deepEqual(buildCashPresets(7480).map(preset => preset.amount), [7480, 8000, 10000, 20000])
+assert.deepEqual(buildCashPresets(980).map(preset => preset.amount), [980, 1000, 5000, 10000])
+assert.deepEqual(buildCashPresets(10000).map(preset => preset.amount), [10000, 20000])
+assert.deepEqual(buildCashPresets(0), [])
+assert.ok(buildCashPresets(7480)[0].exact, '「ちょうど」が先')
+assert.equal(calculatePerPerson(7480, 4), 1870)
+assert.equal(calculatePerPerson(1000, 3), 334)
+assert.equal(calculatePerPerson(1000, 1), null)
+for (const paymentMethod of ['card', 'qr']) {
+  // 現金以外はお預かりを入れなくても確定でき、サーバーの計算と同じ数字を送る。
+  const client = calculateCheckoutTotals({ items: sampleItems, itemDiscounts: {}, discountType: null, discountValue: '', taxRate: 10, receivedCash: '', paymentMethod })
+  assert.equal(client.received, client.total)
+  assert.equal(client.change, 0)
+  const serverTotals = server.recalculateCheckout({ items: sampleItems, data: { paymentMethod, total: client.total, change: client.change, received: client.received }, taxRate: 10 })
+  assert.equal(serverTotals.total, client.total)
+}
+assert.equal(calculateCheckoutTotals({ items: sampleItems, itemDiscounts: {}, discountType: null, discountValue: '', taxRate: 10, receivedCash: '', paymentMethod: 'cash' }).change, null, '現金はお預かりが要る')
 
 console.log('checkout calculation checks passed')

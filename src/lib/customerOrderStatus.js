@@ -1,3 +1,5 @@
+import { calculatePerPerson } from './checkoutCalculations.js'
+
 export const ORDER_ITEM_STATUS_LABELS = {
   ordered: '準備中',
   served: '提供済み',
@@ -124,7 +126,7 @@ export function summarizeOrderItems(items, guestCount = 1) {
   const orderedCount = items.filter(item => normalizeCustomerOrderItemStatus(item?.itemStatus) === 'ordered').length
   const servedCount = items.filter(item => normalizeCustomerOrderItemStatus(item?.itemStatus) === 'served').length
   const cancelledCount = items.filter(item => normalizeCustomerOrderItemStatus(item?.itemStatus) === 'cancelled').length
-  const perPerson = guestCount > 1 ? Math.ceil(total / guestCount) : null
+  const perPerson = calculatePerPerson(total, guestCount)
 
   return {
     total,
