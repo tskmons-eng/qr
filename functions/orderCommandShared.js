@@ -205,6 +205,7 @@ function assertOpenOrder(order, { storeId, tableId }) {
 function buildCheckoutCheckPayload({
   storeId,
   tableId,
+  tableName,
   orderId,
   guestCount,
   subtotalBeforeItemDiscount,
@@ -231,6 +232,8 @@ function buildCheckoutCheckPayload({
   return withCommandFields({
     storeId,
     tableId,
+    // 売上の一覧で、どの席の会計か見分けられるように（2026-10-30 締め 第1章）
+    tableNameSnapshot: typeof tableName === 'string' && tableName.trim() ? tableName.trim() : null,
     orderId,
     guestCount: guestCount ?? 0,
     subtotalBeforeItemDiscount,
@@ -351,6 +354,7 @@ module.exports = {
   createOrderCommandRequestId,
   normalizeGuestCount,
   normalizeItemStatus,
+  getTokyoDateKey,
   normalizeOrderCommandItems,
   withCommandFields,
 }

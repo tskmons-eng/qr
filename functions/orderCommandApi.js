@@ -7,6 +7,7 @@ const {
 const { EXPECTED_PASSCODE_ERROR_CODES } = require('./cancelPasscode')
 const { EXPECTED_STAFF_CODE_ERROR_CODES } = require('./staffPasscode')
 const { EXPECTED_INVITE_ERROR_CODES } = require('./storeOnboarding')
+const { EXPECTED_CHECK_CORRECTION_ERROR_CODES } = require('./checkCorrection')
 
 // 打ち間違い・ロック・古い招待などは利用者の操作の結果で、システムの失敗ではない。失敗ログには残さない。
 // items-unavailable：売り切れになった品などで注文を止めたもの。お店の操作の結果で、システムの失敗ではない。
@@ -15,6 +16,7 @@ const EXPECTED_OPERATOR_ERROR_CODES = new Set([
   ...EXPECTED_PASSCODE_ERROR_CODES,
   ...EXPECTED_STAFF_CODE_ERROR_CODES,
   ...EXPECTED_INVITE_ERROR_CODES,
+  ...EXPECTED_CHECK_CORRECTION_ERROR_CODES,
 ])
 
 const ORDER_COMMAND_REGION = 'us-central1'
@@ -70,6 +72,13 @@ const COMMAND_HTTP_ERROR_CODES = new Map([
   ['product-scope-mismatch', 'failed-precondition'],
   ['category-scope-mismatch', 'failed-precondition'],
   ['items-unavailable', 'failed-precondition'],
+  ['check-not-found', 'not-found'],
+  ['check-scope-mismatch', 'failed-precondition'],
+  ['check-not-completed', 'failed-precondition'],
+  ['register-closed', 'failed-precondition'],
+  ['closing-already-exists', 'already-exists'],
+  ['closing-date-changed', 'failed-precondition'],
+  ['void-reason-required', 'invalid-argument'],
 ])
 
 function isFirestoreTransactionContentionError(error) {

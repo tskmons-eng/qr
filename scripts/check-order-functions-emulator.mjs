@@ -1077,6 +1077,98 @@ async function runCheckoutTotalVerification(db, publicFunctions, staffFunctions,
   assert.equal(check.paymentMethod, 'cash')
 }
 
+// 締め（2026-10-30 締め 第1章）：打ち直しは同時に届いても1件、取り消しは理由と権限が要る、締めは1日1件で、締めた日は直せない。
+async function runCheckCorrectionChecks(db, publicFunctions, staffFunctions, floorFunctions, productId) {
+  const tableId = `${runId}_correction_table`
+  await seedTable(db, tableId)
+  const orderId = await call(publicFunctions, 'startCustomerOrderSessionCommand', {
+    guestAutoAdd: { enabled: false }, guestCount: 2, storeId, tableId,
+  })
+  await call(publicFunctions, 'submitCustomerOrderItemsCommand', {
+    items: [cartItem(productId, 2)], orderId, storeId, tableId, clientRequestId: `${runId}_correction_submit`,
+  })
+  const items = await queryBy(db, 'orderItems', 'orderId', orderId)
+  const order = await orderData(db, orderId)
+  const total = items.reduce((sum, item) => sum + item.lineTotal, 0)
+  const checkId = await call(staffFunctions, 'completeCheckoutCommand', {
+    ...checkoutPayload({ checkoutItemIds: items.map(item => item.id), orderId, orderItemsRevision: order.orderItemsRevision ?? 0, tableId, total }),
+    received: total + 1000,
+    change: 1000,
+  })
+  const original = (await db.collection('checks').doc(checkId).get()).data()
+  assert.ok('tableNameSnapshot' in original, 'check should keep the table name')
+
+  await expectCallableError('permission-denied', () => (
+    call(floorFunctions, 'voidCheckCommand', { storeId, checkId, reason: '打ち間違い' })
+  ), 'floor staff without register permission voiding a check')
+  await expectCallableError('void-reason-required', () => (
+    call(staffFunctions, 'voidCheckCommand', { storeId, checkId, reason: '  ' })
+  ), 'voiding a check without a reason')
+  await expectCallableError('checkout-total-mismatch', () => (
+    call(staffFunctions, 'correctCheckCommand', { storeId, checkId, clientRequestId: `${runId}_bad_fix`, paymentMethod: 'card', total: 1 })
+  ), 'correcting a check with a wrong total')
+
+  const fix = { storeId, checkId, clientRequestId: `${runId}_fix`, guestCount: 3, paymentMethod: 'card', total, activeItemDiscounts: [] }
+  const settled = await Promise.allSettled(Array.from({ length: 5 }, () => call(staffFunctions, 'correctCheckCommand', fix)))
+  const rejected = settled.filter(result => result.status === 'rejected')
+  assert.equal(rejected.length, 0, `same correction retried should not reject: ${rejected.map(result => callableErrorCode(result.reason)).join(', ')}`)
+  const newIds = new Set(settled.map(result => result.value.checkId))
+  assert.equal(newIds.size, 1, 'same correction should converge to one new check')
+  const [newCheckId] = newIds
+  const checks = await queryBy(db, 'checks', 'orderId', orderId)
+  assert.equal(checks.length, 2, 'correction should leave the old check and one new check')
+  const oldCheck = checks.find(check => check.id === checkId)
+  const newCheck = checks.find(check => check.id === newCheckId)
+  assert.equal(oldCheck.status, 'voided')
+  assert.equal(oldCheck.correctedByCheckId, newCheckId)
+  assert.equal(newCheck.status, 'completed')
+  assert.equal(newCheck.paymentMethod, 'card')
+  assert.equal(newCheck.receivedCash, null)
+  assert.equal(newCheck.total, total)
+  assert.equal(newCheck.guestCount, 3)
+  assert.equal(newCheck.correctsCheckId, checkId)
+  assert.equal(newCheck.completedAt.toMillis(), oldCheck.completedAt.toMillis(), 'corrected check should stay on the same business date')
+  assert.equal((await orderData(db, orderId)).checkoutCheckId, newCheckId)
+  await expectCallableError('check-not-completed', () => (
+    call(staffFunctions, 'correctCheckCommand', { ...fix, clientRequestId: `${runId}_fix_again` })
+  ), 'correcting an already corrected check')
+
+  await call(staffFunctions, 'voidCheckCommand', { storeId, checkId: newCheckId, reason: '二重に会計した' })
+  const voided = (await db.collection('checks').doc(newCheckId).get()).data()
+  assert.equal(voided.status, 'voided')
+  assert.equal(voided.voidReason, '二重に会計した')
+
+  // 締め：同時に押しても1件。数字はサーバーが会計から数え直したもの。
+  const keepTable = `${runId}_closing_table`
+  await seedTable(db, keepTable)
+  const keepOrder = await call(publicFunctions, 'startCustomerOrderSessionCommand', { guestAutoAdd: { enabled: false }, guestCount: 2, storeId, tableId: keepTable })
+  const keepOrderData = await orderData(db, keepOrder)
+  const keepId = await call(staffFunctions, 'completeCheckoutCommand', checkoutPayload({ orderId: keepOrder, orderItemsRevision: keepOrderData.orderItemsRevision ?? 0, tableId: keepTable }))
+  await expectCallableError('permission-denied', () => (
+    call(floorFunctions, 'closeRegisterCommand', { storeId, openingCash: 30000 })
+  ), 'floor staff without register permission closing')
+  const closeSettled = await Promise.allSettled(Array.from({ length: 4 }, () => (
+    call(staffFunctions, 'closeRegisterCommand', { storeId, openingCash: 30000, countedCash: 30000, memo: 'emulator' })
+  )))
+  const closed = closeSettled.filter(result => result.status === 'fulfilled')
+  assert.equal(closed.length, 1, 'only one closing per business date')
+  closeSettled.filter(result => result.status === 'rejected').forEach(result => {
+    assert.equal(callableErrorCode(result.reason), 'closing-already-exists')
+  })
+  const closingDocs = await queryBy(db, 'cashClosings', 'storeId', storeId)
+  assert.equal(closingDocs.length, 1, 'closing should be written once')
+  const storeChecks = await queryBy(db, 'checks', 'storeId', storeId)
+  const completed = storeChecks.filter(check => check.status === 'completed')
+  assert.equal(closingDocs[0].salesTotal, completed.reduce((sum, check) => sum + (Number(check.total) || 0), 0))
+  assert.equal(closingDocs[0].checkCount, completed.length)
+  assert.equal(closingDocs[0].voidedCount, storeChecks.filter(check => check.status === 'voided').length)
+  assert.equal(closingDocs[0].expectedCash, 30000 + closingDocs[0].cashSales)
+  assert.equal(closingDocs[0].cashDifference, 30000 - closingDocs[0].expectedCash)
+  await expectCallableError('register-closed', () => (
+    call(staffFunctions, 'voidCheckCommand', { storeId, checkId: keepId, reason: '打ち間違い' })
+  ), 'voiding a check after the day is closed')
+}
+
 async function runDoubleCheckoutIdempotency(db, publicFunctions, staffFunctions) {
   const tableId = `${runId}_double_checkout_table`
   await seedTable(db, tableId)
@@ -1556,6 +1648,7 @@ await runOrderItemValidationChecks(db, publicClient.functions, staffClient.funct
 await runPendingAggregateTriggerChecks(db)
 await runReservationNotificationTriggerCheck(db)
 await runStoreOnboardingChecks(db)
+await runCheckCorrectionChecks(db, publicClient.functions, staffClient.functions, floorClient.functions, products.productId)
 
 // 画面側 Firestore の接続を閉じないと、チェックが終わってもプロセスが残る。
 await Promise.all([staffClient, deviceOnlyClient, floorClient, passcodeDeviceClient, ...extraStaffClients].map(client => terminateClientFirestore(client.firestore)))

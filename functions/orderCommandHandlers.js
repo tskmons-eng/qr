@@ -663,6 +663,7 @@ async function completeCheckoutCommand(data, request) {
       ...data,
       ...checkoutSnapshot,
       ...totals,
+      tableName: table.tableName ?? null,
       activeStaff,
       timestamp: now,
     }))

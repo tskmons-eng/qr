@@ -16,6 +16,12 @@ const COMMAND_ERROR_MESSAGES = {
   'checkout-items-stale': '注文明細が更新されました。会計内容を確認してからもう一度確定してください。',
   'checkout-total-mismatch': '合計が注文の品と合いません。画面を読み込み直して、もう一度確定してください。',
   'checkout-received-short': 'お預かりが合計より少ないです。金額を確かめてください。',
+  'check-not-found': '会計が見つかりません。画面を読み込み直してください。',
+  'check-not-completed': 'この会計はもう取り消し・打ち直しされています。画面を読み込み直してください。',
+  'register-closed': 'この日はもう締めてあるので、会計を直せません。',
+  'closing-already-exists': '今日はもう締めてあります。',
+  'closing-date-changed': '日付が変わりました。画面を読み込み直してから締めてください。',
+  'void-reason-required': '取り消す理由を選んでください。',
   'item-not-found': '対象の商品が見つかりません。画面を更新してください。',
   'item-table-mismatch': '商品と席の状態が一致しません。画面を更新してください。',
   'permission-denied': '操作権限がありません。スタッフ権限を確認してください。',
@@ -79,6 +85,12 @@ const NON_RETRYABLE_CODES = new Set([
   'checkout-items-stale',
   'checkout-total-mismatch',
   'checkout-received-short',
+  'check-not-found',
+  'check-not-completed',
+  'register-closed',
+  'closing-already-exists',
+  'closing-date-changed',
+  'void-reason-required',
   'item-not-found',
   'item-table-mismatch',
   'permission-denied',
@@ -118,6 +130,12 @@ const EXPECTED_OPERATOR_ERROR_CODES = new Set([
   'staff-code-locked',
   'staff-code-required',
   'staff-code-unchanged',
+  // 締め（2026-10-30）：締めた日の会計・二重の締め・理由なしの取り消しは、操作の結果
+  'register-closed',
+  'closing-already-exists',
+  'closing-date-changed',
+  'void-reason-required',
+  'check-not-completed',
 ])
 
 export function isExpectedOperatorError(error) {

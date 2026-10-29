@@ -1,10 +1,10 @@
 // src/lib/staffPermissions.js の STAFF_PERMISSION_PRESETS のうち、サーバーで使う権限だけの写し。
 // 食い違いは scripts/check-cancel-passcode.mjs が止める。
 const PRESET_PERMISSIONS = {
-  manager: { manageMenu: true, manageSettings: true, manageStaff: true },
-  operations: { manageMenu: false, manageSettings: false, manageStaff: false },
-  menuLead: { manageMenu: true, manageSettings: false, manageStaff: false },
-  floor: { manageMenu: false, manageSettings: false, manageStaff: false },
+  manager: { closeRegister: true, manageMenu: true, manageSettings: true, manageStaff: true },
+  operations: { closeRegister: true, manageMenu: false, manageSettings: false, manageStaff: false },
+  menuLead: { closeRegister: false, manageMenu: true, manageSettings: false, manageStaff: false },
+  floor: { closeRegister: false, manageMenu: false, manageSettings: false, manageStaff: false },
 }
 const DEFAULT_PRESET = 'operations'
 

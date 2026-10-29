@@ -51,7 +51,7 @@ const memberShapes = [
 ]
 for (const member of memberShapes) {
   const clientPermissions = normalizeStaffMemberPermissions(member, { ...LEGACY_STAFF_PERMISSIONS })
-  for (const key of ['manageMenu', 'manageSettings', 'manageStaff']) {
+  for (const key of ['closeRegister', 'manageMenu', 'manageSettings', 'manageStaff']) {
     assert.equal(
       staffPermission.staffMemberHasPermission(member, key),
       clientPermissions[key] === true,

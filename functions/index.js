@@ -9,6 +9,7 @@ const orderCommandHandlers = require('./orderCommandHandlers')
 const cancelPasscode = require('./cancelPasscode')
 const staffPasscode = require('./staffPasscode')
 const storeOnboarding = require('./storeOnboarding')
+const checkCorrection = require('./checkCorrection')
 
 initializeApp()
 
@@ -65,6 +66,19 @@ exports.seatStaffOrderSessionCommand = createOrderCommandCallable(orderCommandHa
 })
 exports.completeCheckoutCommand = createOrderCommandCallable(orderCommandHandlers.completeCheckoutCommand, {
   commandType: 'complete_checkout',
+  actorType: 'staff',
+})
+// 締め：会計の取り消し・打ち直しと、1日の締め（2026-10-30 締め 第1章）
+exports.voidCheckCommand = createOrderCommandCallable(checkCorrection.voidCheckCommand, {
+  commandType: 'void_check',
+  actorType: 'staff',
+})
+exports.correctCheckCommand = createOrderCommandCallable(checkCorrection.correctCheckCommand, {
+  commandType: 'correct_check',
+  actorType: 'staff',
+})
+exports.closeRegisterCommand = createOrderCommandCallable(checkCorrection.closeRegisterCommand, {
+  commandType: 'close_register',
   actorType: 'staff',
 })
 exports.markOrderItemServedCommand = createOrderCommandCallable(orderCommandHandlers.markOrderItemServedCommand, {
