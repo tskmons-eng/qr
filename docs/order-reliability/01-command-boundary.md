@@ -25,7 +25,6 @@
 - `src/services/tableMoveCommandService.js`
 - `src/services/orderCommandFailureService.js`
 - `src/lib/orderCommands.js`
-- `src/lib/orderCommandPayloads.js`
 - `src/lib/orderCommandFailures.js`
 - `scripts/check-order-command-boundary.mjs`
 

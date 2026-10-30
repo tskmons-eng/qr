@@ -36,11 +36,6 @@ const sourceAssertions = [
     forbidden: [],
   },
   {
-    file: 'src/lib/orderCommandPayloads.js',
-    required: ['orderedByStaffId: activeStaff?.id ?? null', 'orderedByStaffName: activeStaff?.name ?? null'],
-    forbidden: [],
-  },
-  {
     file: 'functions/orderCommandShared.js',
     required: ['function buildStaffOrderItemPayload({ activeStaff, cartItem, orderId, storeId, tableId, timestamp })', 'orderedByStaffId: activeStaff?.id ?? null', 'orderedByStaffName: activeStaff?.name ?? null'],
     forbidden: [],
