@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import AdminSalesHeader from '../../components/admin/AdminSalesHeader'
-import CashClosingHistory from '../../components/admin/CashClosingHistory'
 import CheckCorrectionScreen from '../../components/admin/CheckCorrectionScreen'
 import CheckVoidSheet from '../../components/admin/CheckVoidSheet'
 import SalesAssigneeManagerModal from '../../components/admin/SalesAssigneeManagerModal'
@@ -214,6 +213,16 @@ export default function SalesPage() {
     const range = periodMode === 'month' ? monthRange : { startDate, endDate }
     return filterChecksByDateRange(joinedChecks, range)
   }, [endDate, joinedChecks, monthRange.endDate, monthRange.startDate, periodMode, startDate])
+  const periodRange = periodMode === 'all' ? {} : periodMode === 'month' ? monthRange : { startDate, endDate }
+  const periodVoidedChecks = useMemo(
+    () => filterChecksByDateRange(voidedChecks, periodRange),
+    [periodRange.endDate, periodRange.startDate, voidedChecks] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const periodClosings = useMemo(
+    () => closings.filter(closing => (!periodRange.startDate || closing.businessDate >= periodRange.startDate)
+      && (!periodRange.endDate || closing.businessDate <= periodRange.endDate)),
+    [closings, periodRange.endDate, periodRange.startDate] // eslint-disable-line react-hooks/exhaustive-deps
+  )
   const attributionSummary = useMemo(
     () => calculateAttributionSummary(periodChecks, assignees),
     [assignees, periodChecks]
@@ -222,7 +231,20 @@ export default function SalesPage() {
     () => sortChecksByCompletedAtDesc(filterChecksByAssignee(periodChecks, assigneeFilter)),
     [assigneeFilter, periodChecks]
   )
-  const visibleHistoryChecks = filteredHistoryChecks.slice(0, visibleCount)
+  // 取り消した会計は担当で絞っていないときだけ一覧と集計に出す（担当は付いていないため）。
+  const historyListChecks = useMemo(
+    () => (assigneeFilter === 'all'
+      ? sortChecksByCompletedAtDesc([...filteredHistoryChecks, ...periodVoidedChecks])
+      : filteredHistoryChecks),
+    [assigneeFilter, filteredHistoryChecks, periodVoidedChecks]
+  )
+  const historySummary = useMemo(() => summarizeChecksForClosing(historyListChecks), [historyListChecks])
+  const historySummaryTitle = assigneeFilter === 'all'
+    ? '期間の売上'
+    : assigneeFilter === 'unassigned'
+      ? '担当未設定の売上'
+      : `${assignees.find(item => item.id === assigneeFilter)?.name ?? '担当'}の売上`
+  const visibleHistoryChecks = historyListChecks.slice(0, visibleCount)
   const selectedCheck = joinedChecks.find(check => check.id === selectedCheckId)
     ?? voidedChecks.find(check => check.id === selectedCheckId)
     ?? null
@@ -460,18 +482,21 @@ export default function SalesPage() {
         </>
       ) : (
         <>
-        <CashClosingHistory closings={closings} onSelectDate={handleClosingDrilldown} />
         <SalesHistoryView
           assigneeFilter={assigneeFilter}
           assignees={assignees}
+          attributionSummary={attributionSummary}
           checks={visibleHistoryChecks}
+          closings={periodClosings}
           endDate={endDate}
-          hasMore={visibleCount < filteredHistoryChecks.length}
+          hasMore={visibleCount < historyListChecks.length}
           monthKey={monthKey}
           periodMode={periodMode}
           startDate={startDate}
-          summary={attributionSummary}
-          totalCount={filteredHistoryChecks.length}
+          summary={historySummary}
+          summaryTitle={historySummaryTitle}
+          totalCount={historyListChecks.length}
+          onSelectClosingDate={handleClosingDrilldown}
           onAssigneeFilterChange={value => updateParams({ assignee: value === 'all' ? null : value })}
           onDateRangeChange={handleDateRangeChange}
           onLoadMore={() => setVisibleCount(count => count + PAGE_SIZE)}

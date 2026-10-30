@@ -15,6 +15,7 @@ function checkSubline(check) {
 
 export default function TodayCheckList({
   checks,
+  count = null,
   emptyMessage = '本日の会計はありません',
   includeDate = false,
   onSelectCheck,
@@ -23,7 +24,7 @@ export default function TodayCheckList({
   return (
     <section className="admin-sales-card">
       <div className="admin-sales-card__header">
-        <span>{title}（{checks.length}件）</span>
+        <span>{title}（{count ?? checks.length}件）</span>
         <span>新しい順</span>
       </div>
       {checks.length === 0 ? (

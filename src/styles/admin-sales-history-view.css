@@ -1,186 +1,193 @@
-.admin-sales-filters {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.admin-sales-period-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 3px;
-  border-radius: var(--radius-panel);
-  background: #f0f0f0;
-}
-
-.admin-sales-period-tabs button {
-  min-height: 44px;
-  padding: 7px 8px;
-  border: none;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: #666666;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: var(--font-weight-label);
-}
-
-.admin-sales-period-tabs button.is-active {
-  background: #ffffff;
-  color: var(--color-text-main);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.admin-sales-month-picker {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+/* 売上の「履歴」（2026-10-30 作り直し）。色・角・影は tokens.css の共通の値だけを使う。
+   上に絞り込みを1枚。タブレット（横）は左に会計、右に売上・担当別・締めの記録。スマホは1列。 */
+.sales-history__filters {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
+  padding: 6px;
+  overflow: visible;
 }
 
-.admin-sales-month-picker button {
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: #ffffff;
-  cursor: pointer;
-  font-size: 24px;
+.sales-history__period {
+  flex: 0 0 auto;
 }
 
-.admin-sales-month-picker strong {
+.sales-history__period button {
+  min-height: 40px;
+}
+
+.sales-history__month {
+  display: flex;
+  flex: 0 1 280px;
+  align-items: center;
+  gap: 4px;
+}
+
+.sales-history__month strong {
+  flex: 1;
+  font-family: var(--font-number);
+  font-size: 16px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
-.admin-sales-date-range {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: end;
-  gap: var(--space-2);
+.sales-history__month button {
+  width: 44px;
+  height: 40px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 900;
 }
 
-.admin-sales-date-range label,
-.admin-sales-assignee-filter {
+.sales-history__range {
+  display: flex;
+  flex: 1 1 280px;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
 }
 
-.admin-sales-date-range label span,
-.admin-sales-assignee-filter span {
-  display: block;
-  margin-bottom: 5px;
-  color: #666666;
-  font-size: 12px;
-  font-weight: var(--font-weight-label);
+.sales-history__range span {
+  color: var(--ui-text-muted);
+  font-weight: 900;
 }
 
-.admin-sales-date-range input,
-.admin-sales-assignee-filter select {
+.sales-history__range input,
+.sales-history__assignee-select select {
   box-sizing: border-box;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
+  font-size: 16px;
+}
+
+.sales-history__range input {
+  flex: 1;
+}
+
+.sales-history__assignee-select {
+  display: flex;
+  flex: 1 1 180px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sales-history__assignee-select span {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.sales-history__assignee-select select {
+  flex: 1;
+}
+
+/* 右の列（タブレット） */
+.sales-history__side {
+  position: sticky;
+  top: 8px;
+  flex: 0 0 400px;
+  min-width: 0;
+}
+
+/* 担当別 */
+.sales-history__assignees {
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.sales-history__assignee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   min-height: 44px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: #ffffff;
-  color: var(--color-text-main);
-}
-
-.admin-sales-date-range__separator {
-  padding-bottom: 12px;
-  color: var(--color-text-muted);
-}
-
-.admin-sales-attribution-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-}
-
-.admin-sales-attribution-summary__item {
-  display: grid;
-  min-width: 0;
-  min-height: 86px;
-  padding: 11px 12px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-panel);
-  background: #ffffff;
-  color: var(--color-text-main);
+  padding: 6px 12px;
+  border: 0;
+  border-top: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
   text-align: left;
 }
 
-.admin-sales-attribution-summary__item.is-unassigned {
-  border-color: #fcd34d;
-  background: #fffbeb;
+.sales-history__assignee:hover {
+  background: var(--ui-bg-subtle);
 }
 
-.admin-sales-attribution-summary__item.is-selected {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 1px #2563eb;
+.sales-history__assignee.is-unassigned .sales-history__assignee-name {
+  color: var(--ui-warn);
 }
 
-.admin-sales-attribution-summary__label {
+.sales-history__assignee.is-selected {
+  background: var(--ui-brand-soft);
+  box-shadow: inset 3px 0 0 var(--ui-brand);
+}
+
+.sales-history__assignee-name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
-  color: #666666;
-  font-size: 11px;
-  font-weight: var(--font-weight-label);
+  font-size: 14px;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.admin-sales-attribution-summary__item strong {
-  overflow: hidden;
-  margin-top: 3px;
+.sales-history__assignee-count {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sales-history__assignee strong {
+  min-width: 84px;
   font-family: var(--font-number);
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: right;
 }
 
-.admin-sales-attribution-summary__item small {
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.admin-sales-load-more {
+.sales-history__more {
   width: 100%;
-  min-height: 48px;
-  margin-bottom: var(--space-4);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-panel);
-  background: #ffffff;
-  color: #333333;
+  min-height: 44px;
+  margin-bottom: 8px;
+  border: 1px solid var(--ui-border-control);
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-main);
   cursor: pointer;
-  font-weight: var(--font-weight-label);
+  font-weight: 900;
 }
 
-@media (min-width: 620px) {
-  .admin-sales-attribution-summary {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+/* スマホ・縦のタブレット：履歴の会計は日付が付くので、日付と時刻を2段にして席名の幅を残す */
+@media (max-width: 899px) {
+  .sales-history .admin-sales-check__time {
+    width: 84px;
+    white-space: normal;
   }
 }
 
-@media (min-width: 768px) {
-  .admin-sales-attribution-summary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .admin-sales-date-range {
-    grid-template-columns: minmax(0, 1fr);
+/* スマホ：期間の切り替えと月を1段ずつ横いっぱいに */
+@media (max-width: 600px) {
+  .sales-history__period,
+  .sales-history__month {
+    flex: 1 1 100%;
   }
 
-  .admin-sales-date-range__separator {
-    display: none;
-  }
-}
-
-@media (max-width: 390px) {
-  .admin-sales-period-tabs button {
-    padding-right: 4px;
-    padding-left: 4px;
-    font-size: 12px;
+  .sales-history__period button {
+    flex: 1;
   }
 }

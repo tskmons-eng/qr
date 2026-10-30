@@ -1,4 +1,13 @@
+import useMediaQuery from '../../hooks/useMediaQuery'
+import CashClosingHistory from './CashClosingHistory'
+import SalesClosingSummary from './SalesClosingSummary'
 import TodayCheckList from './TodayCheckList'
+
+const PERIOD_OPTIONS = [
+  { value: 'month', label: '月ごと' },
+  { value: 'range', label: '期間' },
+  { value: 'all', label: '全期間' },
+]
 
 function formatMonthLabel(monthKey) {
   const [year, month] = String(monthKey).split('-')
@@ -6,10 +15,64 @@ function formatMonthLabel(monthKey) {
   return `${Number(year)}年${Number(month)}月`
 }
 
+function yen(value) {
+  return `¥${Number(value ?? 0).toLocaleString()}`
+}
+
+// 担当別の売上。1行ずつ並べ、押すとその担当で絞り込む（もう一度押すと全員に戻る）。
+function AssigneeSummaryList({ assigneeFilter, onAssigneeFilterChange, summary }) {
+  const rows = [
+    ...(summary.assignees ?? []).map(item => ({
+      id: item.assigneeId,
+      name: `${item.assigneeName}${item.isActive === false ? '（無効）' : ''}`,
+      checkCount: item.checkCount ?? 0,
+      salesTotal: item.salesTotal ?? 0,
+    })),
+    {
+      id: 'unassigned',
+      name: '担当未設定',
+      checkCount: summary.unassigned?.checkCount ?? 0,
+      salesTotal: summary.unassigned?.salesTotal ?? 0,
+      unassigned: true,
+    },
+  ].filter(row => row.checkCount > 0 || row.id === assigneeFilter)
+  if (rows.length === 0) return null
+
+  return (
+    <div className="sales-history__assignees">
+      <div className="admin-sales-card__header">
+        <span>担当別</span>
+        <span>押すと絞り込み</span>
+      </div>
+      {rows.map(row => {
+        const selected = assigneeFilter === row.id
+        return (
+          <button
+            key={row.id}
+            type="button"
+            aria-pressed={selected}
+            className={`sales-history__assignee${selected ? ' is-selected' : ''}${row.unassigned ? ' is-unassigned' : ''}`}
+            onClick={() => onAssigneeFilterChange(selected ? 'all' : row.id)}
+          >
+            <span className="sales-history__assignee-name">{row.name}</span>
+            <span className="sales-history__assignee-count">{row.checkCount}件</span>
+            <strong>{yen(row.salesTotal)}</strong>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// 売上の「履歴」（2026-10-30 作り直し）。上に絞り込み（期間・担当）を1枚にまとめ、
+// 期間の売上は本日と同じ形（支払い方法ごと・税・値引き・取り消し）で出す。
+// タブレット（横）：左に会計、右に売上・担当別・締めの記録。スマホ：上から絞り込み・売上・担当別・会計・締めの記録。
 export default function SalesHistoryView({
   assigneeFilter,
   assignees,
+  attributionSummary,
   checks,
+  closings,
   endDate,
   hasMore,
   monthKey,
@@ -19,131 +82,126 @@ export default function SalesHistoryView({
   onMonthMove,
   onPeriodModeChange,
   onSelectCheck,
+  onSelectClosingDate,
   periodMode,
   startDate,
   summary,
+  summaryTitle,
   totalCount,
 }) {
-  return (
-    <div className="admin-sales-history-view">
-      <section className="admin-sales-card admin-sales-card--padded admin-sales-filters" aria-label="会計履歴の絞り込み">
-        <div className="admin-sales-period-tabs" role="group" aria-label="期間">
-          <button
-            type="button"
-            className={periodMode === 'month' ? 'is-active' : ''}
-            onClick={() => onPeriodModeChange('month')}
-          >
-            月ごと
-          </button>
-          <button
-            type="button"
-            className={periodMode === 'range' ? 'is-active' : ''}
-            onClick={() => onPeriodModeChange('range')}
-          >
-            期間指定
-          </button>
-          <button
-            type="button"
-            className={periodMode === 'all' ? 'is-active' : ''}
-            onClick={() => onPeriodModeChange('all')}
-          >
-            全期間
-          </button>
-        </div>
+  const wide = useMediaQuery('(min-width: 900px)')
 
-        {periodMode === 'month' && (
-          <div className="admin-sales-month-picker">
-            <button type="button" aria-label="前月" onClick={() => onMonthMove(-1)}>‹</button>
-            <strong>{formatMonthLabel(monthKey)}</strong>
-            <button type="button" aria-label="翌月" onClick={() => onMonthMove(1)}>›</button>
-          </div>
-        )}
-
-        {periodMode === 'range' && (
-          <div className="admin-sales-date-range">
-            <label>
-              <span>開始日</span>
-              <input
-                type="date"
-                value={startDate}
-                max={endDate || undefined}
-                onChange={event => onDateRangeChange({ startDate: event.target.value, endDate })}
-              />
-            </label>
-            <span className="admin-sales-date-range__separator" aria-hidden="true">〜</span>
-            <label>
-              <span>終了日</span>
-              <input
-                type="date"
-                value={endDate}
-                min={startDate || undefined}
-                onChange={event => onDateRangeChange({ startDate, endDate: event.target.value })}
-              />
-            </label>
-          </div>
-        )}
-
-        <label className="admin-sales-assignee-filter">
-          <span>担当</span>
-          <select value={assigneeFilter} onChange={event => onAssigneeFilterChange(event.target.value)}>
-            <option value="all">すべて</option>
-            <option value="unassigned">担当未設定</option>
-            {assignees.map(assignee => (
-              <option key={assignee.id} value={assignee.id}>
-                {assignee.name}{assignee.isActive === false ? '（無効）' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
-      <section className="admin-sales-attribution-summary" aria-label="担当別集計">
-        <button
-          type="button"
-          className={`admin-sales-attribution-summary__item${assigneeFilter === 'all' ? ' is-selected' : ''}`}
-          onClick={() => onAssigneeFilterChange('all')}
-        >
-          <span className="admin-sales-attribution-summary__label">期間合計</span>
-          <strong>¥{Number(summary.salesTotal ?? 0).toLocaleString()}</strong>
-          <small>{summary.checkCount ?? 0}件</small>
-        </button>
-        <button
-          type="button"
-          className={`admin-sales-attribution-summary__item is-unassigned${assigneeFilter === 'unassigned' ? ' is-selected' : ''}`}
-          onClick={() => onAssigneeFilterChange('unassigned')}
-        >
-          <span className="admin-sales-attribution-summary__label">担当未設定</span>
-          <strong>¥{Number(summary.unassigned?.salesTotal ?? 0).toLocaleString()}</strong>
-          <small>{summary.unassigned?.checkCount ?? 0}件</small>
-        </button>
-        {summary.assignees?.map(item => (
+  const filters = (
+    <section className="admin-sales-card sales-history__filters" aria-label="会計履歴の絞り込み">
+      <div className="admin-sales-view-tabs sales-history__period" role="group" aria-label="期間">
+        {PERIOD_OPTIONS.map(option => (
           <button
-            key={item.assigneeId}
+            key={option.value}
             type="button"
-            className={`admin-sales-attribution-summary__item${assigneeFilter === item.assigneeId ? ' is-selected' : ''}`}
-            onClick={() => onAssigneeFilterChange(item.assigneeId)}
+            aria-pressed={periodMode === option.value}
+            className={periodMode === option.value ? 'is-active' : ''}
+            onClick={() => onPeriodModeChange(option.value)}
           >
-            <span className="admin-sales-attribution-summary__label">
-              {item.assigneeName}{item.isActive === false ? '（無効）' : ''}
-            </span>
-            <strong>¥{Number(item.salesTotal ?? 0).toLocaleString()}</strong>
-            <small>{item.checkCount ?? 0}件</small>
+            {option.label}
           </button>
         ))}
-      </section>
+      </div>
 
+      {periodMode === 'month' && (
+        <div className="sales-history__month">
+          <button type="button" aria-label="前の月" onClick={() => onMonthMove(-1)}>‹</button>
+          <strong>{formatMonthLabel(monthKey)}</strong>
+          <button type="button" aria-label="次の月" onClick={() => onMonthMove(1)}>›</button>
+        </div>
+      )}
+
+      {periodMode === 'range' && (
+        <div className="sales-history__range">
+          <input
+            type="date"
+            aria-label="始めの日"
+            value={startDate}
+            max={endDate || undefined}
+            onChange={event => onDateRangeChange({ startDate: event.target.value, endDate })}
+          />
+          <span aria-hidden="true">〜</span>
+          <input
+            type="date"
+            aria-label="終わりの日"
+            value={endDate}
+            min={startDate || undefined}
+            onChange={event => onDateRangeChange({ startDate, endDate: event.target.value })}
+          />
+        </div>
+      )}
+
+      <label className="sales-history__assignee-select">
+        <span>担当</span>
+        <select value={assigneeFilter} onChange={event => onAssigneeFilterChange(event.target.value)}>
+          <option value="all">全員</option>
+          <option value="unassigned">担当未設定</option>
+          {assignees.map(assignee => (
+            <option key={assignee.id} value={assignee.id}>
+              {assignee.name}{assignee.isActive === false ? '（無効）' : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+    </section>
+  )
+
+  const summaryCard = (
+    <>
+      <SalesClosingSummary summary={summary} title={summaryTitle} />
+      <AssigneeSummaryList
+        assigneeFilter={assigneeFilter}
+        summary={attributionSummary}
+        onAssigneeFilterChange={onAssigneeFilterChange}
+      />
+    </>
+  )
+
+  const list = (
+    <>
       <TodayCheckList
         checks={checks}
-        emptyMessage="対象期間の会計はありません"
+        count={totalCount}
+        emptyMessage="この期間の会計はありません"
         includeDate
+        title="会計"
         onSelectCheck={onSelectCheck}
-        title={`会計一覧（${totalCount}件）`}
       />
       {hasMore && (
-        <button type="button" className="admin-sales-load-more" onClick={onLoadMore}>
+        <button type="button" className="sales-history__more" onClick={onLoadMore}>
           さらに50件表示
         </button>
       )}
+    </>
+  )
+
+  const closingList = <CashClosingHistory closings={closings} onSelectDate={onSelectClosingDate} />
+
+  if (wide) {
+    return (
+      <div className="sales-history">
+        {filters}
+        <div className="sales-today">
+          <div className="sales-today__list">{list}</div>
+          <aside className="sales-history__side">
+            <section className="admin-sales-card">{summaryCard}</section>
+            {closingList}
+          </aside>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="sales-history">
+      {filters}
+      <section className="admin-sales-card">{summaryCard}</section>
+      {list}
+      {closingList}
     </div>
   )
 }

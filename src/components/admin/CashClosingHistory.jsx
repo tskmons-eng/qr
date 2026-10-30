@@ -1,9 +1,9 @@
 export default function CashClosingHistory({ closings, onSelectDate }) {
   return (
     <section className="admin-sales-card">
-      <div className="admin-sales-card__header">レジ締め履歴</div>
+      <div className="admin-sales-card__header">締めの記録</div>
       {closings.length === 0 ? (
-        <div className="admin-sales-empty">レジ締め履歴はありません</div>
+        <div className="admin-sales-empty">この期間の締めの記録はありません</div>
       ) : closings.map(closing => (
         <button
           key={closing.id}
