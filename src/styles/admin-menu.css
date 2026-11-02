@@ -632,3 +632,161 @@
   background: var(--ui-danger-soft);
   color: var(--ui-danger);
 }
+
+/* まとめて登録（CSV。2026-11-02） */
+.menu-import__sample {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 0.8fr;
+  overflow: hidden;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+  font-size: 12px;
+}
+
+.menu-import__sample span {
+  padding: 4px 8px;
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.menu-import__sample span:nth-child(-n + 3) {
+  border-top: 0;
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-muted);
+  font-weight: 800;
+}
+
+.menu-import__pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.menu-import__pick.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.menu-import__pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.menu-import__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.menu-import__summary b {
+  flex: 1 1 100%;
+  overflow: hidden;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-import__summary .is-error {
+  color: var(--ui-danger);
+}
+
+/* 登録するボタンは、縦の短いスマホでもシートの下に見えたままにする */
+.menu-import__actions {
+  position: sticky;
+  bottom: -24px;
+  margin: 0 -16px -24px;
+  padding: 8px 16px 24px;
+  background: var(--ui-bg-surface);
+}
+
+.menu-import__list {
+  max-height: 46vh;
+  overflow-y: auto;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-compact);
+}
+
+.menu-import__row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1.6fr) 64px;
+  align-items: center;
+  gap: 2px 6px;
+  padding: 5px 8px;
+  border-top: 1px solid var(--ui-border-subtle);
+  font-size: 13px;
+}
+
+.menu-import__row:first-child {
+  border-top: 0;
+}
+
+.menu-import__line {
+  grid-row: span 2;
+  color: var(--ui-text-muted);
+  font-family: var(--font-number);
+  font-size: 11px;
+}
+
+.menu-import__cat,
+.menu-import__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-import__cat {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+}
+
+.menu-import__cat em {
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: var(--ui-radius-compact);
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.menu-import__name {
+  font-weight: 800;
+}
+
+.menu-import__price {
+  font-family: var(--font-number);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.menu-import__status {
+  grid-column: 2 / -1;
+  color: var(--ui-ok);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.menu-import__row.is-skip {
+  background: var(--ui-bg-subtle);
+}
+
+.menu-import__row.is-skip .menu-import__status {
+  color: var(--ui-text-muted);
+}
+
+.menu-import__row.is-error {
+  background: var(--ui-danger-soft);
+}
+
+.menu-import__row.is-error .menu-import__status {
+  color: var(--ui-danger);
+}

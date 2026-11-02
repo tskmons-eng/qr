@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import MenuCategorySheet from '../../components/admin/MenuCategorySheet'
+import MenuImportSheet from '../../components/admin/MenuImportSheet'
 import MenuProductList from '../../components/admin/MenuProductList'
 import MenuProductSheet from '../../components/admin/MenuProductSheet'
 import { useStore } from '../../contexts/StoreContext'
@@ -29,6 +30,7 @@ export default function ProductPage() {
   const [filter, setFilter] = useState('all')
   const [productSheet, setProductSheet] = useState(null)
   const [categorySheet, setCategorySheet] = useState(null)
+  const [importOpen, setImportOpen] = useState(false)
   const [listError, setListError] = useState('')
   const reorder = useTouchReorder(async (type, dragId, targetId) => handleReorder(dragId, targetId))
 
@@ -83,6 +85,7 @@ export default function ProductPage() {
           </button>
         ))}
         <button type="button" onClick={() => setCategorySheet({})} className="menu-admin__chip">＋ 分類</button>
+        <button type="button" onClick={() => setImportOpen(true)} className="menu-admin__chip">まとめて登録</button>
       </div>
       {(menu.loadError || listError) && <p className="menu-sheet__error" role="alert">{menu.loadError || listError}</p>}
       {menu.loading ? (
@@ -118,6 +121,15 @@ export default function ProductPage() {
             : Promise.resolve('店の設定を読み込んでいます。少し待ってから、もう一度お試しください'))}
           onQuickCategory={menu.createCategory}
           onClose={() => setProductSheet(null)}
+        />
+      )}
+      {importOpen && (
+        <MenuImportSheet
+          products={menu.products}
+          categories={menu.categories}
+          blocked={Boolean(menu.loadError)}
+          onImport={menu.importProducts}
+          onClose={() => setImportOpen(false)}
         />
       )}
       {categorySheet && (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { serverTimestamp } from 'firebase/firestore'
 import { deleteProductImage, uploadProductImage } from '../lib/imageUpload'
 import {
@@ -6,11 +6,14 @@ import {
   buildCategoryUpdatePayload,
   buildNewProductPayload,
   buildProductUpdatePayload,
+  emptyProductForm,
   nextSortOrder,
   validateProductForm,
 } from '../lib/productForm'
+import { categoryKey } from '../lib/productCsv'
 import { reorderById, swapSortOrderById } from '../lib/sortOrder'
 import {
+  batchCreateProductRecords,
   batchUpdateCategorySortOrderRecords,
   batchUpdateProductSortOrderRecords,
   createCategoryRecord,
@@ -31,6 +34,7 @@ export default function useMenuAdmin(storeId) {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const importingRef = useRef(false)
 
   const loadData = useCallback(async () => {
     if (!storeId) return
@@ -39,8 +43,10 @@ export default function useMenuAdmin(storeId) {
       setProducts(data.products)
       setCategories(data.categories)
       setLoadError('')
+      return true
     } catch {
       setLoadError('メニューを読み込めませんでした。通信を確かめてください')
+      return false
     } finally {
       setLoading(false)
     }
@@ -127,6 +133,47 @@ export default function useMenuAdmin(storeId) {
     }
   }
 
+  // まとめて登録（CSV）：足りない分類を先に作り、商品は一覧の下へ入れた順に足す。
+  // 途中で失敗しても、もう一度読み込めば「もう登録があります」で飛ばされ、残りだけ入る。
+  async function importProducts(plan) {
+    const rows = plan.rows.filter(row => row.status === 'add')
+    if (rows.length === 0) return '登録する商品がありません'
+    if (importingRef.current) return '登録しています。終わるまでお待ちください'
+    importingRef.current = true
+    try {
+      const categoryIds = new Map()
+      let categorySortOrder = nextSortOrder(categories)
+      for (const name of plan.newCategoryNames) {
+        const id = await createCategoryRecord(buildCategoryPayload({
+          storeId,
+          name,
+          group: '',
+          sortOrder: categorySortOrder,
+          timestamp: serverTimestamp(),
+        }))
+        categorySortOrder += 1
+        categoryIds.set(categoryKey(name), id)
+      }
+      const firstSortOrder = nextSortOrder(products)
+      await batchCreateProductRecords(rows.map((row, index) => {
+        const form = { ...emptyProductForm, name: row.name, price: String(row.price), categoryId: row.categoryId ?? categoryIds.get(categoryKey(row.categoryName)) }
+        return {
+          ...buildProductUpdatePayload({ form, imageUrl: null, timestamp: serverTimestamp() }),
+          ...buildNewProductPayload({ storeId, form, sortOrder: firstSortOrder + index, timestamp: serverTimestamp() }),
+        }
+      }))
+      await loadData()
+      return null
+    } catch {
+      // 読み込み直せないと今ある分類・商品が分からず2重に作ってしまうので、読み込めるまで登録させない（画面は loadError で止める）。
+      return (await loadData())
+        ? '登録できませんでした。通信を確かめて、もう一度ファイルを選んでください（登録できた分は飛ばします）'
+        : '登録できませんでした。メニューを読み込み直せていないので、通信を確かめて画面を開き直してください'
+    } finally {
+      importingRef.current = false
+    }
+  }
+
   async function saveCategory({ categoryId, name, group, isActive }) {
     if (!name.trim()) return '分類の名前を入れてください'
     try {
@@ -202,6 +249,7 @@ export default function useMenuAdmin(storeId) {
     toggleProductFlag,
     deleteProduct,
     reorderProducts,
+    importProducts,
     saveCategory,
     createCategory,
     moveCategory,

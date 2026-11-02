@@ -36,13 +36,29 @@ export function deleteProductRecord(productId) {
   return deleteDoc(doc(db, 'products', productId))
 }
 
-// 並べ替え：変わった分をまとめて1回で保存する。
-async function batchUpdateSortOrder(collectionName, updates) {
-  const batch = writeBatch(db)
-  updates.forEach(update => {
+// 1回の書き込みは500件まで（Firestore の上限）。余裕を見て400件ずつに分ける。
+const BATCH_LIMIT = 400
+
+async function commitInChunks(rows, write) {
+  for (let start = 0; start < rows.length; start += BATCH_LIMIT) {
+    const batch = writeBatch(db)
+    rows.slice(start, start + BATCH_LIMIT).forEach(row => write(batch, row))
+    await batch.commit()
+  }
+}
+
+// 並べ替え：変わった分だけ保存する（ふつうは動かした1件）。
+function batchUpdateSortOrder(collectionName, updates) {
+  return commitInChunks(updates, (batch, update) => {
     batch.update(doc(db, collectionName, update.id), { sortOrder: update.sortOrder, updatedAt: serverTimestamp() })
   })
-  await batch.commit()
+}
+
+// まとめて登録：商品を400件ずつ新しく作る。
+export function batchCreateProductRecords(payloads) {
+  return commitInChunks(payloads, (batch, payload) => {
+    batch.set(doc(collection(db, 'products')), payload)
+  })
 }
 
 export function batchUpdateProductSortOrderRecords(updates) {
